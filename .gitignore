@@ -1,0 +1,10 @@
+node_modules/
+dist/
+runs/*
+!runs/.gitkeep
+tasks/*
+!tasks/.gitkeep
+.env.local
+*.lock
+
+vars.yaml

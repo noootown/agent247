@@ -1,0 +1,196 @@
+import { join } from "node:path";
+import { ulid } from "ulid";
+import { loadTaskConfig, loadGlobalVars, loadEnv } from "../lib/config.js";
+import { acquireLock, releaseLock } from "../lib/lock.js";
+import { resolveRuns } from "../lib/lifecycle.js";
+import { discoverItems } from "../lib/discovery.js";
+import { filterNewItems } from "../lib/dedup.js";
+import { render } from "../lib/template.js";
+import { executePrompt, parseClaudeOutput, extractTextFromJson } from "../lib/runner.js";
+import { writeRun, type RunMeta } from "../lib/report.js";
+import { createLogger } from "../lib/logger.js";
+
+export async function runCommand(taskId: string, baseDir: string): Promise<void> {
+  loadEnv(baseDir);
+  const runsDir = join(baseDir, "runs");
+  const startedAt = new Date().toISOString();
+
+  if (!acquireLock(taskId, baseDir)) {
+    console.log(`Task ${taskId} is already running, skipping.`);
+    return;
+  }
+
+  try {
+    const config = loadTaskConfig(taskId, baseDir);
+    const globalVars = loadGlobalVars(baseDir);
+
+    if (config.lifecycle) {
+      const resolved = resolveRuns(runsDir, taskId, config.lifecycle);
+      if (resolved > 0) {
+        console.log(`Resolved ${resolved} run(s) for ${taskId}`);
+      }
+    }
+
+    let items: Record<string, string>[];
+    try {
+      const discoveryCmd = render(config.discovery.command, globalVars, config.vars ?? {});
+      items = discoverItems(discoveryCmd);
+    } catch (err) {
+      const runId = ulid();
+      const runDir = join(runsDir, runId);
+      const logger = createLogger(join(runDir, "log.txt"));
+      logger.error(`Discovery failed: ${err}`);
+      writeRun(runDir, {
+        meta: {
+          schema_version: 1, id: runId, task: taskId, status: "error", reviewed: false,
+          url: null, item_key: null, started_at: startedAt,
+          finished_at: new Date().toISOString(), duration_seconds: 0, exit_code: 1,
+        },
+        log: logger.getEntries().join("\n"),
+      });
+      console.error(`Discovery failed for ${taskId}: ${err}`);
+      return;
+    }
+
+    const newItems = filterNewItems(runsDir, taskId, items, config.discovery.item_key);
+
+    if (newItems.length === 0) {
+      const runId = ulid();
+      const runDir = join(runsDir, runId);
+      const finishedAt = new Date().toISOString();
+      const logger = createLogger(join(runDir, "log.txt"));
+      logger.log(`No new items for ${taskId} (${items.length} discovered, all deduped)`);
+      writeRun(runDir, {
+        meta: {
+          schema_version: 1, id: runId, task: taskId, status: "skipped", reviewed: false,
+          url: null, item_key: null, started_at: startedAt, finished_at: finishedAt,
+          duration_seconds: Math.round((Date.parse(finishedAt) - Date.parse(startedAt)) / 1000),
+          exit_code: 0,
+        },
+        log: logger.getEntries().join("\n"),
+      });
+      return;
+    }
+
+    if (config.prompt_mode === "per_item") {
+      for (const item of newItems) {
+        await executeForItem(config, globalVars, item, runsDir);
+      }
+    } else {
+      await executeForBatch(config, globalVars, newItems, runsDir);
+    }
+  } finally {
+    releaseLock(taskId, baseDir);
+  }
+}
+
+async function executeForItem(
+  config: ReturnType<typeof loadTaskConfig>,
+  globalVars: Record<string, string>,
+  item: Record<string, string>,
+  runsDir: string,
+): Promise<void> {
+  const startedAt = new Date().toISOString();
+  const runId = ulid();
+  const runDir = join(runsDir, runId);
+  const taskVars = config.vars ?? {};
+  const renderedPrompt = render(config.prompt, globalVars, taskVars, item);
+
+  const logger = createLogger(join(runDir, "log.txt"));
+  logger.log(`Starting task: ${config.id}`);
+  logger.log(`Item: ${item[config.discovery.item_key]}`);
+  logger.log(`Rendered prompt (${renderedPrompt.length} chars)`);
+
+  const execResult = executePrompt(renderedPrompt, config.timeout, "claude", config.model);
+  const finishedAt = new Date().toISOString();
+
+  logger.log(`Process exited with code ${execResult.exitCode}${execResult.timedOut ? " (timed out)" : ""}`);
+
+  if (execResult.exitCode !== 0) {
+    logger.error(`stderr: ${execResult.stderr}`);
+    writeRun(runDir, {
+      meta: {
+        schema_version: 1, id: runId, task: config.id, status: "error", reviewed: false,
+        url: item[config.discovery.item_key] ?? null, item_key: item[config.discovery.item_key] ?? null,
+        started_at: startedAt, finished_at: finishedAt,
+        duration_seconds: Math.round((Date.parse(finishedAt) - Date.parse(startedAt)) / 1000),
+        exit_code: execResult.exitCode,
+      },
+      prompt: renderedPrompt, log: logger.getEntries().join("\n"),
+    });
+    return;
+  }
+
+  const textOutput = execResult.rawJson ? extractTextFromJson(execResult.rawJson) : execResult.stdout;
+  const parsed = parseClaudeOutput(textOutput);
+  logger.log(`Output: ${textOutput.length} chars, status: ${parsed.status}`);
+
+  writeRun(runDir, {
+    meta: {
+      schema_version: 1, id: runId, task: config.id, status: parsed.status, reviewed: false,
+      url: parsed.url ?? item[config.discovery.item_key] ?? null,
+      item_key: item[config.discovery.item_key] ?? null,
+      started_at: startedAt, finished_at: finishedAt,
+      duration_seconds: Math.round((Date.parse(finishedAt) - Date.parse(startedAt)) / 1000),
+      exit_code: execResult.exitCode,
+    },
+    prompt: renderedPrompt, rawJson: execResult.rawJson ?? undefined, report: parsed.report,
+    log: logger.getEntries().join("\n"),
+  });
+}
+
+async function executeForBatch(
+  config: ReturnType<typeof loadTaskConfig>,
+  globalVars: Record<string, string>,
+  items: Record<string, string>[],
+  runsDir: string,
+): Promise<void> {
+  const startedAt = new Date().toISOString();
+  const runId = ulid();
+  const runDir = join(runsDir, runId);
+  const taskVars = config.vars ?? {};
+
+  const itemsJson = JSON.stringify(items);
+  const itemsList = items.map((i) => `- ${i[config.discovery.item_key]}`).join("\n");
+  const batchVars = { items_json: itemsJson, items_list: itemsList };
+
+  const renderedPrompt = render(config.prompt, globalVars, taskVars, batchVars);
+
+  const logger = createLogger(join(runDir, "log.txt"));
+  logger.log(`Starting batch task: ${config.id} (${items.length} items)`);
+  logger.log(`Rendered prompt (${renderedPrompt.length} chars)`);
+
+  const execResult = executePrompt(renderedPrompt, config.timeout, "claude", config.model);
+  const finishedAt = new Date().toISOString();
+
+  logger.log(`Process exited with code ${execResult.exitCode}${execResult.timedOut ? " (timed out)" : ""}`);
+
+  if (execResult.exitCode !== 0) {
+    logger.error(`stderr: ${execResult.stderr}`);
+    writeRun(runDir, {
+      meta: {
+        schema_version: 1, id: runId, task: config.id, status: "error", reviewed: false,
+        url: null, item_key: null, started_at: startedAt, finished_at: finishedAt,
+        duration_seconds: Math.round((Date.parse(finishedAt) - Date.parse(startedAt)) / 1000),
+        exit_code: execResult.exitCode,
+      },
+      prompt: renderedPrompt, log: logger.getEntries().join("\n"),
+    });
+    return;
+  }
+
+  const textOutput = execResult.rawJson ? extractTextFromJson(execResult.rawJson) : execResult.stdout;
+  const parsed = parseClaudeOutput(textOutput);
+  logger.log(`Output: ${textOutput.length} chars, status: ${parsed.status}`);
+
+  writeRun(runDir, {
+    meta: {
+      schema_version: 1, id: runId, task: config.id, status: parsed.status, reviewed: false,
+      url: parsed.url, item_key: null, started_at: startedAt, finished_at: finishedAt,
+      duration_seconds: Math.round((Date.parse(finishedAt) - Date.parse(startedAt)) / 1000),
+      exit_code: execResult.exitCode,
+    },
+    prompt: renderedPrompt, rawJson: execResult.rawJson ?? undefined, report: parsed.report,
+    log: logger.getEntries().join("\n"),
+  });
+}
