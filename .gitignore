@@ -5,3 +5,4 @@ tasks/
 .env.local
 *.lock
 vars.yaml
+docs/superpowers
