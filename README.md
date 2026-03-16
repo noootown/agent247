@@ -15,13 +15,13 @@ pnpm link --global
 
 ```bash
 # Create a workspace (tasks, config, runs live here — separate from the app)
-agent247 init ~/Downloads/agent247/workspace
+agent247 init <path>
 
 # Point agent247 to your workspace (add to ~/.zshrc or ~/.bashrc)
 export AGENT247_BASE_DIR=~/Downloads/agent247-workspace
 
 # Edit your config
-cd ~/Downloads/agent247-workspace
+cd <path>
 vim vars.yaml      # set github username, repo, bot identity
 vim .env.local     # set GITHUB_TOKEN, etc.
 ```
