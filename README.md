@@ -15,7 +15,7 @@ pnpm link --global
 
 ```bash
 # Create a workspace (tasks, config, runs live here — separate from the app)
-agent247 init ~/Downloads/agent247-workspace
+agent247 init ~/Downloads/agent247/workspace
 
 # Point agent247 to your workspace (add to ~/.zshrc or ~/.bashrc)
 export AGENT247_BASE_DIR=~/Downloads/agent247-workspace
