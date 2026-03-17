@@ -32,6 +32,7 @@ export function executePrompt(
 	timeoutSeconds: number,
 	command: string = "claude",
 	model: string = "sonnet",
+	cwd?: string,
 ): ExecuteResult {
 	const isJson = command === "claude";
 	const args =
@@ -44,6 +45,7 @@ export function executePrompt(
 		timeout: timeoutSeconds * 1000,
 		env: process.env,
 		maxBuffer: 10 * 1024 * 1024,
+		cwd,
 	});
 
 	return {

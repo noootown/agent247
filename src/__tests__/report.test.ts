@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { listRuns, readRun, writeRun } from "../lib/report.js";
+import { findRunDir, listRuns, readRun, writeRun } from "../lib/report.js";
 
 const TEST_DIR = join(process.cwd(), "__test_report_tmp__");
 const RUNS_DIR = join(TEST_DIR, "runs");
@@ -15,7 +15,7 @@ afterEach(() => {
 
 describe("writeRun", () => {
 	it("writes all artifacts for a completed run", () => {
-		const runDir = join(RUNS_DIR, "01TEST001");
+		const runDir = join(RUNS_DIR, "test-task", "01TEST001");
 		writeRun(runDir, {
 			meta: {
 				schema_version: 1,
@@ -43,7 +43,7 @@ describe("writeRun", () => {
 	});
 
 	it("writes only meta and log for skipped runs", () => {
-		const runDir = join(RUNS_DIR, "01TEST002");
+		const runDir = join(RUNS_DIR, "test-task", "01TEST002");
 		writeRun(runDir, {
 			meta: {
 				schema_version: 1,
@@ -68,7 +68,7 @@ describe("writeRun", () => {
 
 describe("readRun", () => {
 	it("reads meta from a run directory", () => {
-		const runDir = join(RUNS_DIR, "01TEST003");
+		const runDir = join(RUNS_DIR, "test-task", "01TEST003");
 		writeRun(runDir, {
 			meta: {
 				schema_version: 1,
@@ -98,7 +98,7 @@ describe("listRuns", () => {
 			["01TESTA001", "task-a"],
 			["01TESTB001", "task-b"],
 		] as const) {
-			writeRun(join(RUNS_DIR, id), {
+			writeRun(join(RUNS_DIR, task, id), {
 				meta: {
 					schema_version: 1,
 					id,
@@ -122,7 +122,7 @@ describe("listRuns", () => {
 	});
 
 	it("filters by status", () => {
-		writeRun(join(RUNS_DIR, "01SKIP1"), {
+		writeRun(join(RUNS_DIR, "t", "01SKIP1"), {
 			meta: {
 				schema_version: 1,
 				id: "01SKIP1",
@@ -138,7 +138,7 @@ describe("listRuns", () => {
 			},
 			log: "log",
 		});
-		writeRun(join(RUNS_DIR, "01COMP1"), {
+		writeRun(join(RUNS_DIR, "t", "01COMP1"), {
 			meta: {
 				schema_version: 1,
 				id: "01COMP1",
@@ -157,5 +157,33 @@ describe("listRuns", () => {
 		const completed = listRuns(RUNS_DIR, { status: "completed" });
 		expect(completed).toHaveLength(1);
 		expect(completed[0].meta.status).toBe("completed");
+	});
+});
+
+describe("findRunDir", () => {
+	it("finds a run across task subdirectories", () => {
+		writeRun(join(RUNS_DIR, "task-a", "01FIND001"), {
+			meta: {
+				schema_version: 1,
+				id: "01FIND001",
+				task: "task-a",
+				status: "completed",
+				reviewed: false,
+				url: null,
+				item_key: null,
+				started_at: "2026-03-15T10:00:00Z",
+				finished_at: "2026-03-15T10:01:00Z",
+				duration_seconds: 60,
+				exit_code: 0,
+			},
+			log: "log",
+		});
+		expect(findRunDir(RUNS_DIR, "01FIND001")).toBe(
+			join(RUNS_DIR, "task-a", "01FIND001"),
+		);
+	});
+
+	it("returns null for nonexistent run", () => {
+		expect(findRunDir(RUNS_DIR, "NONEXISTENT")).toBeNull();
 	});
 });

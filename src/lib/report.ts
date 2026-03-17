@@ -44,7 +44,11 @@ export function writeRun(runDir: string, data: RunData): void {
 		writeFileSync(join(runDir, "prompt.rendered.md"), data.prompt);
 	}
 	if (data.rawJson !== undefined) {
-		writeFileSync(join(runDir, "raw.json"), data.rawJson);
+		let formatted = data.rawJson;
+		try {
+			formatted = JSON.stringify(JSON.parse(data.rawJson), null, 2);
+		} catch {}
+		writeFileSync(join(runDir, "raw.json"), formatted);
 	}
 	if (data.report !== undefined) {
 		writeFileSync(join(runDir, "report.md"), data.report);
@@ -75,10 +79,20 @@ export interface RunFilter {
 
 export function listRuns(runsDir: string, filter?: RunFilter): RunRecord[] {
 	if (!existsSync(runsDir)) return [];
-	const entries = readdirSync(runsDir, { withFileTypes: true })
-		.filter((d) => d.isDirectory())
-		.filter((d) => existsSync(join(runsDir, d.name, "meta.yaml")));
-	let runs = entries.map((d) => readRun(join(runsDir, d.name)));
+	const taskDirs = readdirSync(runsDir, { withFileTypes: true }).filter((d) =>
+		d.isDirectory(),
+	);
+	const allRunDirs: string[] = [];
+	for (const taskDir of taskDirs) {
+		const taskPath = join(runsDir, taskDir.name);
+		const runEntries = readdirSync(taskPath, { withFileTypes: true }).filter(
+			(d) => d.isDirectory() && existsSync(join(taskPath, d.name, "meta.yaml")),
+		);
+		for (const runEntry of runEntries) {
+			allRunDirs.push(join(taskPath, runEntry.name));
+		}
+	}
+	let runs = allRunDirs.map((dir) => readRun(dir));
 	if (filter?.task) runs = runs.filter((r) => r.meta.task === filter.task);
 	if (filter?.status)
 		runs = runs.filter((r) => r.meta.status === filter.status);
@@ -86,4 +100,16 @@ export function listRuns(runsDir: string, filter?: RunFilter): RunRecord[] {
 		runs = runs.filter((r) => r.meta.reviewed === filter.reviewed);
 	runs.sort((a, b) => a.meta.id.localeCompare(b.meta.id));
 	return runs;
+}
+
+export function findRunDir(runsDir: string, runId: string): string | null {
+	if (!existsSync(runsDir)) return null;
+	const taskDirs = readdirSync(runsDir, { withFileTypes: true }).filter((d) =>
+		d.isDirectory(),
+	);
+	for (const taskDir of taskDirs) {
+		const candidate = join(runsDir, taskDir.name, runId);
+		if (existsSync(join(candidate, "meta.yaml"))) return candidate;
+	}
+	return null;
 }

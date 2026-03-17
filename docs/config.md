@@ -12,6 +12,8 @@ workspace/
 │       ├── config.yaml    # Task definition
 │       └── prompt.md      # Prompt template
 └── runs/                  # Execution history (auto-generated)
+    └── <task-id>/
+        └── <ULID>/
 ```
 
 ## Task Config (`tasks/<task-id>/config.yaml`)
@@ -31,6 +33,7 @@ discovery:
 # Optional fields
 model: "sonnet"                   # Claude model (default: "sonnet")
 prompt_mode: "per_item"           # "per_item" (default) or "batch"
+cwd: "{{worktree_path}}"         # Working directory for Claude (supports templates)
 
 # Optional: task-specific template variables
 vars:
@@ -49,6 +52,8 @@ lifecycle:
 **`discovery.command`** — A shell command that must return a JSON array of objects. Each object becomes an item to process. Template variables (global + task vars) are substituted before execution. Timeout: 30 seconds.
 
 **`discovery.item_key`** — The field in each discovered item used for deduplication. Items with a key already seen in completed/no-action runs are skipped. Error runs are retried.
+
+**`cwd`** — Optional working directory for the Claude process. Supports template variables, so it can be set per-item (e.g., `{{worktree_path}}`). When set, Claude runs inside this directory and can read/edit files, run commands, and pick up `CLAUDE.md` project instructions.
 
 **`prompt_mode`** — Controls how Claude is invoked:
 - `per_item`: Claude is called once per discovered item. The item's fields are available as template variables.

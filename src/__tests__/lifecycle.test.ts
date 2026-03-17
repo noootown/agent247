@@ -16,7 +16,7 @@ afterEach(() => {
 
 describe("resolveRuns", () => {
 	it("marks completed run as resolved when resolve command matches", () => {
-		const runDir = join(RUNS_DIR, "01RESOLVE001");
+		const runDir = join(RUNS_DIR, "task-a", "01RESOLVE001");
 		writeRun(runDir, {
 			meta: {
 				schema_version: 1,
@@ -43,7 +43,7 @@ describe("resolveRuns", () => {
 	});
 
 	it("does not resolve when command output does not match", () => {
-		const runDir = join(RUNS_DIR, "01RESOLVE002");
+		const runDir = join(RUNS_DIR, "task-a", "01RESOLVE002");
 		writeRun(runDir, {
 			meta: {
 				schema_version: 1,
@@ -70,7 +70,7 @@ describe("resolveRuns", () => {
 	});
 
 	it("also resolves error runs", () => {
-		const runDir = join(RUNS_DIR, "01RESOLVE003");
+		const runDir = join(RUNS_DIR, "task-a", "01RESOLVE003");
 		writeRun(runDir, {
 			meta: {
 				schema_version: 1,
@@ -97,7 +97,7 @@ describe("resolveRuns", () => {
 	});
 
 	it("skips already resolved runs", () => {
-		writeRun(join(RUNS_DIR, "01RESOLVE004"), {
+		writeRun(join(RUNS_DIR, "task-a", "01RESOLVE004"), {
 			meta: {
 				schema_version: 1,
 				id: "01RESOLVE004",

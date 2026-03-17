@@ -16,6 +16,7 @@ export interface TaskConfig {
 	};
 	model: string;
 	prompt_mode: "per_item" | "batch";
+	cwd?: string;
 	lifecycle?: {
 		auto_resolve: boolean;
 		resolve_command: string;
@@ -55,6 +56,7 @@ export function loadTaskConfig(taskId: string, baseDir: string): TaskConfig {
 		discovery: raw.discovery as { command: string; item_key: string },
 		model: (raw.model as string) ?? "sonnet",
 		prompt_mode: (raw.prompt_mode as string) === "batch" ? "batch" : "per_item",
+		cwd: raw.cwd as string | undefined,
 		lifecycle: raw.lifecycle as TaskConfig["lifecycle"],
 		prompt,
 	};

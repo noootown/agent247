@@ -21,7 +21,7 @@ describe("filterNewItems", () => {
 	});
 
 	it("filters out items with completed runs", () => {
-		writeRun(join(RUNS_DIR, "01RUN001"), {
+		writeRun(join(RUNS_DIR, "task-a", "01RUN001"), {
 			meta: {
 				schema_version: 1,
 				id: "01RUN001",
@@ -47,7 +47,7 @@ describe("filterNewItems", () => {
 	});
 
 	it("includes items whose previous run was an error (retry)", () => {
-		writeRun(join(RUNS_DIR, "01RUN002"), {
+		writeRun(join(RUNS_DIR, "task-a", "01RUN002"), {
 			meta: {
 				schema_version: 1,
 				id: "01RUN002",
@@ -68,7 +68,7 @@ describe("filterNewItems", () => {
 	});
 
 	it("does not filter items from different tasks", () => {
-		writeRun(join(RUNS_DIR, "01RUN003"), {
+		writeRun(join(RUNS_DIR, "task-b", "01RUN003"), {
 			meta: {
 				schema_version: 1,
 				id: "01RUN003",
@@ -89,7 +89,7 @@ describe("filterNewItems", () => {
 	});
 
 	it("ignores resolved runs (item can be re-processed)", () => {
-		writeRun(join(RUNS_DIR, "01RUN004"), {
+		writeRun(join(RUNS_DIR, "task-a", "01RUN004"), {
 			meta: {
 				schema_version: 1,
 				id: "01RUN004",

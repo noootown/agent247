@@ -45,10 +45,10 @@ export async function runCommand(
 				globalVars,
 				config.vars ?? {},
 			);
-			items = discoverItems(discoveryCmd);
+			items = discoverItems(discoveryCmd, undefined, baseDir);
 		} catch (err) {
 			const runId = ulid();
-			const runDir = join(runsDir, runId);
+			const runDir = join(runsDir, taskId, runId);
 			const logger = createLogger(join(runDir, "log.txt"));
 			logger.error(`Discovery failed: ${err}`);
 			writeRun(runDir, {
@@ -80,7 +80,7 @@ export async function runCommand(
 
 		if (newItems.length === 0) {
 			const runId = ulid();
-			const runDir = join(runsDir, runId);
+			const runDir = join(runsDir, taskId, runId);
 			const finishedAt = new Date().toISOString();
 			const logger = createLogger(join(runDir, "log.txt"));
 			logger.log(
@@ -127,20 +127,25 @@ async function executeForItem(
 ): Promise<void> {
 	const startedAt = new Date().toISOString();
 	const runId = ulid();
-	const runDir = join(runsDir, runId);
+	const runDir = join(runsDir, config.id, runId);
 	const taskVars = config.vars ?? {};
 	const renderedPrompt = render(config.prompt, globalVars, taskVars, item);
+	const renderedCwd = config.cwd
+		? render(config.cwd, globalVars, taskVars, item)
+		: undefined;
 
 	const logger = createLogger(join(runDir, "log.txt"));
 	logger.log(`Starting task: ${config.id}`);
 	logger.log(`Item: ${item[config.discovery.item_key]}`);
 	logger.log(`Rendered prompt (${renderedPrompt.length} chars)`);
+	if (renderedCwd) logger.log(`Working directory: ${renderedCwd}`);
 
 	const execResult = executePrompt(
 		renderedPrompt,
 		config.timeout,
 		"claude",
 		config.model,
+		renderedCwd,
 	);
 	const finishedAt = new Date().toISOString();
 
@@ -209,7 +214,7 @@ async function executeForBatch(
 ): Promise<void> {
 	const startedAt = new Date().toISOString();
 	const runId = ulid();
-	const runDir = join(runsDir, runId);
+	const runDir = join(runsDir, config.id, runId);
 	const taskVars = config.vars ?? {};
 
 	const itemsJson = JSON.stringify(items);
@@ -219,16 +224,21 @@ async function executeForBatch(
 	const batchVars = { items_json: itemsJson, items_list: itemsList };
 
 	const renderedPrompt = render(config.prompt, globalVars, taskVars, batchVars);
+	const renderedCwd = config.cwd
+		? render(config.cwd, globalVars, taskVars)
+		: undefined;
 
 	const logger = createLogger(join(runDir, "log.txt"));
 	logger.log(`Starting batch task: ${config.id} (${items.length} items)`);
 	logger.log(`Rendered prompt (${renderedPrompt.length} chars)`);
+	if (renderedCwd) logger.log(`Working directory: ${renderedCwd}`);
 
 	const execResult = executePrompt(
 		renderedPrompt,
 		config.timeout,
 		"claude",
 		config.model,
+		renderedCwd,
 	);
 	const finishedAt = new Date().toISOString();
 

@@ -44,10 +44,10 @@ Claude CLI is invoked: `claude -p <prompt> --output-format json --model <model>`
 - The remaining text — stored as the markdown report
 
 ### 7. Run Persistence
-Each execution creates a ULID-named directory under `runs/`:
+Each execution creates a ULID-named directory under `runs/<task-id>/`:
 
 ```
-runs/<ulid>/
+runs/<task-id>/<ulid>/
 ├── meta.yaml            # Status, timestamps, item key, etc.
 ├── log.txt              # Timestamped execution log
 ├── prompt.rendered.md   # Final prompt sent to Claude

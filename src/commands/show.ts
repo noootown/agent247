@@ -1,10 +1,10 @@
-import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { readRun } from "../lib/report.js";
+import { findRunDir, readRun } from "../lib/report.js";
 
 export function showCommand(ulid: string, baseDir: string): void {
-	const runDir = join(baseDir, "runs", ulid);
-	if (!existsSync(runDir)) {
+	const runsDir = join(baseDir, "runs");
+	const runDir = findRunDir(runsDir, ulid);
+	if (!runDir) {
 		console.error(`Run not found: ${ulid}`);
 		process.exit(1);
 	}

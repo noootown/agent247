@@ -1,4 +1,5 @@
-import { join } from "node:path";
+import { existsSync } from "node:fs";
+import { join, resolve } from "node:path";
 import { listTasks, loadEnv } from "../lib/config.js";
 import { syncCrontab } from "../lib/crontab.js";
 
@@ -18,7 +19,13 @@ export function syncCommand(baseDir: string): void {
 		return;
 	}
 
-	const binPath = process.argv[1] ?? join(baseDir, "dist", "cli.js");
+	const projectRoot = resolve(import.meta.dirname ?? process.cwd(), "..");
+	const distCli = join(projectRoot, "dist", "cli.js");
+	if (!existsSync(distCli)) {
+		console.error(`Built CLI not found at ${distCli}. Run "pnpm build" first.`);
+		process.exit(1);
+	}
+	const binPath = `node ${distCli}`;
 	const runsDir = join(baseDir, "runs");
 
 	syncCrontab(enabledTasks, binPath, runsDir);
