@@ -3,7 +3,7 @@ import { ulid } from "ulid";
 import { loadEnv, loadGlobalVars, loadTaskConfig } from "../lib/config.js";
 import { filterNewItems } from "../lib/dedup.js";
 import { discoverItems } from "../lib/discovery.js";
-import { resolveRuns } from "../lib/lifecycle.js";
+import { processLifecycle } from "../lib/lifecycle.js";
 import { acquireLock, releaseLock } from "../lib/lock.js";
 import { createLogger } from "../lib/logger.js";
 import { writeRun } from "../lib/report.js";
@@ -31,10 +31,17 @@ export async function runCommand(
 		const config = loadTaskConfig(taskId, baseDir);
 		const globalVars = loadGlobalVars(baseDir);
 
+		let invalidatedKeys: Set<string> | undefined;
 		if (config.lifecycle) {
-			const resolved = resolveRuns(runsDir, taskId, config.lifecycle);
-			if (resolved > 0) {
-				console.log(`Resolved ${resolved} run(s) for ${taskId}`);
+			const lifecycle = processLifecycle(runsDir, taskId, config.lifecycle);
+			if (lifecycle.resolvedCount > 0) {
+				console.log(`Resolved ${lifecycle.resolvedCount} run(s) for ${taskId}`);
+			}
+			if (lifecycle.invalidatedKeys.size > 0) {
+				console.log(
+					`Invalidated ${lifecycle.invalidatedKeys.size} item(s) for ${taskId} (external state changed)`,
+				);
+				invalidatedKeys = lifecycle.invalidatedKeys;
 			}
 		}
 
@@ -76,6 +83,7 @@ export async function runCommand(
 			taskId,
 			items,
 			config.discovery.item_key,
+			invalidatedKeys,
 		);
 
 		if (newItems.length === 0) {

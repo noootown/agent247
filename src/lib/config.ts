@@ -76,10 +76,10 @@ export function loadEnv(baseDir: string): void {
 	const devEnvPath = join(baseDir, "dev.env");
 	const localEnvPath = join(baseDir, ".env.local");
 	if (existsSync(devEnvPath)) {
-		dotenvConfig({ path: devEnvPath });
+		dotenvConfig({ path: devEnvPath, quiet: true });
 	}
 	if (existsSync(localEnvPath)) {
-		dotenvConfig({ path: localEnvPath, override: true });
+		dotenvConfig({ path: localEnvPath, override: true, quiet: true });
 	}
 }
 

@@ -8,22 +8,36 @@ export interface LifecycleConfig {
 	resolve_when: string;
 }
 
-export function resolveRuns(
+export interface LifecycleResult {
+	resolvedCount: number;
+	invalidatedKeys: Set<string>;
+}
+
+/**
+ * Two-way lifecycle check:
+ * 1. pending runs where external state matches resolve_when → completed
+ * 2. completed runs where external state does NOT match → invalidated (allows re-processing)
+ * 3. error runs where external state matches → completed (externally resolved)
+ */
+export function processLifecycle(
 	runsDir: string,
 	taskId: string,
 	lifecycle: LifecycleConfig,
-): number {
-	if (!lifecycle.auto_resolve) return 0;
+): LifecycleResult {
+	const result: LifecycleResult = {
+		resolvedCount: 0,
+		invalidatedKeys: new Set(),
+	};
+	if (!lifecycle.auto_resolve) return result;
 
 	const runs = listRuns(runsDir, { task: taskId });
-	const resolvable = runs.filter(
-		(r) => r.meta.status === "completed" || r.meta.status === "error",
-	);
-
 	const pattern = new RegExp(lifecycle.resolve_when);
-	let resolvedCount = 0;
 
-	for (const run of resolvable) {
+	for (const run of runs) {
+		if (run.meta.status === "skipped") continue;
+		if (!run.meta.item_key) continue;
+
+		let matches: boolean;
 		try {
 			const itemVars: Record<string, string> = {};
 			if (run.meta.url) itemVars.url = run.meta.url;
@@ -36,12 +50,24 @@ export function resolveRuns(
 				shell: "/bin/bash",
 			}).trim();
 
-			if (pattern.test(output)) {
-				updateRunMeta(run.dir, { status: "resolved" });
-				resolvedCount++;
-			}
-		} catch {}
+			matches = pattern.test(output);
+		} catch {
+			continue;
+		}
+
+		if (run.meta.status === "completed" && !matches) {
+			// External state reverted → allow re-processing
+			result.invalidatedKeys.add(run.meta.item_key);
+		} else if (run.meta.status === "pending" && matches) {
+			// Externally resolved → mark completed
+			updateRunMeta(run.dir, { status: "completed" });
+			result.resolvedCount++;
+		} else if (run.meta.status === "error" && matches) {
+			// Error run but externally resolved → mark completed
+			updateRunMeta(run.dir, { status: "completed" });
+			result.resolvedCount++;
+		}
 	}
 
-	return resolvedCount;
+	return result;
 }

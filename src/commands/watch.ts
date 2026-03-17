@@ -33,9 +33,11 @@ export function watchCommand(baseDir: string): void {
 			const icon =
 				run.meta.status === "error"
 					? "✗"
-					: run.meta.status === "completed"
-						? "●"
-						: "○";
+					: run.meta.status === "pending"
+						? "◎"
+						: run.meta.status === "completed"
+							? "●"
+							: "○";
 			const time = new Date(run.meta.started_at).toLocaleTimeString("en-US", {
 				hour: "2-digit",
 				minute: "2-digit",

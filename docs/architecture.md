@@ -57,15 +57,26 @@ runs/<task-id>/<ulid>/
 
 ## Run Statuses
 
-| Status | Meaning |
-|--------|---------|
-| `skipped` | No new items to process |
-| `no-action` | Claude returned `NO_ACTION` |
-| `completed` | Successful execution with output |
-| `error` | Process failed or timed out |
-| `resolved` | Auto-resolved by lifecycle command |
+| Status | Meaning | Dedup behavior |
+|--------|---------|----------------|
+| `completed` | Bot finished (acted, dismissed, or no action needed) | Skip, unless lifecycle detects external state reverted |
+| `pending` | Bot unsure, needs human decision | Skip, unless lifecycle detects externally resolved |
+| `error` | Process failed or timed out | Retry |
+| `skipped` | No new items to process (run-level) | N/A |
+
+Claude signals status via output: `PENDING` → pending, `NO_ACTION` → completed, anything else → completed.
 
 Runs also have a `reviewed` boolean, toggled by `agent247 review <ulid>`.
+
+## Lifecycle (Two-Way)
+
+When a task has `lifecycle` configured, before each run the system performs two-way checks:
+
+1. **completed + external state reverted** → item key is invalidated, allowing re-processing via dedup
+2. **pending + external state matches** → auto-transitions to `completed`
+3. **error + external state matches** → auto-transitions to `completed`
+
+This means if a PR is reopened after being closed, or a review comment is unresolved after being resolved, the item will be re-processed on the next run.
 
 ## Crontab Integration
 

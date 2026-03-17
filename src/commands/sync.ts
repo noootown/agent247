@@ -21,11 +21,8 @@ export function syncCommand(baseDir: string): void {
 
 	const projectRoot = resolve(import.meta.dirname ?? process.cwd(), "..");
 	const distCli = join(projectRoot, "dist", "cli.js");
-	if (!existsSync(distCli)) {
-		console.error(`Built CLI not found at ${distCli}. Run "pnpm build" first.`);
-		process.exit(1);
-	}
-	const binPath = `node ${distCli}`;
+	const srcCli = join(projectRoot, "src", "cli.ts");
+	const binPath = existsSync(distCli) ? `node ${distCli}` : `npx tsx ${srcCli}`;
 	const runsDir = join(baseDir, "runs");
 
 	syncCrontab(enabledTasks, binPath, runsDir);

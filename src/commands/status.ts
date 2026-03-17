@@ -10,9 +10,7 @@ export function statusCommand(
 	if (options.task) filter.task = options.task;
 	let runs = listRuns(runsDir, filter);
 	if (!options.all) {
-		runs = runs.filter(
-			(r) => r.meta.status !== "skipped" && r.meta.status !== "no-action",
-		);
+		runs = runs.filter((r) => r.meta.status !== "skipped");
 	}
 	if (runs.length === 0) {
 		console.log("\n  No unreviewed runs.\n");
@@ -27,9 +25,11 @@ export function statusCommand(
 		const statusIcon =
 			run.meta.status === "error"
 				? "✗"
-				: run.meta.status === "completed"
-					? "●"
-					: "○";
+				: run.meta.status === "pending"
+					? "◎"
+					: run.meta.status === "completed"
+						? "●"
+						: "○";
 		const time = new Date(run.meta.started_at).toLocaleString();
 		const url = run.meta.url ?? "—";
 		console.log(

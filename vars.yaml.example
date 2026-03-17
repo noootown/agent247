@@ -1,3 +1,5 @@
 # Bot identity
 bot_name: Ian's Bot
 bot_signature: Automated review by Ian's Bot
+
+# Any vars being used in prompts

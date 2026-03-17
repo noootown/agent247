@@ -2,9 +2,15 @@ import { describe, expect, it } from "vitest";
 import { executePrompt, parseClaudeOutput } from "../lib/runner.js";
 
 describe("parseClaudeOutput", () => {
-	it("detects NO_ACTION response", () => {
+	it("detects PENDING response", () => {
+		const result = parseClaudeOutput("PENDING\nNeeds human review");
+		expect(result.status).toBe("pending");
+		expect(result.url).toBeNull();
+	});
+
+	it("treats NO_ACTION as completed", () => {
 		const result = parseClaudeOutput("NO_ACTION");
-		expect(result.status).toBe("no-action");
+		expect(result.status).toBe("completed");
 		expect(result.url).toBeNull();
 	});
 
