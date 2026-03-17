@@ -11,7 +11,10 @@ export function filterNewItems(
 	const skipKeys = new Set(
 		runs
 			.filter(
-				(r) => r.meta.status === "completed" || r.meta.status === "pending",
+				(r) =>
+					r.meta.status === "completed" ||
+					r.meta.status === "pending" ||
+					r.meta.status === "processing",
 			)
 			.map((r) => r.meta.item_key),
 	);

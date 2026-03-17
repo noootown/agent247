@@ -1,3 +1,4 @@
+import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { ulid } from "ulid";
 import { purgeBin } from "../lib/bin.js";
@@ -145,6 +146,23 @@ async function executeForItem(
 		: undefined;
 
 	const logger = createLogger(join(runDir, "log.txt"));
+	writeFileSync(join(runDir, "prompt.rendered.md"), renderedPrompt);
+	// Write initial meta so orphan runs are trackable
+	writeRun(runDir, {
+		meta: {
+			schema_version: 1,
+			id: runId,
+			task: config.id,
+			status: "processing",
+			url: item[config.discovery.item_key] ?? null,
+			item_key: item[config.discovery.item_key] ?? null,
+			started_at: startedAt,
+			finished_at: startedAt,
+			duration_seconds: 0,
+			exit_code: -1,
+		},
+		log: "",
+	});
 	logger.log(`Starting task: ${config.id}`);
 	logger.log(`Item: ${item[config.discovery.item_key]}`);
 	logger.log(`Rendered prompt (${renderedPrompt.length} chars)`);
@@ -239,6 +257,22 @@ async function executeForBatch(
 		: undefined;
 
 	const logger = createLogger(join(runDir, "log.txt"));
+	writeFileSync(join(runDir, "prompt.rendered.md"), renderedPrompt);
+	writeRun(runDir, {
+		meta: {
+			schema_version: 1,
+			id: runId,
+			task: config.id,
+			status: "processing",
+			url: null,
+			item_key: null,
+			started_at: startedAt,
+			finished_at: startedAt,
+			duration_seconds: 0,
+			exit_code: -1,
+		},
+		log: "",
+	});
 	logger.log(`Starting batch task: ${config.id} (${items.length} items)`);
 	logger.log(`Rendered prompt (${renderedPrompt.length} chars)`);
 	if (renderedCwd) logger.log(`Working directory: ${renderedCwd}`);

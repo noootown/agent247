@@ -196,6 +196,8 @@ export function watchCommand(
 				return `${YELLOW}◎${RESET}`;
 			case "completed":
 				return `${GREEN}●${RESET}`;
+			case "processing":
+				return `${YELLOW}${SPINNER[spinnerFrame % SPINNER.length]}${RESET}`;
 			case "skipped":
 				return `${DIM}○${RESET}`;
 			default:
@@ -212,6 +214,8 @@ export function watchCommand(
 				return `${YELLOW}${padded}${RESET}`;
 			case "completed":
 				return `${GREEN}${padded}${RESET}`;
+			case "processing":
+				return `${YELLOW}${padded}${RESET}`;
 			case "skipped":
 				return `${DIM}${padded}${RESET}`;
 			default:
@@ -415,14 +419,16 @@ export function watchCommand(
 		process.stdout.write(`${DIM}${"─".repeat(cols)}${RESET}\n`);
 
 		const visible = lines.slice(state.scroll, state.scroll + maxVisible);
-		for (const line of visible) {
-			const selected = line.index === state.cursor;
-			const row = renderListRow(line, cols, selected);
-			process.stdout.write(`${row}\n`);
+		for (let i = 0; i < maxVisible; i++) {
+			const line = visible[i];
+			if (line) {
+				const selected = line.index === state.cursor;
+				process.stdout.write(`${renderListRow(line, cols, selected)}\n`);
+			} else {
+				process.stdout.write("\n");
+			}
 		}
 
-		const footerY = rows;
-		process.stdout.write(`\x1B[${footerY};1H`);
 		process.stdout.write(`  ${DIM}? help  q quit${RESET}`);
 	}
 
@@ -502,8 +508,6 @@ export function watchCommand(
 			process.stdout.write(`${left}${SEPARATOR}${right}\n`);
 		}
 
-		const footerY = rows;
-		process.stdout.write(`\x1B[${footerY};1H`);
 		process.stdout.write(
 			`  ${DIM}↑↓ list  wasd report  ? help  q back${RESET}`,
 		);
@@ -568,8 +572,6 @@ export function watchCommand(
 		}
 
 		// Footer
-		const footerY = rows;
-		process.stdout.write(`\x1B[${footerY};1H`);
 		process.stdout.write(
 			`  ${DIM}↑↓ list  wasd report  ? help  q back${RESET}`,
 		);
@@ -608,8 +610,11 @@ export function watchCommand(
 			process.stdout.write(`${line}\n`);
 		}
 
-		const footerY = rows;
-		process.stdout.write(`\x1B[${footerY};1H`);
+		// Pad remaining rows
+		const usedRows = helpLines.length;
+		for (let i = usedRows; i < rows - 1; i++) {
+			process.stdout.write("\n");
+		}
 		process.stdout.write(`  ${DIM}esc/q/? back${RESET}`);
 	}
 
@@ -850,9 +855,9 @@ export function watchCommand(
 					spawn("open", [url], { stdio: "ignore" });
 				}
 			} else if (str === "\x1B[3~") {
-				// Delete key — remove selected run
+				// Delete key — remove selected run (not processing)
 				const line = lines[state.cursor];
-				if (line?.type === "run") {
+				if (line?.type === "run" && line.run.meta.status !== "processing") {
 					softDelete(line.run.dir);
 					state.splitRun = null;
 					state.reportScroll = 0;
@@ -954,9 +959,9 @@ export function watchCommand(
 				spawn("open", [url], { stdio: "ignore" });
 			}
 		} else if (str === "\x1B[3~") {
-			// Delete key — remove selected run
+			// Delete key — remove selected run (not processing)
 			const line = lines[state.cursor];
-			if (line?.type === "run") {
+			if (line?.type === "run" && line.run.meta.status !== "processing") {
 				softDelete(line.run.dir);
 				loadData();
 				if (state.cursor >= getVisibleLines().length) {

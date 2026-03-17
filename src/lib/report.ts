@@ -12,7 +12,7 @@ export interface RunMeta {
 	schema_version: number;
 	id: string;
 	task: string;
-	status: "skipped" | "completed" | "pending" | "error";
+	status: "skipped" | "completed" | "pending" | "error" | "processing";
 	url: string | null;
 	item_key: string | null;
 	started_at: string;
