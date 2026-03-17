@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { generateFencedBlock, replaceFencedSection } from "../lib/crontab.js";
+import { generateFencedBlock, replaceFencedSection } from "../crontab.js";
 
 describe("generateFencedBlock", () => {
 	it("generates crontab entries for enabled tasks", () => {

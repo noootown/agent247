@@ -7,7 +7,7 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { acquireLock, releaseLock } from "../lib/lock.js";
+import { acquireLock, releaseLock } from "../lock.js";
 
 const TEST_DIR = join(process.cwd(), "__test_lock_tmp__");
 const TASK_DIR = join(TEST_DIR, "tasks", "test-task");

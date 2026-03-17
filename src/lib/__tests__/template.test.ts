@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { render } from "../lib/template.js";
+import { render } from "../template.js";
 
 describe("template", () => {
 	it("substitutes simple variables", () => {

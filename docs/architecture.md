@@ -101,7 +101,13 @@ src/
 │   ├── sync.ts         # Crontab sync
 │   ├── init.ts         # Workspace scaffolding
 │   ├── clean.ts        # Run cleanup
-│   └── watch.ts        # Interactive dashboard
+│   └── watch/          # Interactive TUI dashboard
+│       ├── index.ts    # Entry point — wires state, input, render loop
+│       ├── state.ts    # State types, WatchContext, initialState()
+│       ├── data.ts     # loadData(), getVisibleLines()
+│       ├── actions.ts  # Shared key handlers (complete, pending, delete, etc.)
+│       ├── modes/      # Per-mode key handlers (list, split, confirm, help)
+│       └── render/     # Display (list, split, help, confirm, ANSI utilities)
 └── lib/
     ├── config.ts       # YAML config loading
     ├── discovery.ts    # Shell command → JSON items

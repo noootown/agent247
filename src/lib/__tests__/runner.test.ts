@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { executePrompt, parseClaudeOutput } from "../lib/runner.js";
+import { executePrompt, parseClaudeOutput } from "../runner.js";
 
 describe("parseClaudeOutput", () => {
 	it("detects PENDING response", () => {

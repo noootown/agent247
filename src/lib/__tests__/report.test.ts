@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { findRunDir, listRuns, readRun, writeRun } from "../lib/report.js";
+import { findRunDir, listRuns, readRun, writeRun } from "../report.js";
 
 const TEST_DIR = join(process.cwd(), "__test_report_tmp__");
 const RUNS_DIR = join(TEST_DIR, "runs");

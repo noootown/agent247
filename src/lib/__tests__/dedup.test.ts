@@ -1,8 +1,8 @@
 import { mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { filterNewItems } from "../lib/dedup.js";
-import { writeRun } from "../lib/report.js";
+import { filterNewItems } from "../dedup.js";
+import { writeRun } from "../report.js";
 
 const TEST_DIR = join(process.cwd(), "__test_dedup_tmp__");
 const RUNS_DIR = join(TEST_DIR, "runs");

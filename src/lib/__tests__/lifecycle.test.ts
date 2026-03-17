@@ -1,8 +1,8 @@
 import { mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { processLifecycle } from "../lib/lifecycle.js";
-import { readRun, writeRun } from "../lib/report.js";
+import { processLifecycle } from "../lifecycle.js";
+import { readRun, writeRun } from "../report.js";
 
 const TEST_DIR = join(process.cwd(), "__test_lifecycle_tmp__");
 const RUNS_DIR = join(TEST_DIR, "runs");

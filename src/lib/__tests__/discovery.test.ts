@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { discoverItems } from "../lib/discovery.js";
+import { discoverItems } from "../discovery.js";
 
 describe("discoverItems", () => {
 	it("parses JSON array from command output", () => {
