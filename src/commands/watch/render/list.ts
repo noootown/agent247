@@ -7,6 +7,7 @@ import {
 	formatAgo,
 	formatTime,
 	GREEN,
+	getSpinnerFrame,
 	MAGENTA,
 	RED,
 	RESET,
@@ -18,14 +19,9 @@ import {
 	YELLOW,
 } from "./ansi.js";
 
-let spinnerFrameRef = 0;
-export function setSpinnerFrame(frame: number): void {
-	spinnerFrameRef = frame;
-}
-
 export function taskSummary(group: TaskGroup, compact = false): string {
 	const statusLabel = group.running
-		? `${YELLOW}${SPINNER[spinnerFrameRef % SPINNER.length]} running${RESET}`
+		? `${YELLOW}${SPINNER[getSpinnerFrame() % SPINNER.length]} running${RESET}`
 		: !group.enabled
 			? `${DIM}disabled${RESET}`
 			: "";

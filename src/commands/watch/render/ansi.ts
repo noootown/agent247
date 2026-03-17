@@ -15,6 +15,10 @@ export function tickSpinner(): void {
 	spinnerFrame++;
 }
 
+export function getSpinnerFrame(): number {
+	return spinnerFrame;
+}
+
 // biome-ignore lint/suspicious/noControlCharactersInRegex: stripping ANSI escape sequences
 const ANSI_RE = /\x1B\[[0-9;]*m/g;
 // biome-ignore lint/suspicious/noControlCharactersInRegex: stripping OSC hyperlink sequences
