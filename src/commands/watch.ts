@@ -172,7 +172,50 @@ export function watchCommand(
 		const report = existsSync(reportPath)
 			? readFileSync(reportPath, "utf-8")
 			: "No report available.";
-		return [...header, ...report.split("\n")];
+		return [...header, ...report.split("\n").map(renderMarkdownLine)];
+	}
+
+	function renderMarkdownLine(line: string): string {
+		// Headings
+		if (/^#{1,3} /.test(line)) {
+			return `${BOLD}${line.replace(/^#{1,3} /, "")}${RESET}`;
+		}
+		// Bold **text**
+		line = line.replace(/\*\*(.+?)\*\*/g, `${BOLD}$1${RESET}`);
+		// Inline code `text` — #afb9fe
+		line = line.replace(/`(.+?)`/g, "\x1B[38;2;175;185;254m$1\x1B[0m");
+		// Horizontal rules
+		if (/^---+$/.test(line)) {
+			return `${DIM}${"─".repeat(40)}${RESET}`;
+		}
+		return line;
+	}
+
+	function scrollAnsi(text: string, skip: number): string {
+		if (skip <= 0) return text;
+		// biome-ignore lint/suspicious/noControlCharactersInRegex: matching ANSI/OSC sequences
+		const ansiPattern = /\x1B\[[0-9;]*m|\x1B\]8;;[^\x07]*\x07/g;
+		let visCount = 0;
+		let i = 0;
+		let activeAnsi = ""; // track active color/style state
+		while (i < text.length && visCount < skip) {
+			ansiPattern.lastIndex = i;
+			const match = ansiPattern.exec(text);
+			if (match && match.index === i) {
+				// Track active state: reset clears, others accumulate
+				if (match[0] === "\x1B[0m") {
+					activeAnsi = "";
+				} else if (match[0].startsWith("\x1B[")) {
+					activeAnsi += match[0];
+				}
+				i += match[0].length;
+			} else {
+				visCount++;
+				i++;
+			}
+		}
+		// Prepend active ANSI state so colors carry over
+		return activeAnsi + text.substring(i);
 	}
 
 	function fitToWidth(text: string, width: number): string {
@@ -346,26 +389,10 @@ export function watchCommand(
 				left += " ".repeat(leftWidth - leftLen);
 			}
 
-			// Right pane — use plain text for scroll/truncation, colored for display
-			const plainRight = ` ${stripAnsi(reportLine)}`;
+			// Right pane — scroll then truncate, preserving ANSI colors
 			const colorRight = ` ${reportLine}`;
-			let right: string;
-			if (state.reportScrollX > 0 && plainRight.length <= state.reportScrollX) {
-				right = "";
-			} else if (state.reportScrollX > 0) {
-				const scrolledPlain = plainRight.substring(state.reportScrollX);
-				right =
-					scrolledPlain.length > rightWidth
-						? `${scrolledPlain.substring(0, rightWidth - 1)}…`
-						: scrolledPlain;
-			} else {
-				const visLen = stripAnsi(colorRight).length;
-				if (visLen > rightWidth) {
-					right = fitToWidth(colorRight, rightWidth);
-				} else {
-					right = colorRight;
-				}
-			}
+			const scrolled = scrollAnsi(colorRight, state.reportScrollX);
+			const right = fitToWidth(scrolled, rightWidth);
 
 			process.stdout.write(`${left}${SEPARATOR}${right}\n`);
 		}
