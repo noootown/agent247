@@ -88,5 +88,6 @@ describe("confirm mode — cancel", () => {
 		const next = handleKey("\x1B", makeState(), [], ctx);
 		expect(ctx.spawnRun).not.toHaveBeenCalled();
 		expect(next.mode).toBe("list");
+		expect(next.confirmTask).toBeNull();
 	});
 });
