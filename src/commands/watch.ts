@@ -1014,6 +1014,10 @@ export function watchCommand(
 		process.stdout.write("\x1B[?25h\x1B[?1049l");
 	}
 
+	// Sync crontab on startup
+	try {
+		syncCommand(baseDir);
+	} catch {}
 	loadData();
 	process.stdout.write("\x1B[?1049h\x1B[?25l");
 	process.stdin.setRawMode(true);
