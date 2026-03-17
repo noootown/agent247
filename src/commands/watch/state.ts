@@ -1,0 +1,55 @@
+import type { RunMeta, RunRecord } from "../../lib/report.js";
+
+export type ViewMode = "list" | "split" | "help" | "confirm-run";
+
+export interface TaskGroup {
+	task: string;
+	runs: RunRecord[];
+	expanded: boolean;
+	running: boolean;
+	enabled: boolean;
+}
+
+export type VisibleLine =
+	| { type: "group"; group: TaskGroup; index: number }
+	| { type: "run"; run: RunRecord; group: TaskGroup; index: number };
+
+export interface State {
+	groups: TaskGroup[];
+	cursor: number;
+	scroll: number;
+	mode: ViewMode;
+	splitRun: RunRecord | null;
+	reportScroll: number;
+	reportScrollX: number;
+	confirmTask: string | null;
+	confirmChoice: "yes" | "no";
+}
+
+export interface WatchContext {
+	baseDir: string;
+	runsDir: string;
+	binDir: string;
+	botName: string;
+	reload: (state: State) => State;
+	persistRunMeta: (runDir: string, updates: Partial<RunMeta>) => void;
+	softDelete: (runDir: string) => void;
+	stopTask: (taskId: string) => void;
+	toggleTask: (taskId: string) => void;
+	spawnRun: (taskId: string) => void;
+	openUrl: (url: string) => void;
+}
+
+export function initialState(): State {
+	return {
+		groups: [],
+		cursor: -1,
+		scroll: 0,
+		mode: "list",
+		splitRun: null,
+		reportScroll: 0,
+		reportScrollX: 0,
+		confirmTask: null,
+		confirmChoice: "yes",
+	};
+}
