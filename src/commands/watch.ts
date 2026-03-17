@@ -379,24 +379,32 @@ export function watchCommand(
 	function renderSplit(): void {
 		const rows = process.stdout.rows ?? 24;
 		const cols = process.stdout.columns ?? 80;
+		const vertical = cols / rows < 2.5; // narrow terminal → top/bottom
+
+		if (vertical) {
+			renderSplitVertical(rows, cols);
+		} else {
+			renderSplitHorizontal(rows, cols);
+		}
+	}
+
+	function renderSplitHorizontal(rows: number, cols: number): void {
 		const lines = getVisibleLines();
 		const leftWidth = Math.floor(cols * 0.4);
 		const rightWidth = cols - leftWidth - 1;
-		const contentRows = rows - 3; // header separator + footer
+		const contentRows = rows - 3;
 
 		if (state.cursor >= 0) {
 			if (state.cursor < state.scroll) state.scroll = state.cursor;
 			if (state.cursor >= state.scroll + contentRows)
 				state.scroll = state.cursor - contentRows + 1;
 		}
-
 		if (lines.length > 0 && state.cursor >= lines.length)
 			state.cursor = lines.length - 1;
 
 		const reportLines = state.splitRun
 			? getReportLines(state.splitRun)
 			: ["Select a run to view its report."];
-
 		if (state.reportScroll > reportLines.length - contentRows)
 			state.reportScroll = Math.max(0, reportLines.length - contentRows);
 		if (state.reportScroll < 0) state.reportScroll = 0;
@@ -408,7 +416,6 @@ export function watchCommand(
 
 		process.stdout.write("\x1B[2J\x1B[H");
 
-		// Header separator
 		const leftHeader = ` ${BOLD}${botName}${RESET} — ${state.groups.length} tasks`;
 		const rightHeader = ` ${BOLD}Report${RESET}`;
 		const leftHeaderPad = " ".repeat(
@@ -421,13 +428,11 @@ export function watchCommand(
 			`${DIM}${"─".repeat(leftWidth)}┼${"─".repeat(rightWidth)}${RESET}\n`,
 		);
 
-		// Content
 		const visibleList = lines.slice(state.scroll, state.scroll + contentRows);
 		for (let i = 0; i < contentRows; i++) {
 			const listLine = visibleList[i];
 			const reportLine = visibleReport[i] ?? "";
 
-			// Left pane
 			let left: string;
 			if (listLine) {
 				const selected = listLine.index === state.cursor;
@@ -440,12 +445,76 @@ export function watchCommand(
 				left += " ".repeat(leftWidth - leftLen);
 			}
 
-			// Right pane — scroll then truncate, preserving ANSI colors
 			const colorRight = ` ${reportLine}`;
 			const scrolled = scrollAnsi(colorRight, state.reportScrollX);
 			const right = fitToWidth(scrolled, rightWidth);
 
 			process.stdout.write(`${left}${SEPARATOR}${right}\n`);
+		}
+
+		const footerY = rows;
+		process.stdout.write(`\x1B[${footerY};1H`);
+		process.stdout.write(
+			`  ${DIM}↑↓ list  wasd report  ? help  q back${RESET}`,
+		);
+	}
+
+	function renderSplitVertical(rows: number, cols: number): void {
+		const lines = getVisibleLines();
+		const topRows = Math.floor((rows - 4) * 0.4); // list pane
+		const bottomRows = rows - 4 - topRows; // report pane
+
+		if (state.cursor >= 0) {
+			if (state.cursor < state.scroll) state.scroll = state.cursor;
+			if (state.cursor >= state.scroll + topRows)
+				state.scroll = state.cursor - topRows + 1;
+		}
+		if (lines.length > 0 && state.cursor >= lines.length)
+			state.cursor = lines.length - 1;
+
+		const reportLines = state.splitRun
+			? getReportLines(state.splitRun)
+			: ["Select a run to view its report."];
+		if (state.reportScroll > reportLines.length - bottomRows)
+			state.reportScroll = Math.max(0, reportLines.length - bottomRows);
+		if (state.reportScroll < 0) state.reportScroll = 0;
+
+		const visibleReport = reportLines.slice(
+			state.reportScroll,
+			state.reportScroll + bottomRows,
+		);
+
+		process.stdout.write("\x1B[2J\x1B[H");
+
+		// Header
+		process.stdout.write(
+			` ${BOLD}${botName}${RESET} — ${state.groups.length} tasks\n`,
+		);
+		process.stdout.write(`${DIM}${"─".repeat(cols)}${RESET}\n`);
+
+		// Top pane — list
+		const visibleList = lines.slice(state.scroll, state.scroll + topRows);
+		for (let i = 0; i < topRows; i++) {
+			const listLine = visibleList[i];
+			if (listLine) {
+				const selected = listLine.index === state.cursor;
+				process.stdout.write(`${renderListRow(listLine, cols, selected)}\n`);
+			} else {
+				process.stdout.write("\n");
+			}
+		}
+
+		// Separator
+		process.stdout.write(
+			`${DIM}${"─".repeat(cols)}${RESET} ${BOLD}Report${RESET}\n`,
+		);
+
+		// Bottom pane — report
+		for (let i = 0; i < bottomRows; i++) {
+			const reportLine = visibleReport[i] ?? "";
+			const colorRight = ` ${reportLine}`;
+			const scrolled = scrollAnsi(colorRight, state.reportScrollX);
+			process.stdout.write(`${fitToWidth(scrolled, cols)}\n`);
 		}
 
 		// Footer
@@ -474,6 +543,7 @@ export function watchCommand(
 			`    c           Mark selected run as ${GREEN}completed${RESET}`,
 			`    p           Mark selected run as ${YELLOW}pending${RESET}`,
 			`    r           Run selected task`,
+			`    u           Open run URL in browser`,
 			`    Delete      Delete selected run`,
 			"",
 			`  ${BOLD}General${RESET}`,
@@ -721,6 +791,12 @@ export function watchCommand(
 					line.run.meta.status = "pending";
 					render();
 				}
+			} else if (str === "u") {
+				const line = lines[state.cursor];
+				const url = line?.type === "run" ? line.run.meta.url : null;
+				if (url?.startsWith("http")) {
+					spawn("open", [url], { stdio: "ignore" });
+				}
 			} else if (str === "\x1B[3~") {
 				// Delete key — remove selected run
 				const line = lines[state.cursor];
@@ -811,6 +887,12 @@ export function watchCommand(
 				updateRunMeta(line.run.dir, { status: "pending" });
 				line.run.meta.status = "pending";
 				render();
+			}
+		} else if (str === "u") {
+			const line = lines[state.cursor];
+			const url = line?.type === "run" ? line.run.meta.url : null;
+			if (url?.startsWith("http")) {
+				spawn("open", [url], { stdio: "ignore" });
 			}
 		} else if (str === "\x1B[3~") {
 			// Delete key — remove selected run
