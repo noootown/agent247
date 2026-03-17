@@ -22,7 +22,6 @@ interface TaskGroup {
 }
 
 type ViewMode = "list" | "split" | "help";
-type SplitFocus = "list" | "report";
 
 interface State {
 	groups: TaskGroup[];
@@ -30,8 +29,8 @@ interface State {
 	scroll: number;
 	mode: ViewMode;
 	splitRun: RunRecord | null;
-	splitFocus: SplitFocus;
 	reportScroll: number;
+	reportScrollX: number;
 }
 
 export function watchCommand(
@@ -48,8 +47,8 @@ export function watchCommand(
 		scroll: 0,
 		mode: "list",
 		splitRun: null,
-		splitFocus: "list",
 		reportScroll: 0,
+		reportScrollX: 0,
 	};
 
 	function loadData(): void {
@@ -276,7 +275,7 @@ export function watchCommand(
 
 		const footerY = rows;
 		process.stdout.write(`\x1B[${footerY};1H`);
-		process.stdout.write(`  ${DIM}h help  q quit${RESET}`);
+		process.stdout.write(`  ${DIM}? help  q quit${RESET}`);
 	}
 
 	function renderSplit(): void {
@@ -343,30 +342,18 @@ export function watchCommand(
 				left += " ".repeat(leftWidth - leftLen);
 			}
 
-			// Right pane
-			const rightText = ` ${reportLine}`;
-			const rightLen = stripAnsi(rightText).length;
-			let right: string;
-			if (rightLen > rightWidth) {
-				// Truncate — find the byte position for visible rightWidth chars
-				let visCount = 0;
-				let bytePos = 0;
-				const plain = stripAnsi(rightText);
-				while (visCount < rightWidth - 1 && bytePos < plain.length) {
-					visCount++;
-					bytePos++;
-				}
-				right =
-					rightText.substring(0, rightText.length - (plain.length - bytePos)) +
-					"…";
-				// Simpler: just use plain text truncation for right pane
-				right = ` ${stripAnsi(reportLine)}`;
-				if (right.length > rightWidth) {
-					right = `${right.substring(0, rightWidth - 1)}…`;
-				}
-			} else {
-				right = rightText;
-			}
+			// Right pane — apply horizontal scroll then truncate
+			const rawRight = ` ${stripAnsi(reportLine)}`;
+			const scrolled =
+				state.reportScrollX > 0
+					? rawRight.length > state.reportScrollX
+						? rawRight.substring(state.reportScrollX)
+						: ""
+					: rawRight;
+			const right =
+				scrolled.length > rightWidth
+					? `${scrolled.substring(0, rightWidth - 1)}…`
+					: scrolled;
 
 			process.stdout.write(`${left}${SEPARATOR}${right}\n`);
 		}
@@ -374,12 +361,8 @@ export function watchCommand(
 		// Footer
 		const footerY = rows;
 		process.stdout.write(`\x1B[${footerY};1H`);
-		const focusIndicator =
-			state.splitFocus === "list"
-				? `focus: ${BOLD}list${RESET}`
-				: `focus: ${BOLD}report${RESET}`;
 		process.stdout.write(
-			`  ${DIM}tab${RESET} ${focusIndicator}  ${DIM}esc back  h help  q quit${RESET}`,
+			`  ${DIM}↑↓ list  wasd report  ? help  q back${RESET}`,
 		);
 	}
 
@@ -395,14 +378,14 @@ export function watchCommand(
 			`    ↑ / ↓       Move selection up / down`,
 			`    ← / →       Collapse / expand task group`,
 			`    Enter       Toggle group or open split view`,
-			`    Tab         Switch focus between list and report (split view)`,
+			`    w/a/s/d     Scroll report pane (up/left/down/right)`,
 			"",
 			`  ${BOLD}Actions${RESET}`,
 			`    c           Mark selected run as ${GREEN}completed${RESET}`,
 			`    p           Mark selected run as ${YELLOW}pending${RESET}`,
 			"",
 			`  ${BOLD}General${RESET}`,
-			`    h           Toggle this help`,
+			`    ?           Toggle this help`,
 			`    q           Quit`,
 			`    Esc         Back from split / help`,
 			"",
@@ -414,7 +397,7 @@ export function watchCommand(
 
 		const footerY = rows;
 		process.stdout.write(`\x1B[${footerY};1H`);
-		process.stdout.write(`  ${DIM}esc/h back${RESET}`);
+		process.stdout.write(`  ${DIM}esc/q/? back${RESET}`);
 	}
 
 	function render(): void {
@@ -432,6 +415,7 @@ export function watchCommand(
 			state.splitRun = null;
 		}
 		state.reportScroll = 0;
+		state.reportScrollX = 0;
 	}
 
 	function handleKey(key: Buffer): void {
@@ -439,7 +423,7 @@ export function watchCommand(
 		const lines = getVisibleLines();
 
 		if (state.mode === "help") {
-			if (str === "h" || str === "\x1B" || str === "q") {
+			if (str === "?" || str === "\x1B" || str === "q") {
 				state.mode = state.splitRun ? "split" : "list";
 				render();
 			}
@@ -450,38 +434,28 @@ export function watchCommand(
 			if (str === "\x1B" || str === "q") {
 				state.mode = "list";
 				state.splitRun = null;
-				state.splitFocus = "list";
 				state.reportScroll = 0;
 				render();
 			} else if (str === "\x03") {
 				cleanup();
 				process.exit(0);
-			} else if (str === "\t") {
-				state.splitFocus = state.splitFocus === "list" ? "report" : "list";
-				render();
 			} else if (str === "\x1B[A") {
-				if (state.splitFocus === "list") {
-					if (state.cursor <= 0) {
-						state.cursor = lines.length - 1;
-					} else {
-						state.cursor--;
-					}
-					updateSplitRun();
+				// Arrow up — navigate list
+				if (state.cursor <= 0) {
+					state.cursor = lines.length - 1;
 				} else {
-					state.reportScroll = Math.max(0, state.reportScroll - 1);
+					state.cursor--;
 				}
+				updateSplitRun();
 				render();
 			} else if (str === "\x1B[B") {
-				if (state.splitFocus === "list") {
-					if (state.cursor < 0 || state.cursor >= lines.length - 1) {
-						state.cursor = 0;
-					} else {
-						state.cursor++;
-					}
-					updateSplitRun();
+				// Arrow down — navigate list
+				if (state.cursor < 0 || state.cursor >= lines.length - 1) {
+					state.cursor = 0;
 				} else {
-					state.reportScroll++;
+					state.cursor++;
 				}
+				updateSplitRun();
 				render();
 			} else if (str === "\x1B[C") {
 				const line = lines[state.cursor];
@@ -495,6 +469,36 @@ export function watchCommand(
 					line.group.expanded = false;
 					render();
 				}
+			} else if (str === "w") {
+				// Scroll report up
+				state.reportScroll = Math.max(0, state.reportScroll - 1);
+				render();
+			} else if (str === "s") {
+				// Scroll report down
+				state.reportScroll++;
+				render();
+			} else if (str === "a") {
+				// Scroll report left
+				state.reportScrollX = Math.max(0, state.reportScrollX - 4);
+				render();
+			} else if (str === "d") {
+				// Scroll report right, capped at longest line
+				const reportLines = state.splitRun
+					? getReportLines(state.splitRun)
+					: [];
+				const maxLen = reportLines.reduce(
+					(max, l) => Math.max(max, stripAnsi(l).length),
+					0,
+				);
+				const rightWidth =
+					(process.stdout.columns ?? 80) -
+					Math.floor((process.stdout.columns ?? 80) * 0.4) -
+					1;
+				state.reportScrollX = Math.min(
+					state.reportScrollX + 4,
+					Math.max(0, maxLen - rightWidth + 1),
+				);
+				render();
 			} else if (str === "\r") {
 				const line = lines[state.cursor];
 				if (line?.type === "group") {
@@ -515,7 +519,7 @@ export function watchCommand(
 					line.run.meta.status = "pending";
 					render();
 				}
-			} else if (str === "h") {
+			} else if (str === "?") {
 				state.mode = "help";
 				render();
 			}
@@ -557,8 +561,8 @@ export function watchCommand(
 			if (line?.type === "run") {
 				state.mode = "split";
 				state.splitRun = line.run;
-				state.splitFocus = "list";
 				state.reportScroll = 0;
+				state.reportScrollX = 0;
 				render();
 			} else if (line?.type === "group") {
 				line.group.expanded = !line.group.expanded;
@@ -578,7 +582,7 @@ export function watchCommand(
 				line.run.meta.status = "pending";
 				render();
 			}
-		} else if (str === "h") {
+		} else if (str === "?") {
 			state.mode = "help";
 			render();
 		}
