@@ -29,13 +29,9 @@ vim .env.local     # set GITHUB_TOKEN, etc.
 ## Usage
 
 ```bash
-agent247 list                        # list tasks
 agent247 run <task-id>               # run a task manually
 agent247 sync                        # sync schedules to crontab
-agent247 status                      # unreviewed runs
-agent247 show <ulid>                 # read a report
-agent247 review <ulid>               # mark reviewed
-agent247 watch                       # live dashboard
+agent247 watch                       # interactive dashboard
 agent247 clean --older-than 7d       # cleanup old runs
 ```
 
@@ -56,6 +52,6 @@ See [tasks-example/](tasks-example/) for a working reference.
 
 ```bash
 pnpm test              # run tests
-pnpm dev list          # run without building
+pnpm dev run <task-id> # run without building
 pnpm build             # compile
 ```

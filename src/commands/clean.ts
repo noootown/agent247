@@ -1,6 +1,6 @@
 import { rmSync } from "node:fs";
 import { join } from "node:path";
-import { listRuns, type RunMeta } from "../lib/report.js";
+import { listRuns } from "../lib/report.js";
 
 function parseDuration(duration: string): number {
 	const match = duration.match(/^(\d+)(d|h|m)$/);
@@ -20,25 +20,12 @@ function parseDuration(duration: string): number {
 	}
 }
 
-export function cleanCommand(
-	baseDir: string,
-	options: {
-		olderThan: string;
-		status?: RunMeta["status"];
-		includeUnreviewed?: boolean;
-	},
-): void {
+export function cleanCommand(baseDir: string, duration: string): void {
 	const runsDir = join(baseDir, "runs");
-	const maxAge = parseDuration(options.olderThan);
+	const maxAge = parseDuration(duration);
 	const cutoff = Date.now() - maxAge;
 	let runs = listRuns(runsDir);
 	runs = runs.filter((r) => Date.parse(r.meta.started_at) < cutoff);
-	if (options.status) {
-		runs = runs.filter((r) => r.meta.status === options.status);
-	}
-	if (!options.includeUnreviewed) {
-		runs = runs.filter((r) => r.meta.reviewed);
-	}
 	if (runs.length === 0) {
 		console.log("No runs matching criteria to clean.");
 		return;

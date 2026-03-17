@@ -64,7 +64,7 @@ export async function runCommand(
 					id: runId,
 					task: taskId,
 					status: "error",
-					reviewed: false,
+
 					url: null,
 					item_key: null,
 					started_at: startedAt,
@@ -100,7 +100,7 @@ export async function runCommand(
 					id: runId,
 					task: taskId,
 					status: "skipped",
-					reviewed: false,
+
 					url: null,
 					item_key: null,
 					started_at: startedAt,
@@ -169,7 +169,7 @@ async function executeForItem(
 				id: runId,
 				task: config.id,
 				status: "error",
-				reviewed: false,
+
 				url: item[config.discovery.item_key] ?? null,
 				item_key: item[config.discovery.item_key] ?? null,
 				started_at: startedAt,
@@ -197,7 +197,7 @@ async function executeForItem(
 			id: runId,
 			task: config.id,
 			status: parsed.status,
-			reviewed: false,
+
 			url: parsed.url ?? item[config.discovery.item_key] ?? null,
 			item_key: item[config.discovery.item_key] ?? null,
 			started_at: startedAt,
@@ -262,7 +262,7 @@ async function executeForBatch(
 				id: runId,
 				task: config.id,
 				status: "error",
-				reviewed: false,
+
 				url: null,
 				item_key: null,
 				started_at: startedAt,
@@ -290,7 +290,7 @@ async function executeForBatch(
 			id: runId,
 			task: config.id,
 			status: parsed.status,
-			reviewed: false,
+
 			url: parsed.url,
 			item_key: null,
 			started_at: startedAt,

@@ -13,7 +13,6 @@ export interface RunMeta {
 	id: string;
 	task: string;
 	status: "skipped" | "completed" | "pending" | "error";
-	reviewed: boolean;
 	url: string | null;
 	item_key: string | null;
 	started_at: string;
@@ -74,7 +73,6 @@ export function readRun(runDir: string): RunRecord {
 export interface RunFilter {
 	task?: string;
 	status?: RunMeta["status"];
-	reviewed?: boolean;
 }
 
 export function listRuns(runsDir: string, filter?: RunFilter): RunRecord[] {
@@ -96,8 +94,6 @@ export function listRuns(runsDir: string, filter?: RunFilter): RunRecord[] {
 	if (filter?.task) runs = runs.filter((r) => r.meta.task === filter.task);
 	if (filter?.status)
 		runs = runs.filter((r) => r.meta.status === filter.status);
-	if (filter?.reviewed !== undefined)
-		runs = runs.filter((r) => r.meta.reviewed === filter.reviewed);
 	runs.sort((a, b) => a.meta.id.localeCompare(b.meta.id));
 	return runs;
 }

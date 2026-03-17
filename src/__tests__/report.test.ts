@@ -22,7 +22,7 @@ describe("writeRun", () => {
 				id: "01TEST001",
 				task: "test-task",
 				status: "completed",
-				reviewed: false,
+
 				url: "https://example.com/pr/1",
 				item_key: "https://example.com/pr/1",
 				started_at: "2026-03-15T10:00:00Z",
@@ -50,7 +50,7 @@ describe("writeRun", () => {
 				id: "01TEST002",
 				task: "test-task",
 				status: "skipped",
-				reviewed: false,
+
 				url: null,
 				item_key: null,
 				started_at: "2026-03-15T10:00:00Z",
@@ -75,7 +75,7 @@ describe("readRun", () => {
 				id: "01TEST003",
 				task: "test-task",
 				status: "completed",
-				reviewed: false,
+
 				url: "https://example.com",
 				item_key: "https://example.com",
 				started_at: "2026-03-15T10:00:00Z",
@@ -104,7 +104,7 @@ describe("listRuns", () => {
 					id,
 					task,
 					status: "completed",
-					reviewed: false,
+
 					url: null,
 					item_key: null,
 					started_at: "2026-03-15T10:00:00Z",
@@ -128,7 +128,7 @@ describe("listRuns", () => {
 				id: "01SKIP1",
 				task: "t",
 				status: "skipped",
-				reviewed: false,
+
 				url: null,
 				item_key: null,
 				started_at: "2026-03-15T10:00:00Z",
@@ -144,7 +144,7 @@ describe("listRuns", () => {
 				id: "01COMP1",
 				task: "t",
 				status: "completed",
-				reviewed: false,
+
 				url: null,
 				item_key: null,
 				started_at: "2026-03-15T10:00:00Z",
@@ -168,7 +168,7 @@ describe("findRunDir", () => {
 				id: "01FIND001",
 				task: "task-a",
 				status: "completed",
-				reviewed: false,
+
 				url: null,
 				item_key: null,
 				started_at: "2026-03-15T10:00:00Z",

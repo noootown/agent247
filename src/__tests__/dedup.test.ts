@@ -27,7 +27,7 @@ describe("filterNewItems", () => {
 				id: "01RUN001",
 				task: "task-a",
 				status: "completed",
-				reviewed: false,
+
 				url: "https://example.com/1",
 				item_key: "https://example.com/1",
 				started_at: "2026-03-15T10:00:00Z",
@@ -53,7 +53,7 @@ describe("filterNewItems", () => {
 				id: "01RUN005",
 				task: "task-a",
 				status: "pending",
-				reviewed: false,
+
 				url: "https://example.com/1",
 				item_key: "https://example.com/1",
 				started_at: "2026-03-15T10:00:00Z",
@@ -74,7 +74,7 @@ describe("filterNewItems", () => {
 				id: "01RUN002",
 				task: "task-a",
 				status: "error",
-				reviewed: false,
+
 				url: "https://example.com/1",
 				item_key: "https://example.com/1",
 				started_at: "2026-03-15T10:00:00Z",
@@ -95,7 +95,7 @@ describe("filterNewItems", () => {
 				id: "01RUN003",
 				task: "task-b",
 				status: "completed",
-				reviewed: false,
+
 				url: "https://example.com/1",
 				item_key: "https://example.com/1",
 				started_at: "2026-03-15T10:00:00Z",
@@ -116,7 +116,7 @@ describe("filterNewItems", () => {
 				id: "01RUN004",
 				task: "task-a",
 				status: "completed",
-				reviewed: false,
+
 				url: "https://example.com/1",
 				item_key: "https://example.com/1",
 				started_at: "2026-03-15T10:00:00Z",

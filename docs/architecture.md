@@ -66,7 +66,7 @@ runs/<task-id>/<ulid>/
 
 Claude signals status via output: `PENDING` → pending, `NO_ACTION` → completed, anything else → completed.
 
-Runs also have a `reviewed` boolean, toggled by `agent247 review <ulid>`.
+Pending runs can be manually resolved to `completed` via the `watch` dashboard (`r` key).
 
 ## Lifecycle (Two-Way)
 
@@ -100,12 +100,8 @@ src/
 │   ├── run.ts          # Core execution pipeline
 │   ├── sync.ts         # Crontab sync
 │   ├── init.ts         # Workspace scaffolding
-│   ├── list.ts         # Task listing
-│   ├── status.ts       # Unreviewed runs dashboard
-│   ├── show.ts         # Run detail view
-│   ├── review.ts       # Mark run reviewed
 │   ├── clean.ts        # Run cleanup
-│   └── watch.ts        # Live dashboard
+│   └── watch.ts        # Interactive dashboard
 └── lib/
     ├── config.ts       # YAML config loading
     ├── discovery.ts    # Shell command → JSON items

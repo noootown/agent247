@@ -23,7 +23,7 @@ describe("processLifecycle", () => {
 				id: "01RESOLVE001",
 				task: "task-a",
 				status: "pending",
-				reviewed: false,
+
 				url: "https://example.com/1",
 				item_key: "https://example.com/1",
 				started_at: "2026-03-15T10:00:00Z",
@@ -50,7 +50,7 @@ describe("processLifecycle", () => {
 				id: "01RESOLVE002",
 				task: "task-a",
 				status: "pending",
-				reviewed: false,
+
 				url: "https://example.com/1",
 				item_key: "https://example.com/1",
 				started_at: "2026-03-15T10:00:00Z",
@@ -77,7 +77,7 @@ describe("processLifecycle", () => {
 				id: "01RESOLVE003",
 				task: "task-a",
 				status: "error",
-				reviewed: false,
+
 				url: "https://example.com/1",
 				item_key: "https://example.com/1",
 				started_at: "2026-03-15T10:00:00Z",
@@ -104,7 +104,7 @@ describe("processLifecycle", () => {
 				id: "01RESOLVE004",
 				task: "task-a",
 				status: "completed",
-				reviewed: false,
+
 				url: "https://example.com/1",
 				item_key: "https://example.com/1",
 				started_at: "2026-03-15T10:00:00Z",
@@ -132,7 +132,7 @@ describe("processLifecycle", () => {
 				id: "01RESOLVE005",
 				task: "task-a",
 				status: "completed",
-				reviewed: false,
+
 				url: "https://example.com/1",
 				item_key: "https://example.com/1",
 				started_at: "2026-03-15T10:00:00Z",
