@@ -7,7 +7,7 @@ import { cleanCommand } from "./commands/clean.js";
 import { initCommand } from "./commands/init.js";
 import { runCommand } from "./commands/run.js";
 import { syncCommand } from "./commands/sync.js";
-import { watchCommand } from "./commands/watch.js";
+import { watchCommand } from "./commands/watch/index.js";
 
 const program = new Command();
 
