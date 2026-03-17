@@ -1,3 +1,4 @@
+import { spawn } from "node:child_process";
 import {
 	existsSync,
 	mkdirSync,
@@ -6,7 +7,7 @@ import {
 	rmSync,
 } from "node:fs";
 import { join } from "node:path";
-import { loadGlobalVars } from "../lib/config.js";
+import { listTasks, loadGlobalVars } from "../lib/config.js";
 import { listRuns, type RunRecord, updateRunMeta } from "../lib/report.js";
 import { formatUrlSlug } from "../lib/url.js";
 
@@ -19,14 +20,17 @@ const YELLOW = "\x1B[33m";
 const GREEN = "\x1B[32m";
 const MAGENTA = "\x1B[35m";
 const SEPARATOR = "\x1B[90m│\x1B[0m"; // dim vertical bar
+const SPINNER = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+let spinnerFrame = 0;
 
 interface TaskGroup {
 	task: string;
 	runs: RunRecord[];
 	expanded: boolean;
+	running: boolean;
 }
 
-type ViewMode = "list" | "split" | "help";
+type ViewMode = "list" | "split" | "help" | "confirm-run";
 
 interface State {
 	groups: TaskGroup[];
@@ -36,6 +40,8 @@ interface State {
 	splitRun: RunRecord | null;
 	reportScroll: number;
 	reportScrollX: number;
+	confirmTask: string | null;
+	confirmChoice: "yes" | "no";
 }
 
 export function watchCommand(
@@ -65,7 +71,22 @@ export function watchCommand(
 		splitRun: null,
 		reportScroll: 0,
 		reportScrollX: 0,
+		confirmTask: null,
+		confirmChoice: "yes",
 	};
+
+	function isTaskRunning(taskId: string): boolean {
+		const lockPath = join(baseDir, "tasks", taskId, ".lock");
+		if (!existsSync(lockPath)) return false;
+		try {
+			const pid = Number.parseInt(readFileSync(lockPath, "utf-8").trim(), 10);
+			if (Number.isNaN(pid)) return false;
+			process.kill(pid, 0);
+			return true;
+		} catch {
+			return false;
+		}
+	}
 
 	function loadData(): void {
 		let runs = listRuns(runsDir);
@@ -75,6 +96,10 @@ export function watchCommand(
 		runs.sort((a, b) => b.meta.id.localeCompare(a.meta.id));
 
 		const taskMap = new Map<string, RunRecord[]>();
+		// Include all defined tasks, even those without runs
+		for (const t of listTasks(baseDir)) {
+			taskMap.set(t.id, []);
+		}
 		for (const run of runs) {
 			const existing = taskMap.get(run.meta.task) ?? [];
 			existing.push(run);
@@ -91,6 +116,7 @@ export function watchCommand(
 				task,
 				runs: taskRuns,
 				expanded: prevExpanded.has(task),
+				running: isTaskRunning(task),
 			}));
 	}
 
@@ -146,6 +172,10 @@ export function watchCommand(
 	}
 
 	function taskSummary(group: TaskGroup, compact = false): string {
+		const runningLabel = group.running
+			? `${YELLOW}${SPINNER[spinnerFrame % SPINNER.length]} running${RESET}`
+			: "";
+
 		const total = group.runs.length;
 		const errors = group.runs.filter((r) => r.meta.status === "error").length;
 		const pending = group.runs.filter(
@@ -156,14 +186,18 @@ export function watchCommand(
 		).length;
 
 		if (compact) {
-			const parts: string[] = [`${total}r`];
+			const parts: string[] = [];
+			if (runningLabel) parts.push(runningLabel);
+			parts.push(`${total}r`);
 			if (pending > 0) parts.push(`${YELLOW}${pending}p${RESET}`);
 			if (completed > 0) parts.push(`${GREEN}${completed}c${RESET}`);
 			if (errors > 0) parts.push(`${RED}${errors}e${RESET}`);
 			return parts.join(" ");
 		}
 
-		const parts: string[] = [`${total} runs`];
+		const parts: string[] = [];
+		if (runningLabel) parts.push(runningLabel);
+		parts.push(`${total} runs`);
 		if (pending > 0) parts.push(`${YELLOW}${pending} pending${RESET}`);
 		if (completed > 0) parts.push(`${GREEN}${completed} completed${RESET}`);
 		if (errors > 0) parts.push(`${RED}${errors} error${RESET}`);
@@ -439,12 +473,12 @@ export function watchCommand(
 			`  ${BOLD}Actions${RESET}`,
 			`    c           Mark selected run as ${GREEN}completed${RESET}`,
 			`    p           Mark selected run as ${YELLOW}pending${RESET}`,
+			`    r           Run selected task`,
 			`    Delete      Delete selected run`,
 			"",
 			`  ${BOLD}General${RESET}`,
 			`    ?           Toggle this help`,
-			`    q           Quit`,
-			`    Esc         Back from split / help`,
+			`    q / Esc     Quit or back`,
 			"",
 		];
 
@@ -457,8 +491,69 @@ export function watchCommand(
 		process.stdout.write(`  ${DIM}esc/q/? back${RESET}`);
 	}
 
+	function renderConfirmRun(): void {
+		const rows = process.stdout.rows ?? 24;
+		const cols = process.stdout.columns ?? 80;
+
+		const title = " Confirm ";
+		const msg = `Run task "${state.confirmTask}"?`;
+		const SEL_BTN = "\x1B[30m\x1B[46m"; // black on cyan (selected button)
+		const yesBtn =
+			state.confirmChoice === "yes"
+				? `${SEL_BTN} Yes ${RESET}\x1B[47m\x1B[30m`
+				: " Yes ";
+		const noBtn =
+			state.confirmChoice === "no"
+				? `${SEL_BTN} No ${RESET}\x1B[47m\x1B[30m`
+				: " No ";
+		const buttons = `${yesBtn}    ${noBtn}`;
+		const buttonsPlain =
+			state.confirmChoice === "yes" ? " Yes      No " : " Yes      No ";
+		const innerWidth =
+			Math.max(msg.length, buttonsPlain.length, title.length) + 4;
+		const boxWidth = innerWidth + 2;
+		const startCol = Math.floor((cols - boxWidth) / 2);
+		const startRow = Math.floor(rows / 2) - 2;
+
+		const BG = "\x1B[47m\x1B[30m"; // white bg, black text
+		const BORDER = "\x1B[47m\x1B[90m"; // white bg, gray border chars
+
+		const pad = (text: string, plainLen: number, width: number) => {
+			return text + " ".repeat(Math.max(0, width - plainLen));
+		};
+
+		// Top border with title
+		const titlePad = innerWidth - title.length;
+		const titleLeft = Math.floor(titlePad / 2);
+		const titleRight = titlePad - titleLeft;
+		const topBorder = `${BORDER}┌${"─".repeat(titleLeft)}${BOLD}${title}${RESET}${BORDER}${"─".repeat(titleRight)}┐${RESET}`;
+
+		// Content lines
+		const emptyLine = `${BG}│${" ".repeat(innerWidth)}│${RESET}`;
+		const msgLine = `${BG}│${pad(`  ${msg}`, msg.length + 2, innerWidth)}│${RESET}`;
+		const btnLine = `${BG}│${pad(`  ${buttons}`, buttonsPlain.length + 2, innerWidth)}│${RESET}`;
+		const bottomBorder = `${BORDER}└${"─".repeat(innerWidth)}┘${RESET}`;
+
+		const boxLines = [
+			topBorder,
+			emptyLine,
+			msgLine,
+			emptyLine,
+			btnLine,
+			emptyLine,
+			bottomBorder,
+		];
+
+		for (let i = 0; i < boxLines.length; i++) {
+			process.stdout.write(`\x1B[${startRow + i};${startCol}H${boxLines[i]}`);
+		}
+	}
+
 	function render(): void {
-		if (state.mode === "list") renderList();
+		if (state.mode === "confirm-run") {
+			renderList();
+			renderConfirmRun();
+		} else if (state.mode === "list") renderList();
 		else if (state.mode === "split") renderSplit();
 		else renderHelp();
 	}
@@ -478,6 +573,51 @@ export function watchCommand(
 	function handleKey(key: Buffer): void {
 		const str = key.toString();
 		const lines = getVisibleLines();
+
+		if (state.mode === "confirm-run") {
+			if (str === "\x1B[D" || str === "\x1B[C") {
+				// Left/right toggles selection
+				state.confirmChoice = state.confirmChoice === "yes" ? "no" : "yes";
+				render();
+			} else if (str === "\r") {
+				// Enter confirms current choice
+				if (state.confirmChoice === "yes") {
+					const taskId = state.confirmTask;
+					state.confirmTask = null;
+					state.mode = "list";
+					if (taskId) {
+						// Spawn task in a child process so it doesn't block the UI
+						// Reconstruct the CLI invocation from process.argv
+						const args = process.argv.slice(1);
+						// Replace the current command (watch/watch -a) with "run <taskId>"
+						const cmdIdx = args.findIndex(
+							(a) =>
+								!a.startsWith("-") && !a.startsWith("/") && !a.includes("cli."),
+						);
+						const baseArgs = cmdIdx >= 0 ? args.slice(0, cmdIdx) : args;
+						const child = spawn(process.argv[0], [...baseArgs, "run", taskId], {
+							env: {
+								...process.env,
+								AGENT247_BASE_DIR: baseDir,
+							},
+							stdio: "ignore",
+						});
+						child.on("error", () => {});
+						loadData();
+						render();
+					}
+				} else {
+					state.confirmTask = null;
+					state.mode = "list";
+					render();
+				}
+			} else if (str === "q" || str === "\x1B") {
+				state.confirmTask = null;
+				state.mode = "list";
+				render();
+			}
+			return;
+		}
 
 		if (state.mode === "help") {
 			if (str === "?" || str === "\x1B" || str === "q") {
@@ -596,6 +736,14 @@ export function watchCommand(
 					}
 					render();
 				}
+			} else if (str === "r") {
+				const line = lines[state.cursor];
+				if (line?.type === "group") {
+					state.confirmTask = line.group.task;
+					state.confirmChoice = "yes";
+					state.mode = "confirm-run";
+					render();
+				}
 			} else if (str === "?") {
 				state.mode = "help";
 				render();
@@ -676,6 +824,14 @@ export function watchCommand(
 				}
 				render();
 			}
+		} else if (str === "r") {
+			const line = lines[state.cursor];
+			if (line?.type === "group") {
+				state.confirmTask = line.group.task;
+				state.confirmChoice = "yes";
+				state.mode = "confirm-run";
+				render();
+			}
 		} else if (str === "?") {
 			state.mode = "help";
 			render();
@@ -698,9 +854,10 @@ export function watchCommand(
 	render();
 
 	const refreshInterval = setInterval(() => {
+		spinnerFrame++;
 		loadData();
 		render();
-	}, 10_000);
+	}, 1_000);
 
 	process.on("SIGINT", () => {
 		cleanup();
