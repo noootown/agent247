@@ -4,7 +4,7 @@ import {
 	mkdirSync,
 	readFileSync,
 	renameSync,
-	rmSync,
+	unlinkSync,
 } from "node:fs";
 import { join } from "node:path";
 import { listTasks, loadGlobalVars } from "../lib/config.js";
@@ -75,17 +75,39 @@ export function watchCommand(
 		confirmChoice: "yes",
 	};
 
-	function isTaskRunning(taskId: string): boolean {
+	function getTaskPid(taskId: string): number | null {
 		const lockPath = join(baseDir, "tasks", taskId, ".lock");
-		if (!existsSync(lockPath)) return false;
+		if (!existsSync(lockPath)) return null;
 		try {
 			const pid = Number.parseInt(readFileSync(lockPath, "utf-8").trim(), 10);
-			if (Number.isNaN(pid)) return false;
-			process.kill(pid, 0);
-			return true;
+			if (Number.isNaN(pid)) return null;
+			process.kill(pid, 0); // check if alive
+			return pid;
 		} catch {
-			return false;
+			return null;
 		}
+	}
+
+	function isTaskRunning(taskId: string): boolean {
+		return getTaskPid(taskId) !== null;
+	}
+
+	function stopTask(taskId: string): void {
+		const pid = getTaskPid(taskId);
+		if (pid === null) return;
+		try {
+			// Kill the process tree (negative PID kills the process group)
+			process.kill(-pid, "SIGTERM");
+		} catch {
+			try {
+				process.kill(pid, "SIGTERM");
+			} catch {}
+		}
+		// Clean up the lock file
+		const lockPath = join(baseDir, "tasks", taskId, ".lock");
+		try {
+			unlinkSync(lockPath);
+		} catch {}
 	}
 
 	function loadData(): void {
@@ -543,6 +565,7 @@ export function watchCommand(
 			`    c           Mark selected run as ${GREEN}completed${RESET}`,
 			`    p           Mark selected run as ${YELLOW}pending${RESET}`,
 			`    r           Run selected task`,
+			`    x           Stop running task`,
 			`    u           Open run URL in browser`,
 			`    Delete      Delete selected run`,
 			"",
@@ -819,6 +842,13 @@ export function watchCommand(
 					state.mode = "confirm-run";
 					render();
 				}
+			} else if (str === "x") {
+				const line = lines[state.cursor];
+				if (line?.type === "group" && line.group.running) {
+					stopTask(line.group.task);
+					loadData();
+					render();
+				}
 			} else if (str === "?") {
 				state.mode = "help";
 				render();
@@ -913,6 +943,13 @@ export function watchCommand(
 				state.mode = "confirm-run";
 				render();
 			}
+		} else if (str === "x") {
+			const line = lines[state.cursor];
+			if (line?.type === "group" && line.group.running) {
+				stopTask(line.group.task);
+				loadData();
+				render();
+			}
 		} else if (str === "?") {
 			state.mode = "help";
 			render();
@@ -934,9 +971,15 @@ export function watchCommand(
 
 	render();
 
+	let dataTickCount = 0;
 	const refreshInterval = setInterval(() => {
 		spinnerFrame++;
-		loadData();
+		dataTickCount++;
+		if (dataTickCount >= 30) {
+			// Reload filesystem data every 3 seconds
+			dataTickCount = 0;
+			loadData();
+		}
 		render();
 	}, 100);
 
