@@ -587,21 +587,20 @@ export function watchCommand(
 					state.mode = "list";
 					if (taskId) {
 						// Spawn task in a child process so it doesn't block the UI
-						// Reconstruct the CLI invocation from process.argv
-						const args = process.argv.slice(1);
-						// Replace the current command (watch/watch -a) with "run <taskId>"
-						const cmdIdx = args.findIndex(
-							(a) =>
-								!a.startsWith("-") && !a.startsWith("/") && !a.includes("cli."),
+						const cliEntry = process.argv.find(
+							(a) => a.endsWith("cli.ts") || a.endsWith("cli.js"),
 						);
-						const baseArgs = cmdIdx >= 0 ? args.slice(0, cmdIdx) : args;
-						const child = spawn(process.argv[0], [...baseArgs, "run", taskId], {
-							env: {
-								...process.env,
-								AGENT247_BASE_DIR: baseDir,
-							},
-							stdio: "ignore",
-						});
+						const child = cliEntry
+							? spawn("npx", ["tsx", cliEntry, "run", taskId], {
+									env: { ...process.env, AGENT247_BASE_DIR: baseDir },
+									stdio: "ignore",
+									shell: true,
+								})
+							: spawn("agent247", ["run", taskId], {
+									env: { ...process.env, AGENT247_BASE_DIR: baseDir },
+									stdio: "ignore",
+									shell: true,
+								});
 						child.on("error", () => {});
 						loadData();
 						render();
@@ -857,7 +856,7 @@ export function watchCommand(
 		spinnerFrame++;
 		loadData();
 		render();
-	}, 1_000);
+	}, 100);
 
 	process.on("SIGINT", () => {
 		cleanup();
