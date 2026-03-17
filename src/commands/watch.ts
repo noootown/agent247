@@ -5,11 +5,15 @@ import {
 	readFileSync,
 	renameSync,
 	unlinkSync,
+	writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
+import yaml from "js-yaml";
 import { listTasks, loadGlobalVars } from "../lib/config.js";
+import { readCrontab } from "../lib/crontab.js";
 import { listRuns, type RunRecord, updateRunMeta } from "../lib/report.js";
 import { formatUrlSlug } from "../lib/url.js";
+import { syncCommand } from "./sync.js";
 
 const DIM = "\x1B[2m";
 const BOLD = "\x1B[1m";
@@ -28,6 +32,7 @@ interface TaskGroup {
 	runs: RunRecord[];
 	expanded: boolean;
 	running: boolean;
+	enabled: boolean;
 }
 
 type ViewMode = "list" | "split" | "help" | "confirm-run";
@@ -110,6 +115,21 @@ export function watchCommand(
 		} catch {}
 	}
 
+	function toggleTask(taskId: string): void {
+		const configPath = join(baseDir, "tasks", taskId, "config.yaml");
+		if (!existsSync(configPath)) return;
+		const raw = yaml.load(readFileSync(configPath, "utf-8")) as Record<
+			string,
+			unknown
+		>;
+		raw.enabled = !raw.enabled;
+		writeFileSync(configPath, yaml.dump(raw));
+		// Re-sync crontab to reflect the change
+		try {
+			syncCommand(baseDir);
+		} catch {}
+	}
+
 	function loadData(): void {
 		let runs = listRuns(runsDir);
 		if (!options?.all) {
@@ -119,8 +139,13 @@ export function watchCommand(
 
 		const taskMap = new Map<string, RunRecord[]>();
 		// Include all defined tasks, even those without runs
-		for (const t of listTasks(baseDir)) {
+		const taskConfigs = listTasks(baseDir);
+		const crontab = readCrontab();
+		const enabledMap = new Map<string, boolean>();
+		for (const t of taskConfigs) {
 			taskMap.set(t.id, []);
+			// Task is "enabled" if it appears in the crontab
+			enabledMap.set(t.id, crontab.includes(`run ${t.id}`));
 		}
 		for (const run of runs) {
 			const existing = taskMap.get(run.meta.task) ?? [];
@@ -139,6 +164,7 @@ export function watchCommand(
 				runs: taskRuns,
 				expanded: prevExpanded.has(task),
 				running: isTaskRunning(task),
+				enabled: enabledMap.get(task) ?? true,
 			}));
 	}
 
@@ -194,9 +220,11 @@ export function watchCommand(
 	}
 
 	function taskSummary(group: TaskGroup, compact = false): string {
-		const runningLabel = group.running
+		const statusLabel = group.running
 			? `${YELLOW}${SPINNER[spinnerFrame % SPINNER.length]} running${RESET}`
-			: "";
+			: !group.enabled
+				? `${DIM}disabled${RESET}`
+				: "";
 
 		const total = group.runs.length;
 		const errors = group.runs.filter((r) => r.meta.status === "error").length;
@@ -209,7 +237,7 @@ export function watchCommand(
 
 		if (compact) {
 			const parts: string[] = [];
-			if (runningLabel) parts.push(runningLabel);
+			if (statusLabel) parts.push(statusLabel);
 			parts.push(`${total}r`);
 			if (pending > 0) parts.push(`${YELLOW}${pending}p${RESET}`);
 			if (completed > 0) parts.push(`${GREEN}${completed}c${RESET}`);
@@ -218,7 +246,7 @@ export function watchCommand(
 		}
 
 		const parts: string[] = [];
-		if (runningLabel) parts.push(runningLabel);
+		if (statusLabel) parts.push(statusLabel);
 		parts.push(`${total} runs`);
 		if (pending > 0) parts.push(`${YELLOW}${pending} pending${RESET}`);
 		if (completed > 0) parts.push(`${GREEN}${completed} completed${RESET}`);
@@ -566,6 +594,7 @@ export function watchCommand(
 			`    p           Mark selected run as ${YELLOW}pending${RESET}`,
 			`    r           Run selected task`,
 			`    x           Stop running task`,
+			`    t           Toggle task enabled/disabled`,
 			`    u           Open run URL in browser`,
 			`    Delete      Delete selected run`,
 			"",
@@ -947,6 +976,13 @@ export function watchCommand(
 			const line = lines[state.cursor];
 			if (line?.type === "group" && line.group.running) {
 				stopTask(line.group.task);
+				loadData();
+				render();
+			}
+		} else if (str === "t") {
+			const line = lines[state.cursor];
+			if (line?.type === "group") {
+				toggleTask(line.group.task);
 				loadData();
 				render();
 			}
