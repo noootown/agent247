@@ -8,7 +8,6 @@ const DIM = "\x1B[2m";
 const BOLD = "\x1B[1m";
 const RESET = "\x1B[0m";
 const SELECT_BG = "\x1B[22m\x1B[30m\x1B[46m"; // black text on cyan bg
-const CYAN = "\x1B[36m";
 const RED = "\x1B[31m";
 const YELLOW = "\x1B[33m";
 const GREEN = "\x1B[32m";
@@ -141,15 +140,15 @@ export function watchCommand(
 
 		if (compact) {
 			const parts: string[] = [`${total}r`];
-			if (completed > 0) parts.push(`${GREEN}${completed}c${RESET}`);
 			if (pending > 0) parts.push(`${YELLOW}${pending}p${RESET}`);
+			if (completed > 0) parts.push(`${GREEN}${completed}c${RESET}`);
 			if (errors > 0) parts.push(`${RED}${errors}e${RESET}`);
 			return parts.join(" ");
 		}
 
 		const parts: string[] = [`${total} runs`];
-		if (completed > 0) parts.push(`${GREEN}${completed} completed${RESET}`);
 		if (pending > 0) parts.push(`${YELLOW}${pending} pending${RESET}`);
+		if (completed > 0) parts.push(`${GREEN}${completed} completed${RESET}`);
 		if (errors > 0) parts.push(`${RED}${errors} error${RESET}`);
 		return parts.join(", ");
 	}
@@ -157,11 +156,13 @@ export function watchCommand(
 	function getReportLines(run: RunRecord): string[] {
 		const header = [
 			`${BOLD}Run: ${run.meta.id}${RESET}`,
-			`Task: ${CYAN}${run.meta.task}${RESET}`,
+			`Task: ${BOLD}${MAGENTA}${run.meta.task}${RESET}`,
 			`Status: ${statusIcon(run.meta.status)} ${statusText(run.meta.status)}`,
-			`Time: ${run.meta.started_at}`,
+			`Time: ${run.meta.started_at} ${DIM}(${formatAgo(Date.parse(run.meta.started_at))})${RESET}`,
 			`Duration: ${run.meta.duration_seconds}s`,
-			run.meta.url ? `URL: ${run.meta.url}` : null,
+			run.meta.url?.startsWith("http")
+				? `URL: \x1B[94m\x1B]8;;${run.meta.url}\x07${run.meta.url}\x1B]8;;\x07${RESET}`
+				: null,
 			"",
 			`${"─".repeat(40)}`,
 			"",
@@ -217,7 +218,8 @@ export function watchCommand(
 			return fitToWidth(text, width);
 		}
 
-		const time = formatTime(line.run.meta.started_at);
+		const ago = formatAgo(Date.parse(line.run.meta.started_at));
+		const timeBase = formatTime(line.run.meta.started_at);
 		const rawUrl = line.run.meta.url;
 		const hasUrl = rawUrl?.startsWith("http");
 		const slug = hasUrl && rawUrl ? formatUrlSlug(rawUrl) : "—";
@@ -232,7 +234,7 @@ export function watchCommand(
 							? "●"
 							: "○";
 			const status = line.run.meta.status.padEnd(10);
-			const plain = `     ${plainIcon} ${status} ${time}  ${slug}`;
+			const plain = `     ${plainIcon} ${status} ${timeBase} (${ago})  ${slug}`;
 			return `${SELECT_BG}${plain.substring(0, width).padEnd(width)}${RESET}`;
 		}
 
@@ -242,6 +244,7 @@ export function watchCommand(
 		const link = hasUrl
 			? `${BLUE}\x1B]8;;${rawUrl}\x07${slug}\x1B]8;;\x07${RESET}`
 			: `${DIM}—${RESET}`;
+		const time = `${timeBase} ${DIM}(${ago})${RESET}`;
 		return fitToWidth(`     ${icon} ${status} ${time}  ${link}`, width);
 	}
 
@@ -249,7 +252,7 @@ export function watchCommand(
 		const rows = process.stdout.rows ?? 24;
 		const cols = process.stdout.columns ?? 80;
 		const lines = getVisibleLines();
-		const maxVisible = rows - 5;
+		const maxVisible = rows - 3; // header + separator + footer
 
 		if (state.cursor >= 0) {
 			if (state.cursor < state.scroll) state.scroll = state.cursor;
@@ -263,8 +266,9 @@ export function watchCommand(
 		process.stdout.write("\x1B[2J\x1B[H");
 
 		process.stdout.write(
-			`\n  ${BOLD}${botName}${RESET} — ${state.groups.length} tasks\n\n`,
+			` ${BOLD}${botName}${RESET} — ${state.groups.length} tasks\n`,
 		);
+		process.stdout.write(`${DIM}${"─".repeat(cols)}${RESET}\n`);
 
 		const visible = lines.slice(state.scroll, state.scroll + maxVisible);
 		for (const line of visible) {
@@ -311,8 +315,8 @@ export function watchCommand(
 		process.stdout.write("\x1B[2J\x1B[H");
 
 		// Header separator
-		const leftHeader = ` ${BOLD}${botName}${RESET}`;
-		const rightHeader = state.splitRun ? ` ${DIM}Report${RESET}` : "";
+		const leftHeader = ` ${BOLD}${botName}${RESET} — ${state.groups.length} tasks`;
+		const rightHeader = ` ${BOLD}Report${RESET}`;
 		const leftHeaderPad = " ".repeat(
 			Math.max(0, leftWidth - stripAnsi(leftHeader).length),
 		);
@@ -342,18 +346,26 @@ export function watchCommand(
 				left += " ".repeat(leftWidth - leftLen);
 			}
 
-			// Right pane — apply horizontal scroll then truncate
-			const rawRight = ` ${stripAnsi(reportLine)}`;
-			const scrolled =
-				state.reportScrollX > 0
-					? rawRight.length > state.reportScrollX
-						? rawRight.substring(state.reportScrollX)
-						: ""
-					: rawRight;
-			const right =
-				scrolled.length > rightWidth
-					? `${scrolled.substring(0, rightWidth - 1)}…`
-					: scrolled;
+			// Right pane — use plain text for scroll/truncation, colored for display
+			const plainRight = ` ${stripAnsi(reportLine)}`;
+			const colorRight = ` ${reportLine}`;
+			let right: string;
+			if (state.reportScrollX > 0 && plainRight.length <= state.reportScrollX) {
+				right = "";
+			} else if (state.reportScrollX > 0) {
+				const scrolledPlain = plainRight.substring(state.reportScrollX);
+				right =
+					scrolledPlain.length > rightWidth
+						? `${scrolledPlain.substring(0, rightWidth - 1)}…`
+						: scrolledPlain;
+			} else {
+				const visLen = stripAnsi(colorRight).length;
+				if (visLen > rightWidth) {
+					right = fitToWidth(colorRight, rightWidth);
+				} else {
+					right = colorRight;
+				}
+			}
 
 			process.stdout.write(`${left}${SEPARATOR}${right}\n`);
 		}
@@ -468,6 +480,12 @@ export function watchCommand(
 				if (line?.type === "group") {
 					line.group.expanded = false;
 					render();
+				} else if (line?.type === "run") {
+					state.mode = "list";
+					state.splitRun = null;
+					state.reportScroll = 0;
+					state.reportScrollX = 0;
+					render();
 				}
 			} else if (str === "w") {
 				// Scroll report up
@@ -549,6 +567,12 @@ export function watchCommand(
 			if (line?.type === "group") {
 				line.group.expanded = true;
 				render();
+			} else if (line?.type === "run") {
+				state.mode = "split";
+				state.splitRun = line.run;
+				state.reportScroll = 0;
+				state.reportScrollX = 0;
+				render();
 			}
 		} else if (str === "\x1B[D") {
 			const line = lines[state.cursor];
@@ -621,6 +645,14 @@ function formatTime(iso: string): string {
 	const hour = String(d.getHours()).padStart(2, "0");
 	const min = String(d.getMinutes()).padStart(2, "0");
 	return `${month}/${day} ${hour}:${min}`;
+}
+
+function formatAgo(timestamp: number): string {
+	const diff = Math.round((Date.now() - timestamp) / 1000);
+	if (diff < 60) return `${diff}s ago`;
+	if (diff < 3600) return `${Math.round(diff / 60)}m ago`;
+	if (diff < 86400) return `${Math.round(diff / 3600)}h ago`;
+	return `${Math.round(diff / 86400)}d ago`;
 }
 
 // biome-ignore lint/suspicious/noControlCharactersInRegex: stripping ANSI escape sequences
