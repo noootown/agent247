@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import { ulid } from "ulid";
+import { purgeBin } from "../lib/bin.js";
 import { loadEnv, loadGlobalVars, loadTaskConfig } from "../lib/config.js";
 import { filterNewItems } from "../lib/dedup.js";
 import { discoverItems } from "../lib/discovery.js";
@@ -19,6 +20,7 @@ export async function runCommand(
 	baseDir: string,
 ): Promise<void> {
 	loadEnv(baseDir);
+	purgeBin(baseDir);
 	const runsDir = join(baseDir, "runs");
 	const startedAt = new Date().toISOString();
 

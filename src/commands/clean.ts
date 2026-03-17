@@ -1,5 +1,6 @@
 import { rmSync } from "node:fs";
 import { join } from "node:path";
+import { purgeBin } from "../lib/bin.js";
 import { listRuns } from "../lib/report.js";
 
 function parseDuration(duration: string): number {
@@ -28,10 +29,15 @@ export function cleanCommand(baseDir: string, duration: string): void {
 	runs = runs.filter((r) => Date.parse(r.meta.started_at) < cutoff);
 	if (runs.length === 0) {
 		console.log("No runs matching criteria to clean.");
-		return;
+	} else {
+		for (const run of runs) {
+			rmSync(run.dir, { recursive: true, force: true });
+		}
+		console.log(`Cleaned ${runs.length} run(s).`);
 	}
-	for (const run of runs) {
-		rmSync(run.dir, { recursive: true, force: true });
+
+	const binCleaned = purgeBin(baseDir);
+	if (binCleaned > 0) {
+		console.log(`Purged ${binCleaned} deleted run(s) from bin.`);
 	}
-	console.log(`Cleaned ${runs.length} run(s).`);
 }

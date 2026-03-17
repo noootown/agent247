@@ -1,4 +1,10 @@
-import { existsSync, readFileSync } from "node:fs";
+import {
+	existsSync,
+	mkdirSync,
+	readFileSync,
+	renameSync,
+	rmSync,
+} from "node:fs";
 import { join } from "node:path";
 import { loadGlobalVars } from "../lib/config.js";
 import { listRuns, type RunRecord, updateRunMeta } from "../lib/report.js";
@@ -37,6 +43,17 @@ export function watchCommand(
 	options?: { all?: boolean },
 ): void {
 	const runsDir = join(baseDir, "runs");
+	const binDir = join(baseDir, ".bin");
+
+	function softDelete(runDir: string): void {
+		// Move to .bin/<task>/<runId>, auto-cleaned after 5 days
+		const parts = runDir.split("/");
+		const runId = parts[parts.length - 1];
+		const task = parts[parts.length - 2];
+		const dest = join(binDir, task, runId);
+		mkdirSync(join(binDir, task), { recursive: true });
+		renameSync(runDir, dest);
+	}
 	const globalVars = loadGlobalVars(baseDir);
 	const botName = globalVars.bot_name ?? "agent247";
 
@@ -422,6 +439,7 @@ export function watchCommand(
 			`  ${BOLD}Actions${RESET}`,
 			`    c           Mark selected run as ${GREEN}completed${RESET}`,
 			`    p           Mark selected run as ${YELLOW}pending${RESET}`,
+			`    Delete      Delete selected run`,
 			"",
 			`  ${BOLD}General${RESET}`,
 			`    ?           Toggle this help`,
@@ -564,6 +582,20 @@ export function watchCommand(
 					line.run.meta.status = "pending";
 					render();
 				}
+			} else if (str === "\x1B[3~") {
+				// Delete key — remove selected run
+				const line = lines[state.cursor];
+				if (line?.type === "run") {
+					softDelete(line.run.dir);
+					state.splitRun = null;
+					state.reportScroll = 0;
+					state.reportScrollX = 0;
+					loadData();
+					if (state.cursor >= getVisibleLines().length) {
+						state.cursor = getVisibleLines().length - 1;
+					}
+					render();
+				}
 			} else if (str === "?") {
 				state.mode = "help";
 				render();
@@ -631,6 +663,17 @@ export function watchCommand(
 			if (line?.type === "run" && line.run.meta.status === "completed") {
 				updateRunMeta(line.run.dir, { status: "pending" });
 				line.run.meta.status = "pending";
+				render();
+			}
+		} else if (str === "\x1B[3~") {
+			// Delete key — remove selected run
+			const line = lines[state.cursor];
+			if (line?.type === "run") {
+				softDelete(line.run.dir);
+				loadData();
+				if (state.cursor >= getVisibleLines().length) {
+					state.cursor = getVisibleLines().length - 1;
+				}
 				render();
 			}
 		} else if (str === "?") {
