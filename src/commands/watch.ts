@@ -101,12 +101,18 @@ export function watchCommand(
 		const pid = getTaskPid(taskId);
 		if (pid === null) return;
 		try {
-			// Kill the process tree (negative PID kills the process group)
 			process.kill(-pid, "SIGTERM");
 		} catch {
 			try {
 				process.kill(pid, "SIGTERM");
 			} catch {}
+		}
+		// Mark processing runs as canceled
+		const runs = listRuns(runsDir, { task: taskId });
+		for (const run of runs) {
+			if (run.meta.status === "processing") {
+				updateRunMeta(run.dir, { status: "canceled" });
+			}
 		}
 		// Clean up the lock file
 		const lockPath = join(baseDir, "tasks", taskId, ".lock");
@@ -198,6 +204,8 @@ export function watchCommand(
 				return `${GREEN}●${RESET}`;
 			case "processing":
 				return `${YELLOW}${SPINNER[spinnerFrame % SPINNER.length]}${RESET}`;
+			case "canceled":
+				return `${DIM}✕${RESET}`;
 			case "skipped":
 				return `${DIM}○${RESET}`;
 			default:
@@ -216,6 +224,8 @@ export function watchCommand(
 				return `${GREEN}${padded}${RESET}`;
 			case "processing":
 				return `${YELLOW}${padded}${RESET}`;
+			case "canceled":
+				return `${DIM}${padded}${RESET}`;
 			case "skipped":
 				return `${DIM}${padded}${RESET}`;
 			default:
