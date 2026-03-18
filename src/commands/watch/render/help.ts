@@ -11,8 +11,8 @@ export function renderHelp(): void {
 		`  ${BOLD}Navigation${RESET}`,
 		`    ↑ / ↓       Move selection up / down`,
 		`    ← / →       Collapse / expand task group`,
-		`    Enter       Toggle group or open split view`,
-		`    w/a/s/d     Scroll report pane (up/left/down/right)`,
+		`    Enter       Toggle group expansion`,
+		`    w/a/s/d     Scroll detail pane (up/left/down/right)`,
 		"",
 		`  ${BOLD}Actions${RESET}`,
 		`    c           Mark selected run as ${GREEN}completed${RESET}`,
@@ -25,7 +25,7 @@ export function renderHelp(): void {
 		"",
 		`  ${BOLD}General${RESET}`,
 		`    ?           Toggle this help`,
-		`    q / Esc     Quit or back`,
+		`    q / Esc     Quit`,
 		"",
 	];
 

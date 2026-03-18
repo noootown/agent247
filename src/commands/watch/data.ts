@@ -67,16 +67,21 @@ export function loadData(
 	);
 
 	const groups: TaskGroup[] = [...taskMap.entries()]
-		.sort(([a], [b]) => a.localeCompare(b))
 		.map(([task, taskRuns]) => ({
 			task,
 			runs: taskRuns,
 			expanded: prevExpanded.has(task),
-			running: isTaskRunning(baseDir, task),
+			running:
+				isTaskRunning(baseDir, task) ||
+				taskRuns.some((r) => r.meta.status === "processing"),
 			enabled: installedAgents.has(task),
 			schedule: schedules.get(task) ?? null,
 			lastCheck: lastCheckMap.get(task) ?? null,
-		}));
+		}))
+		.sort((a, b) => {
+			if (a.enabled !== b.enabled) return a.enabled ? -1 : 1;
+			return a.task.localeCompare(b.task);
+		});
 
 	return { ...currentState, groups };
 }

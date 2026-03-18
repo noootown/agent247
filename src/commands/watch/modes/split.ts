@@ -5,6 +5,7 @@ import {
 	actionRun,
 	actionSoftDelete,
 	actionStop,
+	actionToggle,
 } from "../actions.js";
 import type { State, VisibleLine, WatchContext } from "../state.js";
 
@@ -22,15 +23,6 @@ export function handleKey(
 ): State {
 	const line = lines[state.cursor];
 
-	if (key === "\x1B" || key === "q") {
-		return {
-			...state,
-			mode: "list",
-			splitRun: null,
-			reportScroll: 0,
-			reportScrollX: 0,
-		};
-	}
 	if (key === "\x1B[A") {
 		const cursor = state.cursor <= 0 ? lines.length - 1 : state.cursor - 1;
 		return withSplitRun({ ...state, cursor }, lines);
@@ -54,14 +46,6 @@ export function handleKey(
 			line.group.expanded = false;
 			return { ...state };
 		}
-		if (line?.type === "run")
-			return {
-				...state,
-				mode: "list",
-				splitRun: null,
-				reportScroll: 0,
-				reportScrollX: 0,
-			};
 		return state;
 	}
 	if (key === "\r") {
@@ -91,6 +75,7 @@ export function handleKey(
 	if (key === "\x1B[3~") return actionSoftDelete(state, line, ctx);
 	if (key === "r") return actionRun(state, line);
 	if (key === "x") return actionStop(state, line, ctx);
+	if (key === "t") return actionToggle(state, line, ctx);
 
 	return state;
 }

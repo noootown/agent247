@@ -15,7 +15,6 @@ import { syncCommand } from "../sync.js";
 import { getVisibleLines, loadData } from "./data.js";
 import { handleKey as confirmHandleKey } from "./modes/confirm.js";
 import { handleKey as helpHandleKey } from "./modes/help.js";
-import { handleKey as listHandleKey } from "./modes/list.js";
 import { handleKey as splitHandleKey } from "./modes/split.js";
 import { tickSpinner } from "./render/ansi.js";
 import { render } from "./render/index.js";
@@ -108,7 +107,6 @@ export function watchCommand(
 	};
 
 	const modeHandlers = {
-		list: listHandleKey,
 		split: splitHandleKey,
 		"confirm-run": confirmHandleKey,
 		help: helpHandleKey,
@@ -116,24 +114,23 @@ export function watchCommand(
 
 	function handleInput(key: Buffer): void {
 		const str = key.toString();
-		// Global quit in list mode
+		// Global quit
 		if (
-			state.mode === "list" &&
+			state.mode === "split" &&
 			(str === "q" || str === "\x1B" || str === "\x03")
 		) {
 			cleanup();
 			process.exit(0);
 		}
-		// Ctrl+C in split mode
-		if (state.mode === "split" && str === "\x03") {
+		if (str === "\x03") {
 			cleanup();
 			process.exit(0);
 		}
 		const prevMode = state.mode;
 		const lines = getVisibleLines(state);
 		state = modeHandlers[state.mode](str, state, lines, ctx);
-		// Reload data when exiting confirm-run (task was spawned or cancelled)
-		if (prevMode === "confirm-run" && state.mode === "list") {
+		// Reload data when exiting confirm-run
+		if (prevMode === "confirm-run" && state.mode === "split") {
 			state = ctx.reload(state);
 		}
 		render(state, getVisibleLines(state), botName);

@@ -1,6 +1,6 @@
 import type { RunMeta, RunRecord } from "../../lib/report.js";
 
-export type ViewMode = "list" | "split" | "help" | "confirm-run";
+export type ViewMode = "split" | "help" | "confirm-run";
 
 export interface TaskGroup {
 	task: string;
@@ -47,7 +47,7 @@ export function initialState(): State {
 		groups: [],
 		cursor: -1,
 		scroll: 0,
-		mode: "list",
+		mode: "split",
 		splitRun: null,
 		reportScroll: 0,
 		reportScrollX: 0,

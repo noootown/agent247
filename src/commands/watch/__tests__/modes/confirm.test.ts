@@ -61,7 +61,7 @@ describe("confirm mode — confirm with Enter", () => {
 		const ctx = makeMockCtx();
 		const next = handleKey("\r", makeState({ confirmChoice: "yes" }), [], ctx);
 		expect(ctx.spawnRun).toHaveBeenCalledWith("my-task");
-		expect(next.mode).toBe("list");
+		expect(next.mode).toBe("split");
 		expect(next.confirmTask).toBeNull();
 	});
 
@@ -69,7 +69,7 @@ describe("confirm mode — confirm with Enter", () => {
 		const ctx = makeMockCtx();
 		const next = handleKey("\r", makeState({ confirmChoice: "no" }), [], ctx);
 		expect(ctx.spawnRun).not.toHaveBeenCalled();
-		expect(next.mode).toBe("list");
+		expect(next.mode).toBe("split");
 		expect(next.confirmTask).toBeNull();
 	});
 });
@@ -79,7 +79,7 @@ describe("confirm mode — cancel", () => {
 		const ctx = makeMockCtx();
 		const next = handleKey("q", makeState(), [], ctx);
 		expect(ctx.spawnRun).not.toHaveBeenCalled();
-		expect(next.mode).toBe("list");
+		expect(next.mode).toBe("split");
 		expect(next.confirmTask).toBeNull();
 	});
 
@@ -87,7 +87,7 @@ describe("confirm mode — cancel", () => {
 		const ctx = makeMockCtx();
 		const next = handleKey("\x1B", makeState(), [], ctx);
 		expect(ctx.spawnRun).not.toHaveBeenCalled();
-		expect(next.mode).toBe("list");
+		expect(next.mode).toBe("split");
 		expect(next.confirmTask).toBeNull();
 	});
 });

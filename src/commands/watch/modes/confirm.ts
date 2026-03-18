@@ -14,14 +14,14 @@ export function handleKey(
 	}
 	if (key === "\r") {
 		const taskId = state.confirmTask;
-		const next = { ...state, mode: "list" as const, confirmTask: null };
+		const next = { ...state, mode: "split" as const, confirmTask: null };
 		if (state.confirmChoice === "yes" && taskId) {
 			ctx.spawnRun(taskId);
 		}
 		return next;
 	}
 	if (key === "q" || key === "\x1B") {
-		return { ...state, mode: "list" as const, confirmTask: null };
+		return { ...state, mode: "split" as const, confirmTask: null };
 	}
 	return state;
 }

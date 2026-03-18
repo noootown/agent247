@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { RunRecord } from "../../../lib/report.js";
-import type { State, VisibleLine } from "../state.js";
+import type { State, TaskGroup, VisibleLine } from "../state.js";
 import {
 	BOLD,
 	DIM,
@@ -54,6 +54,49 @@ export function getReportLines(run: RunRecord): string[] {
 	return [...header, ...report.split("\n").map(renderMarkdownLine)];
 }
 
+export function getTaskInfoLines(group: TaskGroup): string[] {
+	const errors = group.runs.filter((r) => r.meta.status === "error").length;
+	const pending = group.runs.filter((r) => r.meta.status === "pending").length;
+	const completed = group.runs.filter(
+		(r) => r.meta.status === "completed",
+	).length;
+	const processing = group.runs.filter(
+		(r) => r.meta.status === "processing",
+	).length;
+
+	const lines = [
+		`${BOLD}Task: ${MAGENTA}${group.task}${RESET}`,
+		"",
+		`Status: ${group.running ? `${YELLOW}running${RESET}` : group.enabled ? `${GREEN}enabled${RESET}` : `${DIM}disabled${RESET}`}`,
+		group.schedule ? `Schedule: ${group.schedule}` : null,
+		group.lastCheck
+			? `Last check: ${group.lastCheck} ${DIM}(${formatAgo(Date.parse(group.lastCheck))})${RESET}`
+			: null,
+		"",
+		`${"─".repeat(40)}`,
+		"",
+		`${BOLD}Runs${RESET}`,
+		`  Total: ${group.runs.length}`,
+		completed > 0 ? `  ${GREEN}Completed: ${completed}${RESET}` : null,
+		pending > 0 ? `  ${YELLOW}Pending: ${pending}${RESET}` : null,
+		errors > 0 ? `  ${RED}Errors: ${errors}${RESET}` : null,
+		processing > 0 ? `  ${YELLOW}Processing: ${processing}${RESET}` : null,
+	];
+
+	return lines.filter((l): l is string => l !== null);
+}
+
+function getRightPaneLines(state: State, lines: VisibleLine[]): string[] {
+	const line = lines[state.cursor];
+	if (line?.type === "run" && state.splitRun) {
+		return getReportLines(state.splitRun);
+	}
+	if (line?.type === "group") {
+		return getTaskInfoLines(line.group);
+	}
+	return ["Navigate to a task or run to view details."];
+}
+
 export function renderSplitHorizontal(
 	state: State,
 	lines: VisibleLine[],
@@ -72,9 +115,7 @@ export function renderSplitHorizontal(
 	}
 	if (lines.length > 0 && cursor >= lines.length) cursor = lines.length - 1;
 
-	const reportLines = state.splitRun
-		? getReportLines(state.splitRun)
-		: ["Select a run to view its report."];
+	const reportLines = getRightPaneLines(state, lines);
 
 	// Cap reportScrollX to longest visible line
 	const maxLen = reportLines.reduce(
@@ -98,8 +139,10 @@ export function renderSplitHorizontal(
 
 	process.stdout.write("\x1B[2J\x1B[H");
 
+	const cursorLine = lines[state.cursor];
+	const rightTitle = cursorLine?.type === "run" ? "Report" : "Task Info";
 	const leftHeader = ` ${BOLD}${botName}${RESET} — ${state.groups.length} tasks`;
-	const rightHeader = ` ${BOLD}Report${RESET}`;
+	const rightHeader = ` ${BOLD}${rightTitle}${RESET}`;
 	const leftHeaderPad = " ".repeat(
 		Math.max(0, leftWidth - stripAnsi(leftHeader).length),
 	);
@@ -118,7 +161,7 @@ export function renderSplitHorizontal(
 		let left: string;
 		if (listLine) {
 			const selected = listLine.index === cursor;
-			left = renderListRow(listLine, leftWidth, selected, true);
+			left = renderListRow(listLine, leftWidth, selected);
 		} else {
 			left = " ".repeat(leftWidth);
 		}
@@ -132,7 +175,9 @@ export function renderSplitHorizontal(
 		process.stdout.write(`${left}${SEPARATOR}${right}\n`);
 	}
 
-	process.stdout.write(`  ${DIM}↑↓ list  wasd report  ? help  q back${RESET}`);
+	process.stdout.write(
+		`  ${DIM}↑↓ navigate  wasd scroll  ? help  q quit${RESET}`,
+	);
 }
 
 export function renderSplitVertical(
@@ -152,9 +197,7 @@ export function renderSplitVertical(
 	}
 	if (lines.length > 0 && cursor >= lines.length) cursor = lines.length - 1;
 
-	const reportLines = state.splitRun
-		? getReportLines(state.splitRun)
-		: ["Select a run to view its report."];
+	const reportLines = getRightPaneLines(state, lines);
 
 	const maxLen = reportLines.reduce(
 		(max, l) => Math.max(max, stripAnsi(l).length),
@@ -192,8 +235,10 @@ export function renderSplitVertical(
 		}
 	}
 
+	const cursorLine = lines[state.cursor];
+	const rightTitle = cursorLine?.type === "run" ? "Report" : "Task Info";
 	process.stdout.write(
-		`${DIM}${"─".repeat(cols)}${RESET} ${BOLD}Report${RESET}\n`,
+		`${DIM}${"─".repeat(cols)}${RESET} ${BOLD}${rightTitle}${RESET}\n`,
 	);
 
 	for (let i = 0; i < bottomRows; i++) {
@@ -203,7 +248,9 @@ export function renderSplitVertical(
 		process.stdout.write(`${fitToWidth(scrolled, cols)}\n`);
 	}
 
-	process.stdout.write(`  ${DIM}↑↓ list  wasd report  ? help  q back${RESET}`);
+	process.stdout.write(
+		`  ${DIM}↑↓ navigate  wasd scroll  ? help  q quit${RESET}`,
+	);
 }
 
 export function renderSplit(

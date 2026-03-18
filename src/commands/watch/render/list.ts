@@ -19,59 +19,23 @@ import {
 	YELLOW,
 } from "./ansi.js";
 
-export function taskSummary(group: TaskGroup, compact = false): string {
-	const scheduleLabel = group.schedule ? `${DIM}${group.schedule}${RESET}` : "";
-	const statusLabel = group.running
-		? `${YELLOW}${SPINNER[getSpinnerFrame() % SPINNER.length]} running${RESET}`
-		: !group.enabled
-			? `${DIM}disabled${RESET}`
-			: scheduleLabel;
-
-	const total = group.runs.length;
-	const errors = group.runs.filter((r) => r.meta.status === "error").length;
-	const pending = group.runs.filter((r) => r.meta.status === "pending").length;
-	const completed = group.runs.filter(
-		(r) => r.meta.status === "completed",
-	).length;
-
-	if (compact) {
-		const parts: string[] = [];
-		if (statusLabel) parts.push(statusLabel);
-		parts.push(`${total}r`);
-		if (pending > 0) parts.push(`${YELLOW}${pending}p${RESET}`);
-		if (completed > 0) parts.push(`${GREEN}${completed}c${RESET}`);
-		if (errors > 0) parts.push(`${RED}${errors}e${RESET}`);
-		return parts.join(" ");
-	}
-
-	const lastCheckLabel = group.lastCheck
-		? `${DIM}last check: ${formatAgo(Date.parse(group.lastCheck))}${RESET}`
-		: "";
-
-	const parts: string[] = [];
-	if (statusLabel) parts.push(statusLabel);
-	if (lastCheckLabel) parts.push(lastCheckLabel);
-	parts.push(`${total} runs`);
-	if (pending > 0) parts.push(`${YELLOW}${pending} pending${RESET}`);
-	if (completed > 0) parts.push(`${GREEN}${completed} completed${RESET}`);
-	if (errors > 0) parts.push(`${RED}${errors} error${RESET}`);
-	return parts.join(", ");
-}
-
 export function renderListRow(
 	line: VisibleLine,
 	width: number,
 	selected: boolean,
-	compact = false,
 ): string {
 	if (line.type === "group") {
 		const arrow = line.group.expanded ? "▼" : "▶";
-		const summary = taskSummary(line.group, compact);
+		const statusTag = line.group.running
+			? ` ${YELLOW}${SPINNER[getSpinnerFrame() % SPINNER.length]}${RESET}`
+			: !line.group.enabled
+				? ` ${DIM}(disabled)${RESET}`
+				: "";
 		if (selected) {
-			const plain = ` ${arrow} ${line.group.task}  (${stripAnsi(summary)})`;
+			const plain = ` ${arrow} ${line.group.task}${stripAnsi(statusTag)}`;
 			return `${SELECT_BG}${plain.substring(0, width).padEnd(width)}${RESET}`;
 		}
-		const text = ` ${arrow} ${BOLD}${MAGENTA}${line.group.task}${RESET}  (${summary})`;
+		const text = ` ${arrow} ${BOLD}${MAGENTA}${line.group.task}${RESET}${statusTag}`;
 		return fitToWidth(text, width);
 	}
 

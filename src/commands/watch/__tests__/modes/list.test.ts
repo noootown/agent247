@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { handleKey } from "../../modes/list.js";
+import { handleKey } from "../../modes/split.js";
 import type {
 	State,
 	TaskGroup,
@@ -12,7 +12,7 @@ function makeState(overrides: Partial<State> = {}): State {
 		groups: [],
 		cursor: 0,
 		scroll: 0,
-		mode: "list",
+		mode: "split",
 		splitRun: null,
 		reportScroll: 0,
 		reportScrollX: 0,
@@ -126,15 +126,11 @@ describe("navigation", () => {
 		).toBe(true);
 	});
 
-	it("→ on a run opens split mode", () => {
+	it("→ on a run is a no-op", () => {
 		const lines = [makeRunLine(0)];
-		const next = handleKey(
-			"\x1B[C",
-			makeState({ cursor: 0 }),
-			lines,
-			makeMockCtx(),
-		);
-		expect(next.mode).toBe("split");
+		const state = makeState({ cursor: 0 });
+		const next = handleKey("\x1B[C", state, lines, makeMockCtx());
+		expect(next).toBe(state);
 	});
 
 	it("← collapses an expanded group", () => {
@@ -147,16 +143,11 @@ describe("navigation", () => {
 });
 
 describe("mode transitions", () => {
-	it("Enter on a run opens split mode", () => {
+	it("Enter on a run is a no-op", () => {
 		const lines = [makeRunLine(0)];
-		const next = handleKey(
-			"\r",
-			makeState({ cursor: 0 }),
-			lines,
-			makeMockCtx(),
-		);
-		expect(next.mode).toBe("split");
-		expect(next.splitRun).toBeDefined();
+		const state = makeState({ cursor: 0 });
+		const next = handleKey("\r", state, lines, makeMockCtx());
+		expect(next).toBe(state);
 	});
 
 	it("Enter on a group toggles expand", () => {

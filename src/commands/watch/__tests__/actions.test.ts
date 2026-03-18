@@ -28,7 +28,7 @@ function makeState(overrides: Partial<State> = {}): State {
 		groups: [],
 		cursor: 0,
 		scroll: 0,
-		mode: "list",
+		mode: "split",
 		splitRun: null,
 		reportScroll: 0,
 		reportScrollX: 0,

@@ -7,7 +7,7 @@ export function handleKey(
 	_ctx: WatchContext,
 ): State {
 	if (key === "?" || key === "\x1B" || key === "q") {
-		return { ...state, mode: state.splitRun ? "split" : "list" };
+		return { ...state, mode: "split" };
 	}
 	return state;
 }

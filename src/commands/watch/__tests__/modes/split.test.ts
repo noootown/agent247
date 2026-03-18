@@ -79,30 +79,6 @@ function makeMockCtx(overrides: Partial<WatchContext> = {}): WatchContext {
 	};
 }
 
-describe("exit split mode", () => {
-	it("q exits split mode", () => {
-		const next = handleKey("q", makeState(), [], makeMockCtx());
-		expect(next.mode).toBe("list");
-		expect(next.splitRun).toBeNull();
-	});
-
-	it("ESC exits split mode", () => {
-		const next = handleKey("\x1B", makeState(), [], makeMockCtx());
-		expect(next.mode).toBe("list");
-	});
-
-	it("← on a run line exits split mode", () => {
-		const lines = [makeRunLine(0)];
-		const next = handleKey(
-			"\x1B[D",
-			makeState({ cursor: 0 }),
-			lines,
-			makeMockCtx(),
-		);
-		expect(next.mode).toBe("list");
-	});
-});
-
 describe("navigation in split mode", () => {
 	it("↑ decrements cursor and updates splitRun", () => {
 		const run = makeRunLine(1);
