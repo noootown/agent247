@@ -8,6 +8,7 @@ export interface TaskGroup {
 	expanded: boolean;
 	running: boolean;
 	enabled: boolean;
+	schedule: string | null;
 }
 
 export type VisibleLine =

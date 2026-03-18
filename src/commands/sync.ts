@@ -1,7 +1,7 @@
-import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { listTasks, loadEnv } from "../lib/config.js";
-import { syncCrontab } from "../lib/crontab.js";
+import { removeCrontabBlock } from "../lib/crontab.js";
+import { syncLaunchd } from "../lib/launchd.js";
 
 export function syncCommand(baseDir: string): void {
 	loadEnv(baseDir);
@@ -14,21 +14,35 @@ export function syncCommand(baseDir: string): void {
 			schedule: t.config.schedule,
 		}));
 
-	if (enabledTasks.length === 0) {
-		console.log("No enabled tasks to sync.");
-		return;
-	}
-
-	const projectRoot = resolve(import.meta.dirname ?? process.cwd(), "..");
+	const projectRoot = resolve(import.meta.dirname ?? process.cwd(), "../..");
 	const distCli = join(projectRoot, "dist", "cli.js");
-	const srcCli = join(projectRoot, "src", "cli.ts");
-	const binPath = existsSync(distCli) ? `node ${distCli}` : `npx tsx ${srcCli}`;
-	const runsDir = join(baseDir, "runs");
+	const absBaseDir = resolve(baseDir);
 
-	syncCrontab(enabledTasks, binPath, runsDir);
+	const envVars: Record<string, string> = {};
+	if (process.env.HOME) envVars.HOME = process.env.HOME;
+	if (process.env.USER) envVars.USER = process.env.USER;
+	const seen = new Set<string>();
+	envVars.PATH = (process.env.PATH ?? "")
+		.split(":")
+		.filter((p) => !p.includes("fnm_multishells"))
+		.filter((p) => {
+			if (seen.has(p)) return false;
+			seen.add(p);
+			return true;
+		})
+		.join(":");
 
-	console.log(`Synced ${enabledTasks.length} task(s) to crontab:`);
-	for (const task of enabledTasks) {
-		console.log(`  ${task.id} — ${task.schedule}`);
+	// Migrate from crontab if needed
+	removeCrontabBlock();
+
+	syncLaunchd(enabledTasks, process.execPath, distCli, absBaseDir, envVars);
+
+	if (enabledTasks.length === 0) {
+		console.log("No enabled tasks. Removed all launch agents.");
+	} else {
+		console.log(`Synced ${enabledTasks.length} task(s) to launchd:`);
+		for (const task of enabledTasks) {
+			console.log(`  ${task.id} — ${task.schedule}`);
+		}
 	}
 }

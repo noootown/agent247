@@ -23,7 +23,14 @@ function makeState(overrides: Partial<State> = {}): State {
 }
 
 function makeGroup(task = "task-a", running = false): TaskGroup {
-	return { task, runs: [], expanded: false, running, enabled: true };
+	return {
+		task,
+		runs: [],
+		expanded: false,
+		running,
+		enabled: true,
+		schedule: null,
+	};
 }
 
 function makeGroupLine(

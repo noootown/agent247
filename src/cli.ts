@@ -7,6 +7,7 @@ import { cleanCommand } from "./commands/clean.js";
 import { initCommand } from "./commands/init.js";
 import { runCommand } from "./commands/run.js";
 import { syncCommand } from "./commands/sync.js";
+import { unsyncCommand } from "./commands/unsync.js";
 import { watchCommand } from "./commands/watch/index.js";
 
 const program = new Command();
@@ -46,8 +47,13 @@ program
 
 program
 	.command("sync")
-	.description("Sync task schedules to system crontab")
+	.description("Sync task schedules to launchd")
 	.action(() => syncCommand(resolveBaseDir(program.opts().dir)));
+
+program
+	.command("unsync")
+	.description("Remove all agent247 launch agents")
+	.action(() => unsyncCommand());
 
 program
 	.command("clean <duration>")

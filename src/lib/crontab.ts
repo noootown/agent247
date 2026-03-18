@@ -13,8 +13,14 @@ export function generateFencedBlock(
 	tasks: CrontabTask[],
 	binPath: string,
 	runsDir: string,
+	envVars?: Record<string, string>,
 ): string {
 	const lines = [START_MARKER];
+	if (envVars) {
+		for (const [key, value] of Object.entries(envVars)) {
+			lines.push(`${key}=${value}`);
+		}
+	}
 	for (const task of tasks) {
 		lines.push(`# ${task.id} (${task.name})`);
 		lines.push(
@@ -55,13 +61,33 @@ export function writeCrontab(content: string): void {
 	execSync("crontab -", { input: content, encoding: "utf-8" });
 }
 
+/** Remove the agent247 fenced block from crontab (migration to launchd) */
+export function removeCrontabBlock(): void {
+	const existing = readCrontab();
+	if (!existing.includes(START_MARKER)) return;
+	const cleaned = replaceFencedSection(existing, "");
+	const trimmed = cleaned.replace(/\n{3,}/g, "\n\n").trim();
+	if (trimmed) {
+		writeCrontab(`${trimmed}\n`);
+	} else {
+		// Empty crontab
+		try {
+			execSync("crontab -r", { encoding: "utf-8", stdio: "pipe" });
+		} catch {
+			// Already empty
+		}
+	}
+	console.log("Migrated: removed agent247 entries from crontab.");
+}
+
 export function syncCrontab(
 	tasks: CrontabTask[],
 	binPath: string,
 	runsDir: string,
+	envVars?: Record<string, string>,
 ): void {
 	const existing = readCrontab();
-	const block = generateFencedBlock(tasks, binPath, runsDir);
+	const block = generateFencedBlock(tasks, binPath, runsDir, envVars);
 	const updated = replaceFencedSection(existing, block);
 	writeCrontab(updated);
 }

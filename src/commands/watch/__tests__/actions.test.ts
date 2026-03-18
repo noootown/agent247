@@ -17,6 +17,7 @@ function makeGroup(overrides: Partial<TaskGroup> = {}): TaskGroup {
 		expanded: false,
 		running: false,
 		enabled: true,
+		schedule: null,
 		...overrides,
 	};
 }

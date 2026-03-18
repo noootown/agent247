@@ -20,11 +20,12 @@ import {
 } from "./ansi.js";
 
 export function taskSummary(group: TaskGroup, compact = false): string {
+	const scheduleLabel = group.schedule ? `${DIM}${group.schedule}${RESET}` : "";
 	const statusLabel = group.running
 		? `${YELLOW}${SPINNER[getSpinnerFrame() % SPINNER.length]} running${RESET}`
 		: !group.enabled
 			? `${DIM}disabled${RESET}`
-			: "";
+			: scheduleLabel;
 
 	const total = group.runs.length;
 	const errors = group.runs.filter((r) => r.meta.status === "error").length;

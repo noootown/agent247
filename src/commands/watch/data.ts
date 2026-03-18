@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { listTasks } from "../../lib/config.js";
-import { readCrontab } from "../../lib/crontab.js";
+import { getAgentSchedules, listInstalledAgents } from "../../lib/launchd.js";
 import { listRuns, type RunRecord } from "../../lib/report.js";
 import type { State, TaskGroup, VisibleLine } from "./state.js";
 
@@ -36,11 +36,10 @@ export function loadData(
 
 	const taskMap = new Map<string, RunRecord[]>();
 	const taskConfigs = listTasks(baseDir);
-	const crontab = readCrontab();
-	const enabledMap = new Map<string, boolean>();
+	const installedAgents = new Set(listInstalledAgents());
+	const schedules = getAgentSchedules();
 	for (const t of taskConfigs) {
 		taskMap.set(t.id, []);
-		enabledMap.set(t.id, crontab.includes(`run ${t.id}`));
 	}
 	for (const run of runs) {
 		const existing = taskMap.get(run.meta.task) ?? [];
@@ -59,7 +58,8 @@ export function loadData(
 			runs: taskRuns,
 			expanded: prevExpanded.has(task),
 			running: isTaskRunning(baseDir, task),
-			enabled: enabledMap.get(task) ?? true,
+			enabled: installedAgents.has(task),
+			schedule: schedules.get(task) ?? null,
 		}));
 
 	return { ...currentState, groups };
