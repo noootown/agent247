@@ -44,8 +44,13 @@ export function taskSummary(group: TaskGroup, compact = false): string {
 		return parts.join(" ");
 	}
 
+	const lastCheckLabel = group.lastCheck
+		? `${DIM}last check: ${formatAgo(Date.parse(group.lastCheck))}${RESET}`
+		: "";
+
 	const parts: string[] = [];
 	if (statusLabel) parts.push(statusLabel);
+	if (lastCheckLabel) parts.push(lastCheckLabel);
 	parts.push(`${total} runs`);
 	if (pending > 0) parts.push(`${YELLOW}${pending} pending${RESET}`);
 	if (completed > 0) parts.push(`${GREEN}${completed} completed${RESET}`);

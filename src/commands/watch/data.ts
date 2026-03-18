@@ -29,6 +29,11 @@ export function loadData(
 	options?: { all?: boolean },
 ): State {
 	let runs = listRuns(runsDir);
+	const binDir = join(baseDir, ".bin");
+	const binRuns = listRuns(binDir);
+	// Combine runs and bin runs to find the latest check per task
+	const allRuns = [...runs, ...binRuns];
+	// Filter skipped from display (they now live in .bin)
 	if (!options?.all) {
 		runs = runs.filter((r) => r.meta.status !== "skipped");
 	}
@@ -38,6 +43,16 @@ export function loadData(
 	const taskConfigs = listTasks(baseDir);
 	const installedAgents = new Set(listInstalledAgents());
 	const schedules = getAgentSchedules();
+
+	// Find the latest run (any status) per task across runs/ and .bin/
+	const lastCheckMap = new Map<string, string>();
+	for (const run of allRuns) {
+		const existing = lastCheckMap.get(run.meta.task);
+		if (!existing || run.meta.finished_at > existing) {
+			lastCheckMap.set(run.meta.task, run.meta.finished_at);
+		}
+	}
+
 	for (const t of taskConfigs) {
 		taskMap.set(t.id, []);
 	}
@@ -60,6 +75,7 @@ export function loadData(
 			running: isTaskRunning(baseDir, task),
 			enabled: installedAgents.has(task),
 			schedule: schedules.get(task) ?? null,
+			lastCheck: lastCheckMap.get(task) ?? null,
 		}));
 
 	return { ...currentState, groups };

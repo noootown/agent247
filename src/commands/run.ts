@@ -91,13 +91,13 @@ export async function runCommand(
 
 		if (newItems.length === 0) {
 			const runId = ulid();
-			const runDir = join(runsDir, taskId, runId);
+			const binDir = join(baseDir, ".bin", taskId, runId);
 			const finishedAt = new Date().toISOString();
-			const logger = createLogger(join(runDir, "log.txt"));
+			const logger = createLogger(join(binDir, "log.txt"));
 			logger.log(
 				`No new items for ${taskId} (${items.length} discovered, all deduped)`,
 			);
-			writeRun(runDir, {
+			writeRun(binDir, {
 				meta: {
 					schema_version: 1,
 					id: runId,

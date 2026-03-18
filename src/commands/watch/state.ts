@@ -9,6 +9,7 @@ export interface TaskGroup {
 	running: boolean;
 	enabled: boolean;
 	schedule: string | null;
+	lastCheck: string | null;
 }
 
 export type VisibleLine =

@@ -30,6 +30,7 @@ function makeGroup(task = "task-a", running = false): TaskGroup {
 		running,
 		enabled: true,
 		schedule: null,
+		lastCheck: null,
 	};
 }
 
