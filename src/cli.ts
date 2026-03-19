@@ -3,11 +3,10 @@ import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { Command } from "commander";
-import { cleanCommand } from "./commands/clean.js";
 import { initCommand } from "./commands/init.js";
+import { purgeCommand } from "./commands/purge.js";
 import { runCommand } from "./commands/run.js";
 import { syncCommand } from "./commands/sync.js";
-import { unsyncCommand } from "./commands/unsync.js";
 import { watchCommand } from "./commands/watch/index.js";
 
 const program = new Command();
@@ -51,15 +50,10 @@ program
 	.action(() => syncCommand(resolveBaseDir(program.opts().dir)));
 
 program
-	.command("unsync")
-	.description("Remove all agent247 launch agents")
-	.action(() => unsyncCommand());
-
-program
-	.command("clean <duration>")
+	.command("purge <duration>")
 	.description("Delete runs older than duration (e.g. 7d, 24h, 30m)")
 	.action((duration: string) =>
-		cleanCommand(resolveBaseDir(program.opts().dir), duration),
+		purgeCommand(resolveBaseDir(program.opts().dir), duration),
 	);
 
 program

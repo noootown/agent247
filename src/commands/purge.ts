@@ -21,7 +21,7 @@ function parseDuration(duration: string): number {
 	}
 }
 
-export function cleanCommand(baseDir: string, duration: string): void {
+export function purgeCommand(baseDir: string, duration: string): void {
 	const runsDir = join(baseDir, "runs");
 	const maxAge = parseDuration(duration);
 	const cutoff = Date.now() - maxAge;

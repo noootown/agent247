@@ -30,10 +30,10 @@ export async function runCommand(
 		return;
 	}
 
-	try {
-		const config = loadTaskConfig(taskId, baseDir);
-		const globalVars = loadGlobalVars(baseDir);
+	const config = loadTaskConfig(taskId, baseDir);
+	const globalVars = loadGlobalVars(baseDir);
 
+	try {
 		let items: Record<string, string>[];
 		try {
 			const discoveryCmd = render(
@@ -111,12 +111,17 @@ export async function runCommand(
 		} else {
 			await executeForBatch(config, globalVars, newItems, runsDir);
 		}
-		// Cleanup: move completed runs to .bin when cleanup condition is met
+	} finally {
+		// Cleanup: always runs, even when skipped — move completed/error runs to .bin
 		if (config.cleanup) {
 			const allRuns = listRuns(runsDir, { task: taskId });
 			const cleanupPattern = new RegExp(config.cleanup.when);
 			for (const run of allRuns) {
-				if (run.meta.status !== "completed" && run.meta.status !== "error")
+				if (
+					run.meta.status !== "completed" &&
+					run.meta.status !== "error" &&
+					run.meta.status !== "canceled"
+				)
 					continue;
 				if (!run.meta.item_key) continue;
 				try {
@@ -141,7 +146,6 @@ export async function runCommand(
 				}
 			}
 		}
-	} finally {
 		releaseLock(taskId, baseDir);
 	}
 }
