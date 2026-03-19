@@ -20,6 +20,7 @@ export interface TaskConfig {
 	cleanup?: {
 		command: string;
 		when: string;
+		retain?: string; // e.g. "12h", "7d", "30m" — keep runs for this long before cleanup
 	};
 	prompt: string;
 }

@@ -16,6 +16,32 @@ import {
 } from "../lib/runner.js";
 import { render } from "../lib/template.js";
 
+function parseRetain(retain?: string): number {
+	if (!retain) return 0;
+	const match = retain.match(/^(\d+)(d|h|m)$/);
+	if (!match) return 0;
+	const value = Number(match[1]);
+	switch (match[2]) {
+		case "d":
+			return value * 86400 * 1000;
+		case "h":
+			return value * 3600 * 1000;
+		case "m":
+			return value * 60 * 1000;
+		default:
+			return 0;
+	}
+}
+
+function runDirName(id: string): string {
+	const now = new Date();
+	const ts = now
+		.toISOString()
+		.replace(/[-:T]/g, "")
+		.replace(/\.\d+Z$/, "");
+	return `${ts.slice(0, 8)}-${ts.slice(8)}-${id}`;
+}
+
 export async function runCommand(
 	taskId: string,
 	baseDir: string,
@@ -43,7 +69,7 @@ export async function runCommand(
 			items = discoverItems(discoveryCmd, undefined, baseDir);
 		} catch (err) {
 			const runId = ulid();
-			const runDir = join(runsDir, taskId, runId);
+			const runDir = join(runsDir, taskId, runDirName(runId));
 			const logger = createLogger(join(runDir, "log.txt"));
 			logger.error(`Discovery failed: ${err}`);
 			writeRun(runDir, {
@@ -76,7 +102,7 @@ export async function runCommand(
 
 		if (newItems.length === 0) {
 			const runId = ulid();
-			const binDir = join(baseDir, ".bin", taskId, runId);
+			const binDir = join(baseDir, ".bin", taskId, runDirName(runId));
 			const finishedAt = new Date().toISOString();
 			const logger = createLogger(join(binDir, "log.txt"));
 			logger.log(
@@ -115,6 +141,8 @@ export async function runCommand(
 		if (config.cleanup) {
 			const allRuns = listRuns(runsDir, { task: taskId });
 			const cleanupPattern = new RegExp(config.cleanup.when);
+			const retainMs = parseRetain(config.cleanup.retain);
+			const now = Date.now();
 			for (const run of allRuns) {
 				if (
 					run.meta.status !== "completed" &&
@@ -123,6 +151,9 @@ export async function runCommand(
 				)
 					continue;
 				if (!run.meta.item_key) continue;
+				// Respect retention period
+				if (retainMs > 0 && now - Date.parse(run.meta.finished_at) < retainMs)
+					continue;
 				try {
 					const itemVars: Record<string, string> = {};
 					if (run.meta.url) itemVars.url = run.meta.url;
@@ -157,7 +188,7 @@ async function executeForItem(
 ): Promise<void> {
 	const startedAt = new Date().toISOString();
 	const runId = ulid();
-	const runDir = join(runsDir, config.id, runId);
+	const runDir = join(runsDir, config.id, runDirName(runId));
 	const taskVars = config.vars ?? {};
 	const renderedPrompt = render(config.prompt, globalVars, taskVars, item);
 	const renderedCwd = config.cwd
@@ -263,7 +294,7 @@ async function executeForBatch(
 ): Promise<void> {
 	const startedAt = new Date().toISOString();
 	const runId = ulid();
-	const runDir = join(runsDir, config.id, runId);
+	const runDir = join(runsDir, config.id, runDirName(runId));
 	const taskVars = config.vars ?? {};
 
 	const itemsJson = JSON.stringify(items);
