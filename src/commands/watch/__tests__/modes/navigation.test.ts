@@ -207,17 +207,17 @@ describe("action hotkeys", () => {
 		expect(ctx.toggleTask).toHaveBeenCalledWith("task-a");
 	});
 
-	it("Delete on a non-processing run calls softDelete", () => {
+	it("x on a non-processing run calls softDelete", () => {
 		const lines = [makeRunLine(0, "completed")];
 		const ctx = makeMockCtx();
-		handleKey("\x1B[3~", makeState({ cursor: 0 }), lines, ctx);
+		handleKey("x", makeState({ cursor: 0 }), lines, ctx);
 		expect(ctx.softDelete).toHaveBeenCalled();
 	});
 
-	it("Delete no-ops on processing runs", () => {
+	it("x no-ops on processing runs", () => {
 		const lines = [makeRunLine(0, "processing")];
 		const ctx = makeMockCtx();
-		handleKey("\x1B[3~", makeState({ cursor: 0 }), lines, ctx);
+		handleKey("x", makeState({ cursor: 0 }), lines, ctx);
 		expect(ctx.softDelete).not.toHaveBeenCalled();
 	});
 });

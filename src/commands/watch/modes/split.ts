@@ -72,9 +72,11 @@ export function handleKey(
 	if (key === "c") return actionComplete(state, line, ctx);
 	if (key === "p") return actionPending(state, line, ctx);
 	if (key === "u") return actionOpenUrl(state, line, ctx);
-	if (key === "\x1B[3~") return actionSoftDelete(state, line, ctx);
 	if (key === "r") return actionRun(state, line);
-	if (key === "x") return actionStop(state, line, ctx);
+	if (key === "x") {
+		if (line.type === "group") return actionStop(state, line, ctx);
+		return actionSoftDelete(state, line, ctx);
+	}
 	if (key === "t") return actionToggle(state, line, ctx);
 
 	return state;
