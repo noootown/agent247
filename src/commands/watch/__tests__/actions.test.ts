@@ -1,8 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
-	actionComplete,
 	actionOpenUrl,
-	actionPending,
 	actionRun,
 	actionSoftDelete,
 	actionStop,
@@ -79,7 +77,6 @@ function makeMockCtx(overrides: Partial<WatchContext> = {}): WatchContext {
 		binDir: "/base/.bin",
 		botName: "agent247",
 		reload: (state) => state,
-		persistRunMeta: vi.fn(),
 		softDelete: vi.fn(),
 		stopTask: vi.fn(),
 		toggleTask: vi.fn(),
@@ -88,64 +85,6 @@ function makeMockCtx(overrides: Partial<WatchContext> = {}): WatchContext {
 		...overrides,
 	};
 }
-
-describe("actionComplete", () => {
-	it("marks a pending run as completed and persists", () => {
-		const line = makeRunLine("pending");
-		const ctx = makeMockCtx();
-		actionComplete(makeState(), line, ctx);
-		expect(line.run.meta.status).toBe("completed");
-		expect(ctx.persistRunMeta).toHaveBeenCalledWith(line.run.dir, {
-			status: "completed",
-		});
-	});
-
-	it("no-ops on non-pending runs", () => {
-		for (const status of [
-			"completed",
-			"error",
-			"skipped",
-			"processing",
-			"canceled",
-		]) {
-			const ctx = makeMockCtx();
-			actionComplete(makeState(), makeRunLine(status), ctx);
-			expect(ctx.persistRunMeta).not.toHaveBeenCalled();
-		}
-	});
-
-	it("no-ops on group lines", () => {
-		const ctx = makeMockCtx();
-		actionComplete(makeState(), makeGroupLine(), ctx);
-		expect(ctx.persistRunMeta).not.toHaveBeenCalled();
-	});
-});
-
-describe("actionPending", () => {
-	it("marks a completed run as pending and persists", () => {
-		const line = makeRunLine("completed");
-		const ctx = makeMockCtx();
-		actionPending(makeState(), line, ctx);
-		expect(line.run.meta.status).toBe("pending");
-		expect(ctx.persistRunMeta).toHaveBeenCalledWith(line.run.dir, {
-			status: "pending",
-		});
-	});
-
-	it("no-ops on non-completed runs", () => {
-		for (const status of [
-			"pending",
-			"error",
-			"skipped",
-			"processing",
-			"canceled",
-		]) {
-			const ctx = makeMockCtx();
-			actionPending(makeState(), makeRunLine(status), ctx);
-			expect(ctx.persistRunMeta).not.toHaveBeenCalled();
-		}
-	});
-});
 
 describe("actionSoftDelete", () => {
 	it("calls softDelete with the run dir", () => {

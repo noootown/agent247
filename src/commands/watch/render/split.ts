@@ -56,7 +56,6 @@ export function getReportLines(run: RunRecord): string[] {
 
 export function getTaskInfoLines(group: TaskGroup): string[] {
 	const errors = group.runs.filter((r) => r.meta.status === "error").length;
-	const pending = group.runs.filter((r) => r.meta.status === "pending").length;
 	const completed = group.runs.filter(
 		(r) => r.meta.status === "completed",
 	).length;
@@ -81,7 +80,6 @@ export function getTaskInfoLines(group: TaskGroup): string[] {
 		`${BOLD}Runs${RESET}`,
 		`  Total: ${group.runs.length}`,
 		completed > 0 ? `  ${GREEN}Completed: ${completed}${RESET}` : null,
-		pending > 0 ? `  ${YELLOW}Pending: ${pending}${RESET}` : null,
 		errors > 0 ? `  ${RED}Errors: ${errors}${RESET}` : null,
 		processing > 0 ? `  ${YELLOW}Processing: ${processing}${RESET}` : null,
 		canceled > 0 ? `  ${DIM}Canceled: ${canceled}${RESET}` : null,

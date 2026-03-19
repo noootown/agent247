@@ -1,4 +1,4 @@
-import { BOLD, DIM, GREEN, RESET, YELLOW } from "./ansi.js";
+import { BOLD, DIM, RESET } from "./ansi.js";
 
 export function renderHelp(): void {
 	const rows = process.stdout.rows ?? 24;
@@ -15,8 +15,6 @@ export function renderHelp(): void {
 		`    w/a/s/d     Scroll detail pane (up/left/down/right)`,
 		"",
 		`  ${BOLD}Actions${RESET}`,
-		`    c           Mark selected run as ${GREEN}completed${RESET}`,
-		`    p           Mark selected run as ${YELLOW}pending${RESET}`,
 		`    r           Run selected task`,
 		`    x           Stop task / delete run`,
 		`    t           Toggle task enabled/disabled`,

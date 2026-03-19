@@ -46,27 +46,6 @@ describe("filterNewItems", () => {
 		]);
 	});
 
-	it("filters out items with pending runs", () => {
-		writeRun(join(RUNS_DIR, "task-a", "01RUN005"), {
-			meta: {
-				schema_version: 1,
-				id: "01RUN005",
-				task: "task-a",
-				status: "pending",
-
-				url: "https://example.com/1",
-				item_key: "https://example.com/1",
-				started_at: "2026-03-15T10:00:00Z",
-				finished_at: "2026-03-15T10:01:00Z",
-				duration_seconds: 60,
-				exit_code: 0,
-			},
-			log: "pending",
-		});
-		const items = [{ url: "https://example.com/1" }];
-		expect(filterNewItems(RUNS_DIR, "task-a", items, "url")).toEqual([]);
-	});
-
 	it("includes items whose previous run was an error (retry)", () => {
 		writeRun(join(RUNS_DIR, "task-a", "01RUN002"), {
 			meta: {
@@ -109,7 +88,7 @@ describe("filterNewItems", () => {
 		expect(filterNewItems(RUNS_DIR, "task-a", items, "url")).toEqual(items);
 	});
 
-	it("allows completed items through when invalidated by lifecycle", () => {
+	it("allows completed items through when allowRerun is true", () => {
 		writeRun(join(RUNS_DIR, "task-a", "01RUN004"), {
 			meta: {
 				schema_version: 1,
@@ -127,9 +106,8 @@ describe("filterNewItems", () => {
 			log: "done",
 		});
 		const items = [{ url: "https://example.com/1" }];
-		const invalidatedKeys = new Set(["https://example.com/1"]);
 		expect(
-			filterNewItems(RUNS_DIR, "task-a", items, "url", invalidatedKeys),
+			filterNewItems(RUNS_DIR, "task-a", items, "url", { allowRerun: true }),
 		).toEqual(items);
 	});
 });

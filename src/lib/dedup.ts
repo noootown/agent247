@@ -5,24 +5,17 @@ export function filterNewItems(
 	taskId: string,
 	items: Record<string, string>[],
 	itemKey: string,
-	invalidatedKeys?: Set<string>,
+	options?: { allowRerun?: boolean },
 ): Record<string, string>[] {
+	if (options?.allowRerun) return items;
+
 	const runs = listRuns(runsDir, { task: taskId });
 	const skipKeys = new Set(
 		runs
 			.filter(
-				(r) =>
-					r.meta.status === "completed" ||
-					r.meta.status === "pending" ||
-					r.meta.status === "processing",
+				(r) => r.meta.status === "completed" || r.meta.status === "processing",
 			)
 			.map((r) => r.meta.item_key),
 	);
-	// Remove invalidated keys from skip set (allow re-processing)
-	if (invalidatedKeys) {
-		for (const key of invalidatedKeys) {
-			skipKeys.delete(key);
-		}
-	}
 	return items.filter((item) => !skipKeys.has(item[itemKey]));
 }

@@ -15,9 +15,8 @@ export interface LifecycleResult {
 
 /**
  * Two-way lifecycle check:
- * 1. pending runs where external state matches resolve_when → completed
- * 2. completed runs where external state does NOT match → invalidated (allows re-processing)
- * 3. error runs where external state matches → completed (externally resolved)
+ * 1. completed runs where external state does NOT match → invalidated (allows re-processing)
+ * 2. error runs where external state matches → completed (externally resolved)
  */
 export function processLifecycle(
 	runsDir: string,
@@ -58,10 +57,6 @@ export function processLifecycle(
 		if (run.meta.status === "completed" && !matches) {
 			// External state reverted → allow re-processing
 			result.invalidatedKeys.add(run.meta.item_key);
-		} else if (run.meta.status === "pending" && matches) {
-			// Externally resolved → mark completed
-			updateRunMeta(run.dir, { status: "completed" });
-			result.resolvedCount++;
 		} else if (run.meta.status === "error" && matches) {
 			// Error run but externally resolved → mark completed
 			updateRunMeta(run.dir, { status: "completed" });

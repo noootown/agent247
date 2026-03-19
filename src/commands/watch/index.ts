@@ -38,7 +38,6 @@ export function watchCommand(
 		binDir,
 		botName,
 		reload: (s) => loadData(baseDir, runsDir, s, options),
-		persistRunMeta: (runDir, updates) => updateRunMeta(runDir, updates),
 		softDelete: (runDir) => {
 			const parts = runDir.split("/");
 			const runId = parts[parts.length - 1];

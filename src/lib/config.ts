@@ -17,10 +17,10 @@ export interface TaskConfig {
 	model: string;
 	prompt_mode: "per_item" | "batch";
 	cwd?: string;
-	lifecycle?: {
-		auto_resolve: boolean;
-		resolve_command: string;
-		resolve_when: string;
+	allow_rerun?: boolean;
+	cleanup?: {
+		command: string;
+		when: string;
 	};
 	prompt: string;
 }
@@ -57,7 +57,8 @@ export function loadTaskConfig(taskId: string, baseDir: string): TaskConfig {
 		model: (raw.model as string) ?? "sonnet",
 		prompt_mode: (raw.prompt_mode as string) === "batch" ? "batch" : "per_item",
 		cwd: raw.cwd as string | undefined,
-		lifecycle: raw.lifecycle as TaskConfig["lifecycle"],
+		allow_rerun: (raw.allow_rerun as boolean) ?? false,
+		cleanup: raw.cleanup as TaskConfig["cleanup"],
 		prompt,
 	};
 }

@@ -75,7 +75,6 @@ function makeMockCtx(overrides: Partial<WatchContext> = {}): WatchContext {
 		binDir: "/base/.bin",
 		botName: "agent247",
 		reload: (s) => s,
-		persistRunMeta: vi.fn(),
 		softDelete: vi.fn(),
 		stopTask: vi.fn(),
 		toggleTask: vi.fn(),
@@ -171,20 +170,6 @@ describe("mode transitions", () => {
 });
 
 describe("action hotkeys", () => {
-	it("c on a pending run calls persistRunMeta", () => {
-		const lines = [makeRunLine(0, "pending")];
-		const ctx = makeMockCtx();
-		handleKey("c", makeState({ cursor: 0 }), lines, ctx);
-		expect(ctx.persistRunMeta).toHaveBeenCalled();
-	});
-
-	it("p on a completed run calls persistRunMeta", () => {
-		const lines = [makeRunLine(0, "completed")];
-		const ctx = makeMockCtx();
-		handleKey("p", makeState({ cursor: 0 }), lines, ctx);
-		expect(ctx.persistRunMeta).toHaveBeenCalled();
-	});
-
 	it("u calls openUrl for http URLs", () => {
 		const lines = [makeRunLine(0)];
 		const ctx = makeMockCtx();

@@ -1,14 +1,14 @@
-import { writeFileSync } from "node:fs";
+import { execSync } from "node:child_process";
+import { mkdirSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { ulid } from "ulid";
 import { purgeBin } from "../lib/bin.js";
 import { loadEnv, loadGlobalVars, loadTaskConfig } from "../lib/config.js";
 import { filterNewItems } from "../lib/dedup.js";
 import { discoverItems } from "../lib/discovery.js";
-import { processLifecycle } from "../lib/lifecycle.js";
 import { acquireLock, releaseLock } from "../lib/lock.js";
 import { createLogger } from "../lib/logger.js";
-import { writeRun } from "../lib/report.js";
+import { listRuns, writeRun } from "../lib/report.js";
 import {
 	executePrompt,
 	extractTextFromJson,
@@ -33,20 +33,6 @@ export async function runCommand(
 	try {
 		const config = loadTaskConfig(taskId, baseDir);
 		const globalVars = loadGlobalVars(baseDir);
-
-		let invalidatedKeys: Set<string> | undefined;
-		if (config.lifecycle) {
-			const lifecycle = processLifecycle(runsDir, taskId, config.lifecycle);
-			if (lifecycle.resolvedCount > 0) {
-				console.log(`Resolved ${lifecycle.resolvedCount} run(s) for ${taskId}`);
-			}
-			if (lifecycle.invalidatedKeys.size > 0) {
-				console.log(
-					`Invalidated ${lifecycle.invalidatedKeys.size} item(s) for ${taskId} (external state changed)`,
-				);
-				invalidatedKeys = lifecycle.invalidatedKeys;
-			}
-		}
 
 		let items: Record<string, string>[];
 		try {
@@ -86,7 +72,7 @@ export async function runCommand(
 			taskId,
 			items,
 			config.discovery.item_key,
-			invalidatedKeys,
+			{ allowRerun: config.allow_rerun },
 		);
 
 		if (newItems.length === 0) {
@@ -124,6 +110,36 @@ export async function runCommand(
 			}
 		} else {
 			await executeForBatch(config, globalVars, newItems, runsDir);
+		}
+		// Cleanup: move completed runs to .bin when cleanup condition is met
+		if (config.cleanup) {
+			const allRuns = listRuns(runsDir, { task: taskId });
+			const cleanupPattern = new RegExp(config.cleanup.when);
+			for (const run of allRuns) {
+				if (run.meta.status !== "completed" && run.meta.status !== "error")
+					continue;
+				if (!run.meta.item_key) continue;
+				try {
+					const itemVars: Record<string, string> = {};
+					if (run.meta.url) itemVars.url = run.meta.url;
+					if (run.meta.item_key) itemVars.item_key = run.meta.item_key;
+					const cmd = render(config.cleanup.command, globalVars, {}, itemVars);
+					const output = execSync(cmd, {
+						encoding: "utf-8",
+						timeout: 15_000,
+						shell: "/bin/bash",
+					}).trim();
+					if (cleanupPattern.test(output)) {
+						const parts = run.dir.split("/");
+						const runId = parts[parts.length - 1];
+						const dest = join(baseDir, ".bin", taskId, runId);
+						mkdirSync(join(baseDir, ".bin", taskId), { recursive: true });
+						renameSync(run.dir, dest);
+					}
+				} catch {
+					// Cleanup check failed — skip silently
+				}
+			}
 		}
 	} finally {
 		releaseLock(taskId, baseDir);

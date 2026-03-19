@@ -1,27 +1,5 @@
 import type { State, VisibleLine, WatchContext } from "./state.js";
 
-export function actionComplete(
-	state: State,
-	line: VisibleLine,
-	ctx: WatchContext,
-): State {
-	if (line.type !== "run" || line.run.meta.status !== "pending") return state;
-	ctx.persistRunMeta(line.run.dir, { status: "completed" });
-	line.run.meta.status = "completed";
-	return { ...state };
-}
-
-export function actionPending(
-	state: State,
-	line: VisibleLine,
-	ctx: WatchContext,
-): State {
-	if (line.type !== "run" || line.run.meta.status !== "completed") return state;
-	ctx.persistRunMeta(line.run.dir, { status: "pending" });
-	line.run.meta.status = "pending";
-	return { ...state };
-}
-
 export function actionSoftDelete(
 	state: State,
 	line: VisibleLine,

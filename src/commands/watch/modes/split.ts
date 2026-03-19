@@ -1,7 +1,5 @@
 import {
-	actionComplete,
 	actionOpenUrl,
-	actionPending,
 	actionRun,
 	actionSoftDelete,
 	actionStop,
@@ -69,8 +67,6 @@ export function handleKey(
 	if (key === "d") return { ...state, reportScrollX: state.reportScrollX + 4 };
 
 	if (!line) return state;
-	if (key === "c") return actionComplete(state, line, ctx);
-	if (key === "p") return actionPending(state, line, ctx);
 	if (key === "u") return actionOpenUrl(state, line, ctx);
 	if (key === "r") return actionRun(state, line);
 	if (key === "x") {

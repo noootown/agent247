@@ -9,7 +9,7 @@ export interface ExecuteResult {
 }
 
 export interface ParsedOutput {
-	status: "completed" | "pending";
+	status: "completed";
 	url: string | null;
 	report: string;
 }
@@ -18,13 +18,6 @@ const URL_REGEX = /^https?:\/\/\S+$/;
 
 export function parseClaudeOutput(output: string): ParsedOutput {
 	const trimmed = output.trim();
-	if (trimmed === "PENDING" || trimmed.startsWith("PENDING")) {
-		return { status: "pending", url: null, report: trimmed };
-	}
-	// NO_ACTION folds into completed (bot decided nothing to do)
-	if (trimmed === "NO_ACTION" || trimmed.startsWith("NO_ACTION")) {
-		return { status: "completed", url: null, report: trimmed };
-	}
 	const lines = trimmed.split("\n");
 	const firstLine = lines[0]?.trim() ?? "";
 	const url = URL_REGEX.test(firstLine) ? firstLine : null;

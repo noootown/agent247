@@ -1,4 +1,4 @@
-import type { RunMeta, RunRecord } from "../../lib/report.js";
+import type { RunRecord } from "../../lib/report.js";
 
 export type ViewMode = "split" | "help" | "confirm-run";
 
@@ -34,7 +34,6 @@ export interface WatchContext {
 	binDir: string;
 	botName: string;
 	reload: (state: State) => State;
-	persistRunMeta: (runDir: string, updates: Partial<RunMeta>) => void;
 	softDelete: (runDir: string) => void;
 	stopTask: (taskId: string) => void;
 	toggleTask: (taskId: string) => void;

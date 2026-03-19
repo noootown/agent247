@@ -82,8 +82,6 @@ export function statusIcon(status: string): string {
 	switch (status) {
 		case "error":
 			return `${RED}✗${RESET}`;
-		case "pending":
-			return `${YELLOW}◎${RESET}`;
 		case "completed":
 			return `${GREEN}●${RESET}`;
 		case "processing":
@@ -102,8 +100,6 @@ export function statusText(status: string): string {
 	switch (status) {
 		case "error":
 			return `${RED}${padded}${RESET}`;
-		case "pending":
-			return `${YELLOW}${padded}${RESET}`;
 		case "completed":
 			return `${GREEN}${padded}${RESET}`;
 		case "processing":

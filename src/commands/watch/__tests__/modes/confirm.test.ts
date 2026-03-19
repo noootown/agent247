@@ -24,7 +24,6 @@ function makeMockCtx(overrides: Partial<WatchContext> = {}): WatchContext {
 		binDir: "/base/.bin",
 		botName: "agent247",
 		reload: (s) => s,
-		persistRunMeta: vi.fn(),
 		softDelete: vi.fn(),
 		stopTask: vi.fn(),
 		toggleTask: vi.fn(),
