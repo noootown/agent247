@@ -1,11 +1,17 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
-const VARS_TEMPLATE = `github_username: your-username
-platform_repo: owner/repo
-platform_repo_path: /path/to/your/project
+const GITIGNORE_TEMPLATE = `# OS
+.DS_Store
+Thumbs.db
 
-# Bot identity
+# agent247 runtime
+runs/
+.bin/
+tasks/*/.lock
+`;
+
+const VARS_TEMPLATE = `# Bot identity
 bot_name: My Bot
 bot_signature: Automated review by My Bot
 `;
@@ -21,6 +27,10 @@ export function initCommand(targetDir: string): void {
 	mkdirSync(dir, { recursive: true });
 	mkdirSync(join(dir, "tasks"), { recursive: true });
 	mkdirSync(join(dir, "runs"), { recursive: true });
+
+	if (!existsSync(join(dir, ".gitignore"))) {
+		writeFileSync(join(dir, ".gitignore"), GITIGNORE_TEMPLATE);
+	}
 
 	if (!existsSync(join(dir, "vars.yaml"))) {
 		writeFileSync(join(dir, "vars.yaml"), VARS_TEMPLATE);

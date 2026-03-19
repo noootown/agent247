@@ -1,0 +1,15 @@
+name: Resolve CodeRabbit Comments
+schedule: "*/30 * * * *"
+timeout: 600
+enabled: true
+model: sonnet
+prompt_mode: per_item
+cwd: "{{worktree_path}}"
+discovery:
+  command: >-
+    bash tasks/pr-resolve-coderabbit/discover.sh {{github_username}}
+    {{platform_repo}} {{platform_repo_path}}
+  item_key: thread_id
+cleanup:
+  command: gh pr view $(echo '{{url}}' | grep -oE 'https://github.com/[^/]+/[^/]+/pull/[0-9]+') --json state -q '.state'
+  when: MERGED|CLOSED
