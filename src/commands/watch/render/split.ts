@@ -63,6 +63,9 @@ export function getTaskInfoLines(group: TaskGroup): string[] {
 	const processing = group.runs.filter(
 		(r) => r.meta.status === "processing",
 	).length;
+	const canceled = group.runs.filter(
+		(r) => r.meta.status === "canceled",
+	).length;
 
 	const lines = [
 		`${BOLD}Task: ${MAGENTA}${group.task}${RESET}`,
@@ -81,6 +84,7 @@ export function getTaskInfoLines(group: TaskGroup): string[] {
 		pending > 0 ? `  ${YELLOW}Pending: ${pending}${RESET}` : null,
 		errors > 0 ? `  ${RED}Errors: ${errors}${RESET}` : null,
 		processing > 0 ? `  ${YELLOW}Processing: ${processing}${RESET}` : null,
+		canceled > 0 ? `  ${DIM}Canceled: ${canceled}${RESET}` : null,
 	];
 
 	return lines.filter((l): l is string => l !== null);

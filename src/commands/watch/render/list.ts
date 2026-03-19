@@ -1,5 +1,5 @@
 import { formatUrlSlug } from "../../../lib/url.js";
-import type { State, TaskGroup, VisibleLine } from "../state.js";
+import type { VisibleLine } from "../state.js";
 import {
 	BOLD,
 	DIM,
@@ -67,39 +67,4 @@ export function renderListRow(
 		: `${DIM}—${RESET}`;
 	const time = `${timeBase} ${DIM}(${ago})${RESET}`;
 	return fitToWidth(`     ${icon} ${status} ${time}  ${link}`, width);
-}
-
-export function renderList(
-	state: State,
-	lines: VisibleLine[],
-	botName: string,
-): void {
-	const rows = process.stdout.rows ?? 24;
-	const cols = process.stdout.columns ?? 80;
-	const maxVisible = rows - 3;
-
-	let { cursor, scroll } = state;
-	if (cursor >= 0) {
-		if (cursor < scroll) scroll = cursor;
-		if (cursor >= scroll + maxVisible) scroll = cursor - maxVisible + 1;
-	}
-	if (lines.length > 0 && cursor >= lines.length) cursor = lines.length - 1;
-
-	process.stdout.write("\x1B[2J\x1B[H");
-	process.stdout.write(
-		` ${BOLD}${botName}${RESET} — ${state.groups.length} tasks\n`,
-	);
-	process.stdout.write(`${DIM}${"─".repeat(cols)}${RESET}\n`);
-
-	const visible = lines.slice(scroll, scroll + maxVisible);
-	for (let i = 0; i < maxVisible; i++) {
-		const line = visible[i];
-		if (line) {
-			const selected = line.index === cursor;
-			process.stdout.write(`${renderListRow(line, cols, selected)}\n`);
-		} else {
-			process.stdout.write("\n");
-		}
-	}
-	process.stdout.write(`  ${DIM}? help  q quit${RESET}`);
 }
