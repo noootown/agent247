@@ -1,10 +1,9 @@
 import { join, resolve } from "node:path";
-import { listTasks, loadEnv } from "../lib/config.js";
+import { listTasks } from "../lib/config.js";
 import { removeCrontabBlock } from "../lib/crontab.js";
 import { syncLaunchd } from "../lib/launchd.js";
 
 export function syncCommand(baseDir: string): void {
-	loadEnv(baseDir);
 	const tasks = listTasks(baseDir);
 	const enabledTasks = tasks
 		.filter((t) => t.config.enabled)

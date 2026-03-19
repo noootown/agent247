@@ -9,7 +9,7 @@ All commands accept a `--dir <path>` flag to specify the workspace directory. Wi
 
 ## `agent247 init <path>`
 
-Create a new workspace at the given path. Generates the directory structure with `tasks/`, `runs/`, and template files (`vars.yaml`, `.env.local`, `dev.env`).
+Create a new workspace at the given path. Generates the directory structure with `tasks/`, `runs/`, and a `vars.yaml` template.
 
 ## `agent247 run <task-id>`
 

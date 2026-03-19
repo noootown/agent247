@@ -5,8 +5,6 @@
 ```
 workspace/
 ├── vars.yaml              # Global template variables
-├── .env.local             # Secrets (GITHUB_TOKEN, etc.)
-├── dev.env                # Dev environment variables
 ├── .bin/                  # Soft-deleted and skipped runs (auto-purged after 5 days)
 ├── tasks/
 │   └── <task-id>/
@@ -73,17 +71,6 @@ github_username: noootown
 platform_repo: my-org/platform
 bot_name: Review Bot
 ```
-
-## Environment (`.env.local`)
-
-Loaded via dotenv. Used for secrets that shouldn't be in version control.
-
-```bash
-GITHUB_TOKEN=ghp_...
-SLACK_TOKEN=xoxb-...
-```
-
-Both `dev.env` and `.env.local` are loaded, with `.env.local` taking precedence.
 
 ## Template Variables
 

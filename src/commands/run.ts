@@ -3,7 +3,7 @@ import { mkdirSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { ulid } from "ulid";
 import { purgeBin } from "../lib/bin.js";
-import { loadEnv, loadGlobalVars, loadTaskConfig } from "../lib/config.js";
+import { loadGlobalVars, loadTaskConfig } from "../lib/config.js";
 import { filterNewItems } from "../lib/dedup.js";
 import { discoverItems } from "../lib/discovery.js";
 import { acquireLock, releaseLock } from "../lib/lock.js";
@@ -20,7 +20,6 @@ export async function runCommand(
 	taskId: string,
 	baseDir: string,
 ): Promise<void> {
-	loadEnv(baseDir);
 	purgeBin(baseDir);
 	const runsDir = join(baseDir, "runs");
 	const startedAt = new Date().toISOString();

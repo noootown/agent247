@@ -1,6 +1,5 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { config as dotenvConfig } from "dotenv";
 import yaml from "js-yaml";
 
 export interface TaskConfig {
@@ -71,17 +70,6 @@ export function loadGlobalVars(baseDir: string): Record<string, string> {
 		string
 	>;
 	return raw ?? {};
-}
-
-export function loadEnv(baseDir: string): void {
-	const devEnvPath = join(baseDir, "dev.env");
-	const localEnvPath = join(baseDir, ".env.local");
-	if (existsSync(devEnvPath)) {
-		dotenvConfig({ path: devEnvPath, quiet: true });
-	}
-	if (existsSync(localEnvPath)) {
-		dotenvConfig({ path: localEnvPath, override: true, quiet: true });
-	}
 }
 
 export function listTasks(
