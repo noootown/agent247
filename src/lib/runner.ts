@@ -1,4 +1,5 @@
-import { spawnSync } from "node:child_process";
+import { type ChildProcess, spawn } from "node:child_process";
+import { appendFileSync, writeFileSync } from "node:fs";
 
 export interface ExecuteResult {
 	exitCode: number;
@@ -25,74 +26,48 @@ export function parseClaudeOutput(output: string): ParsedOutput {
 	return { status: "completed", url, report: trimmed };
 }
 
-function buildTranscript(streamOutput: string): {
-	transcript: string;
-	resultJson: string | null;
-	resultText: string;
-} {
-	const lines = streamOutput.trim().split("\n");
-	const parts: string[] = [];
-	let resultJson: string | null = null;
-	let resultText = "";
+function formatEventToMarkdown(event: Record<string, unknown>): string | null {
+	const type = event.type as string;
 
-	for (const line of lines) {
-		if (!line.trim()) continue;
-		let event: Record<string, unknown>;
-		try {
-			event = JSON.parse(line);
-		} catch {
-			continue;
-		}
+	if (type === "assistant") {
+		const msg = event.message as Record<string, unknown>;
+		const content = msg?.content as Array<Record<string, unknown>>;
+		if (!content) return null;
 
-		const type = event.type as string;
-
-		if (type === "assistant") {
-			const msg = event.message as Record<string, unknown>;
-			const content = msg?.content as Array<Record<string, unknown>>;
-			if (!content) continue;
-
-			for (const block of content) {
-				if (block.type === "text" && block.text) {
-					parts.push(String(block.text));
-					parts.push("");
+		const parts: string[] = [];
+		for (const block of content) {
+			if (block.type === "text" && block.text) {
+				parts.push(String(block.text));
+				parts.push("");
+			}
+			if (block.type === "tool_use") {
+				const name = block.name as string;
+				const input = block.input as Record<string, unknown>;
+				parts.push(`### Tool: ${name}`);
+				if (name === "Bash" && input?.command) {
+					parts.push("```bash");
+					parts.push(String(input.command));
+					parts.push("```");
+				} else if (name === "Edit" && input?.file_path) {
+					parts.push(`File: \`${input.file_path}\``);
+				} else if (name === "Read" && input?.file_path) {
+					parts.push(`File: \`${input.file_path}\``);
+				} else if (name === "Write" && input?.file_path) {
+					parts.push(`File: \`${input.file_path}\``);
+				} else if (name === "Grep" && input?.pattern) {
+					parts.push(`Pattern: \`${input.pattern}\``);
+				} else {
+					parts.push("```json");
+					parts.push(JSON.stringify(input, null, 2).slice(0, 500));
+					parts.push("```");
 				}
-				if (block.type === "tool_use") {
-					const name = block.name as string;
-					const input = block.input as Record<string, unknown>;
-					parts.push(`### Tool: ${name}`);
-					if (name === "Bash" && input?.command) {
-						parts.push("```bash");
-						parts.push(String(input.command));
-						parts.push("```");
-					} else if (name === "Edit" && input?.file_path) {
-						parts.push(`File: \`${input.file_path}\``);
-					} else if (name === "Read" && input?.file_path) {
-						parts.push(`File: \`${input.file_path}\``);
-					} else if (name === "Write" && input?.file_path) {
-						parts.push(`File: \`${input.file_path}\``);
-					} else if (name === "Grep" && input?.pattern) {
-						parts.push(`Pattern: \`${input.pattern}\``);
-					} else {
-						parts.push("```json");
-						parts.push(JSON.stringify(input, null, 2).slice(0, 500));
-						parts.push("```");
-					}
-					parts.push("");
-				}
+				parts.push("");
 			}
 		}
-
-		if (type === "result") {
-			resultJson = line;
-			resultText = (event.result as string) ?? "";
-		}
+		return parts.length > 0 ? parts.join("\n") : null;
 	}
 
-	return {
-		transcript: parts.join("\n"),
-		resultJson,
-		resultText,
-	};
+	return null;
 }
 
 export function executePrompt(
@@ -101,7 +76,8 @@ export function executePrompt(
 	command: string = "claude",
 	model: string = "sonnet",
 	cwd?: string,
-): ExecuteResult {
+	transcriptPath?: string,
+): Promise<ExecuteResult> {
 	const isClaude = command === "claude";
 	const args = isClaude
 		? [
@@ -115,37 +91,101 @@ export function executePrompt(
 			]
 		: [renderedPrompt];
 
-	const result = spawnSync(command, args, {
-		encoding: "utf-8",
-		timeout: timeoutSeconds * 1000,
-		env: process.env,
-		maxBuffer: 50 * 1024 * 1024,
-		cwd,
+	return new Promise((resolve) => {
+		const child: ChildProcess = spawn(command, args, {
+			env: process.env,
+			cwd,
+			stdio: ["pipe", "pipe", "pipe"],
+		});
+
+		let stdout = "";
+		let stderr = "";
+		let resultJson: string | null = null;
+		let resultText = "";
+		let transcriptContent = "";
+		let timedOut = false;
+
+		const timeout = setTimeout(() => {
+			timedOut = true;
+			child.kill("SIGTERM");
+		}, timeoutSeconds * 1000);
+
+		if (transcriptPath) {
+			writeFileSync(transcriptPath, "");
+		}
+
+		child.stdout?.on("data", (chunk: Buffer) => {
+			const text = chunk.toString();
+			stdout += text;
+
+			if (!isClaude) return;
+
+			// Process each line for real-time transcript
+			for (const line of text.split("\n")) {
+				if (!line.trim()) continue;
+				let event: Record<string, unknown>;
+				try {
+					event = JSON.parse(line);
+				} catch {
+					continue;
+				}
+
+				if ((event.type as string) === "result") {
+					resultJson = line;
+					resultText = (event.result as string) ?? "";
+				}
+
+				const md = formatEventToMarkdown(event);
+				if (md) {
+					transcriptContent += `${md}\n`;
+					if (transcriptPath) {
+						appendFileSync(transcriptPath, `${md}\n`);
+					}
+				}
+			}
+		});
+
+		child.stderr?.on("data", (chunk: Buffer) => {
+			stderr += chunk.toString();
+		});
+
+		child.on("close", (code) => {
+			clearTimeout(timeout);
+
+			if (!isClaude) {
+				resolve({
+					exitCode: code ?? 1,
+					stdout,
+					stderr,
+					rawJson: null,
+					transcript: "",
+					timedOut,
+				});
+				return;
+			}
+
+			resolve({
+				exitCode: code ?? 1,
+				stdout: resultText,
+				stderr,
+				rawJson: resultJson,
+				transcript: transcriptContent,
+				timedOut,
+			});
+		});
+
+		child.on("error", () => {
+			clearTimeout(timeout);
+			resolve({
+				exitCode: 1,
+				stdout: "",
+				stderr: "Failed to spawn process",
+				rawJson: null,
+				transcript: transcriptContent,
+				timedOut: false,
+			});
+		});
 	});
-
-	const stdout = result.stdout ?? "";
-
-	if (!isClaude) {
-		return {
-			exitCode: result.status ?? 1,
-			stdout,
-			stderr: result.stderr ?? "",
-			rawJson: null,
-			transcript: "",
-			timedOut: result.signal === "SIGTERM",
-		};
-	}
-
-	const { transcript, resultJson, resultText } = buildTranscript(stdout);
-
-	return {
-		exitCode: result.status ?? 1,
-		stdout: resultText,
-		stderr: result.stderr ?? "",
-		rawJson: resultJson,
-		transcript,
-		timedOut: result.signal === "SIGTERM",
-	};
 }
 
 export function extractTextFromJson(rawJson: string): string {

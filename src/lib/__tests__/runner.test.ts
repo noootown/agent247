@@ -25,14 +25,14 @@ describe("parseClaudeOutput", () => {
 });
 
 describe("executePrompt", () => {
-	it("executes a command and captures output", () => {
-		const result = executePrompt("test prompt", 30, "echo");
+	it("executes a command and captures output", async () => {
+		const result = await executePrompt("test prompt", 30, "echo");
 		expect(result.exitCode).toBe(0);
 		expect(result.stdout).toContain("test prompt");
 	});
 
-	it("returns error for failing command", () => {
-		const result = executePrompt("test", 30, "false");
+	it("returns error for failing command", async () => {
+		const result = await executePrompt("test", 30, "false");
 		expect(result.exitCode).not.toBe(0);
 	});
 });
