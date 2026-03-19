@@ -219,6 +219,7 @@ async function executeForItem(
 				exit_code: execResult.exitCode,
 			},
 			prompt: renderedPrompt,
+			transcript: execResult.transcript || undefined,
 			log: logger.getEntries().join("\n"),
 		});
 		return;
@@ -249,6 +250,7 @@ async function executeForItem(
 		prompt: renderedPrompt,
 		rawJson: execResult.rawJson ?? undefined,
 		report: parsed.report,
+		transcript: execResult.transcript || undefined,
 		log: logger.getEntries().join("\n"),
 	});
 }
@@ -328,6 +330,7 @@ async function executeForBatch(
 				exit_code: execResult.exitCode,
 			},
 			prompt: renderedPrompt,
+			transcript: execResult.transcript || undefined,
 			log: logger.getEntries().join("\n"),
 		});
 		return;
@@ -358,6 +361,7 @@ async function executeForBatch(
 		prompt: renderedPrompt,
 		rawJson: execResult.rawJson ?? undefined,
 		report: parsed.report,
+		transcript: execResult.transcript || undefined,
 		log: logger.getEntries().join("\n"),
 	});
 }

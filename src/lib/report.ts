@@ -26,6 +26,7 @@ export interface RunData {
 	prompt?: string;
 	rawJson?: string;
 	report?: string;
+	transcript?: string;
 	log: string;
 }
 
@@ -51,6 +52,9 @@ export function writeRun(runDir: string, data: RunData): void {
 	}
 	if (data.report !== undefined) {
 		writeFileSync(join(runDir, "report.md"), data.report);
+	}
+	if (data.transcript) {
+		writeFileSync(join(runDir, "transcript.md"), data.transcript);
 	}
 }
 
