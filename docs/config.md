@@ -7,6 +7,7 @@ workspace/
 ├── vars.yaml              # Global template variables
 ├── .env.local             # Secrets (GITHUB_TOKEN, etc.)
 ├── dev.env                # Dev environment variables
+├── .bin/                  # Soft-deleted and skipped runs (auto-purged after 5 days)
 ├── tasks/
 │   └── <task-id>/
 │       ├── config.yaml    # Task definition
@@ -34,24 +35,24 @@ discovery:
 model: "sonnet"                   # Claude model (default: "sonnet")
 prompt_mode: "per_item"           # "per_item" (default) or "batch"
 cwd: "{{worktree_path}}"         # Working directory for Claude (supports templates)
+allow_rerun: false                # When true, dedup is bypassed — discovery is the sole filter
 
 # Optional: task-specific template variables
 vars:
   repo: "my-org/my-repo"
   review_style: "thorough"
 
-# Optional: auto-resolve runs when external state changes
-lifecycle:
-  auto_resolve: true
-  resolve_command: "gh pr view {{url}} --json state -q '.state'"
-  resolve_when: "MERGED|CLOSED"   # Regex matched against command output
+# Optional: auto-cleanup runs when external state changes
+cleanup:
+  command: "gh pr view {{url}} --json state -q '.state'"
+  when: "MERGED|CLOSED"           # Regex matched against command output
 ```
 
 ### Field Details
 
 **`discovery.command`** — A shell command that must return a JSON array of objects. Each object becomes an item to process. Template variables (global + task vars) are substituted before execution. Timeout: 30 seconds.
 
-**`discovery.item_key`** — The field in each discovered item used for deduplication. Items with a key already seen in completed/no-action runs are skipped. Error runs are retried.
+**`discovery.item_key`** — The field in each discovered item used for deduplication. Items with a key already seen in completed/processing runs are skipped. Error runs are retried.
 
 **`cwd`** — Optional working directory for the Claude process. Supports template variables, so it can be set per-item (e.g., `{{worktree_path}}`). When set, Claude runs inside this directory and can read/edit files, run commands, and pick up `CLAUDE.md` project instructions.
 
@@ -59,7 +60,9 @@ lifecycle:
 - `per_item`: Claude is called once per discovered item. The item's fields are available as template variables.
 - `batch`: Claude is called once with all items. Use `{{items_json}}` (JSON array) or `{{items_list}}` (bullet list) in your prompt.
 
-**`lifecycle`** — When configured, before each run the system checks existing completed/error runs. For each, it executes `resolve_command` (with the item's variables substituted) and matches the output against the `resolve_when` regex. Matching runs are marked as "resolved".
+**`allow_rerun`** — When `true`, deduplication is completely bypassed. Every item returned by discovery is processed regardless of previous runs. Use this for tasks where the discovery command itself filters to only items that currently need work (e.g., PRs with failing CI — discovery only returns PRs that are currently broken).
+
+**`cleanup`** — At the end of each task run, all completed/error/canceled runs are checked. For each, `cleanup.command` is executed with the run's `{{url}}` and `{{item_key}}` as template variables. If the output matches the `cleanup.when` regex, the run is moved to `.bin/` (auto-purged after 5 days). This keeps the `runs/` folder clean by removing runs for items that are no longer relevant (e.g., merged PRs).
 
 ## Global Variables (`vars.yaml`)
 

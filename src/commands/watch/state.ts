@@ -1,9 +1,11 @@
+import type { TaskConfig } from "../../lib/config.js";
 import type { RunRecord } from "../../lib/report.js";
 
 export type ViewMode = "split" | "help" | "confirm-run";
 
 export interface TaskGroup {
 	task: string;
+	config: TaskConfig;
 	runs: RunRecord[];
 	expanded: boolean;
 	running: boolean;

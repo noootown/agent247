@@ -55,6 +55,7 @@ export function getReportLines(run: RunRecord): string[] {
 }
 
 export function getTaskInfoLines(group: TaskGroup): string[] {
+	const { config } = group;
 	const errors = group.runs.filter((r) => r.meta.status === "error").length;
 	const completed = group.runs.filter(
 		(r) => r.meta.status === "completed",
@@ -68,12 +69,23 @@ export function getTaskInfoLines(group: TaskGroup): string[] {
 
 	const lines = [
 		`${BOLD}Task: ${MAGENTA}${group.task}${RESET}`,
+		`${DIM}${config.name}${RESET}`,
 		"",
 		`Status: ${group.running ? `${YELLOW}running${RESET}` : group.enabled ? `${GREEN}enabled${RESET}` : `${DIM}disabled${RESET}`}`,
 		group.schedule ? `Schedule: ${group.schedule}` : null,
 		group.lastCheck
 			? `Last check: ${group.lastCheck} ${DIM}(${formatAgo(Date.parse(group.lastCheck))})${RESET}`
 			: null,
+		"",
+		`${"─".repeat(40)}`,
+		"",
+		`${BOLD}Config${RESET}`,
+		`  Model: ${config.model}`,
+		`  Timeout: ${config.timeout}s`,
+		`  Mode: ${config.prompt_mode}`,
+		config.cwd ? `  CWD: ${DIM}${config.cwd}${RESET}` : null,
+		config.allow_rerun ? `  Allow rerun: ${GREEN}yes${RESET}` : null,
+		config.cleanup ? `  Cleanup: ${DIM}${config.cleanup.when}${RESET}` : null,
 		"",
 		`${"─".repeat(40)}`,
 		"",

@@ -25,6 +25,17 @@ function makeState(overrides: Partial<State> = {}): State {
 function makeGroup(task = "task-a", running = false): TaskGroup {
 	return {
 		task,
+		config: {
+			id: task,
+			name: task,
+			schedule: "* * * * *",
+			timeout: 300,
+			enabled: true,
+			discovery: { command: "echo '[]'", item_key: "url" },
+			model: "sonnet",
+			prompt_mode: "per_item" as const,
+			prompt: "",
+		},
 		runs: [],
 		expanded: false,
 		running,

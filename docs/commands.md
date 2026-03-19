@@ -16,21 +16,41 @@ Create a new workspace at the given path. Generates the directory structure with
 Execute a single task. This is the core command — it runs the full pipeline:
 
 1. Acquire lock (skip if task already running)
-2. Process lifecycle (resolve pending/error, invalidate reverted items)
-3. Run discovery command to find items
-4. Deduplicate against previous runs
-5. Render prompt template and invoke Claude for each item (or batch)
-6. Persist results to `runs/<task-id>/`
+2. Run discovery command to find items
+3. Deduplicate against previous runs (skipped when `allow_rerun: true`)
+4. Render prompt template and invoke Claude for each item (or batch)
+5. Persist results to `runs/<task-id>/`
+6. Run cleanup — move completed/error/canceled runs to `.bin/` when cleanup condition matches
 7. Release lock
+
+Skipped runs (no new items) are written to `.bin/<task-id>/` instead of `runs/`.
 
 ## `agent247 sync`
 
-Write enabled task schedules into the system crontab. Entries are fenced between `# --- agent247 START ---` and `# --- agent247 END ---` markers so existing crontab entries are preserved.
+Sync enabled task schedules to macOS launchd. Writes plist files to `~/Library/LaunchAgents/` and loads them via `launchctl`. Stale agents (disabled/deleted tasks) are automatically removed. Also removes any legacy crontab entries from a previous installation.
 
-## `agent247 clean <duration>`
+## `agent247 purge <duration>`
 
-Delete runs older than the given duration. Format: `7d`, `24h`, `30m`.
+Delete runs older than the given duration. Format: `7d`, `24h`, `30m`. Also purges `.bin/` entries older than 5 days.
 
 ## `agent247 watch`
 
-Interactive terminal dashboard for browsing runs. Supports keyboard navigation, expanding task groups, viewing run details, and resolving pending runs.
+Interactive terminal dashboard (split view). Left pane shows tasks and runs, right pane shows task config info or run reports depending on selection.
+
+### Keybindings
+
+**Navigation:**
+- `↑`/`↓` — Move selection
+- `←`/`→` — Collapse/expand task group
+- `Enter` — Toggle group expansion
+- `w`/`a`/`s`/`d` — Scroll detail pane
+
+**Actions:**
+- `r` — Run selected task (with confirmation)
+- `x` — Stop task (on group) / delete run (on run)
+- `t` — Toggle task enabled/disabled (syncs to launchd)
+- `u` — Open run URL in browser
+
+**General:**
+- `?` — Help
+- `q`/`Esc` — Quit

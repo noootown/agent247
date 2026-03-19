@@ -41,6 +41,7 @@ export function loadData(
 
 	const taskMap = new Map<string, RunRecord[]>();
 	const taskConfigs = listTasks(baseDir);
+	const configMap = new Map(taskConfigs.map((t) => [t.id, t.config]));
 	const installedAgents = new Set(listInstalledAgents());
 	const schedules = getAgentSchedules();
 
@@ -69,6 +70,17 @@ export function loadData(
 	const groups: TaskGroup[] = [...taskMap.entries()]
 		.map(([task, taskRuns]) => ({
 			task,
+			config: configMap.get(task) ?? {
+				id: task,
+				name: task,
+				schedule: "",
+				timeout: 0,
+				enabled: false,
+				discovery: { command: "", item_key: "" },
+				model: "",
+				prompt_mode: "per_item" as const,
+				prompt: "",
+			},
 			runs: taskRuns,
 			expanded: prevExpanded.has(task),
 			running:

@@ -8,9 +8,22 @@ import {
 } from "../actions.js";
 import type { State, TaskGroup, VisibleLine, WatchContext } from "../state.js";
 
+const mockConfig = {
+	id: "my-task",
+	name: "My Task",
+	schedule: "* * * * *",
+	timeout: 300,
+	enabled: true,
+	discovery: { command: "echo '[]'", item_key: "url" },
+	model: "sonnet",
+	prompt_mode: "per_item" as const,
+	prompt: "",
+};
+
 function makeGroup(overrides: Partial<TaskGroup> = {}): TaskGroup {
 	return {
 		task: "my-task",
+		config: mockConfig,
 		runs: [],
 		expanded: false,
 		running: false,
