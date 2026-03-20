@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { execSync, spawn } from "node:child_process";
 import {
 	existsSync,
 	mkdirSync,
@@ -9,8 +9,9 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 import yaml from "js-yaml";
-import { loadGlobalVars } from "../../lib/config.js";
+import { loadGlobalVars, loadTaskConfig } from "../../lib/config.js";
 import { listRuns, updateRunMeta } from "../../lib/report.js";
+import { render as renderTemplate } from "../../lib/template.js";
 import { syncCommand } from "../sync.js";
 import { getVisibleLines, loadData } from "./data.js";
 import { handleKey as confirmHandleKey } from "./modes/confirm.js";
@@ -61,9 +62,34 @@ export function watchCommand(
 				}
 			} catch {}
 			const runs = listRuns(runsDir, { task: taskId });
+			let taskConfig: ReturnType<typeof loadTaskConfig> | null = null;
+			try {
+				taskConfig = loadTaskConfig(taskId, baseDir);
+			} catch {}
 			for (const run of runs) {
 				if (run.meta.status === "processing") {
 					updateRunMeta(run.dir, { status: "canceled" });
+					// Run post_run hook for cleanup
+					if (taskConfig?.post_run) {
+						try {
+							const itemPath = join(run.dir, "item.json");
+							const itemVars = existsSync(itemPath)
+								? JSON.parse(readFileSync(itemPath, "utf-8"))
+								: {};
+							const cmd = renderTemplate(
+								taskConfig.post_run,
+								globalVars,
+								taskConfig.vars ?? {},
+								itemVars,
+							);
+							execSync(cmd, {
+								encoding: "utf-8",
+								timeout: 60_000,
+								shell: "/bin/bash",
+								stdio: "pipe",
+							});
+						} catch {}
+					}
 				}
 			}
 			try {
