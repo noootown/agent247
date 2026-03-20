@@ -130,11 +130,17 @@ export async function runCommand(
 		}
 
 		if (config.prompt_mode === "per_item") {
-			await Promise.all(
-				newItems.map((item) =>
-					executeForItem(config, globalVars, item, runsDir),
-				),
-			);
+			if (config.parallel) {
+				await Promise.all(
+					newItems.map((item) =>
+						executeForItem(config, globalVars, item, runsDir),
+					),
+				);
+			} else {
+				for (const item of newItems) {
+					await executeForItem(config, globalVars, item, runsDir);
+				}
+			}
 		} else {
 			await executeForBatch(config, globalVars, newItems, runsDir);
 		}
