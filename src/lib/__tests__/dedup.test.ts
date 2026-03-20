@@ -88,7 +88,7 @@ describe("filterNewItems", () => {
 		expect(filterNewItems(RUNS_DIR, "task-a", items, "url")).toEqual(items);
 	});
 
-	it("allows completed items through when allowRerun is true", () => {
+	it("allows completed items through when bypassDedup is true", () => {
 		writeRun(join(RUNS_DIR, "task-a", "01RUN004"), {
 			meta: {
 				schema_version: 1,
@@ -107,7 +107,7 @@ describe("filterNewItems", () => {
 		});
 		const items = [{ url: "https://example.com/1" }];
 		expect(
-			filterNewItems(RUNS_DIR, "task-a", items, "url", { allowRerun: true }),
+			filterNewItems(RUNS_DIR, "task-a", items, "url", { bypassDedup: true }),
 		).toEqual(items);
 	});
 });

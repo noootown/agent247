@@ -24,7 +24,7 @@ The `discovery.command` is executed as a shell command (with template variables 
 Discovered items are filtered against previous runs using `discovery.item_key`:
 - **Skip** items already in completed or processing runs
 - **Retry** items from error runs
-- **Bypass** dedup entirely when `allow_rerun: true` (discovery is the sole filter)
+- **Bypass** dedup entirely when `bypass_dedup: true` (discovery is the sole filter)
 
 ### 4. Prompt Rendering
 The prompt template (`prompt.md`) is rendered with merged variables (global < task < item). In batch mode, `{{items_json}}` and `{{items_list}}` are injected instead.
@@ -57,7 +57,7 @@ After processing (always runs, even when skipped), if the task has `cleanup` con
 
 | Status | Meaning | Dedup behavior |
 |--------|---------|----------------|
-| `completed` | Bot finished successfully | Skip (unless `allow_rerun: true`) |
+| `completed` | Bot finished successfully | Skip (unless `bypass_dedup: true`) |
 | `error` | Process failed or timed out | Retry |
 | `processing` | Currently running | Skip |
 | `canceled` | Manually stopped | Eligible for cleanup |

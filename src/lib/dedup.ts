@@ -5,9 +5,9 @@ export function filterNewItems(
 	taskId: string,
 	items: Record<string, string>[],
 	itemKey: string,
-	options?: { allowRerun?: boolean },
+	options?: { bypassDedup?: boolean },
 ): Record<string, string>[] {
-	if (options?.allowRerun) return items;
+	if (options?.bypassDedup) return items;
 
 	const runs = listRuns(runsDir, { task: taskId });
 	const skipKeys = new Set(

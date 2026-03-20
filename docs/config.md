@@ -31,14 +31,15 @@ prompt_mode: "per_item"           # "per_item" (default) or "batch"
 discovery:
   command: "gh pr list --author 'dependabot[bot]' --json url,number,title"
   item_key: "url"                 # Field that uniquely identifies each item
-allow_rerun: false                # When true, dedup is bypassed — discovery is the sole filter
-parallel: false                   # When true, run discovered items concurrently
+
+bypass_dedup: false                # When true, dedup is bypassed — discovery is the sole filter
 
 # 2. Pre-run hook — environment setup (per item, after dedup)
 pre_run: "wt switch {{headRefName}} --no-cd --yes -C {{platform_repo_path}}"
 
 # 3. Claude execution
 cwd: "{{worktree_path}}"          # Working directory for Claude (supports templates)
+parallel: false                   # When true, run discovered items concurrently
 
 # 4. Post-run hook — cleanup (per item, always runs)
 post_run: "wt remove {{headRefName}} --yes -C {{platform_repo_path}}"
@@ -71,7 +72,7 @@ vars:
 
 **`post_run`** — Shell command executed after each Claude invocation. Always runs regardless of success, error, or timeout (like a `finally` block). Has access to all template variables. Failures are logged but don't affect run status. Use for cleanup (e.g., removing git worktrees).
 
-**`allow_rerun`** — When `true`, deduplication is completely bypassed. Every item returned by discovery is processed regardless of previous runs. Use this for tasks where the discovery command itself filters to only items that currently need work (e.g., PRs with failing CI — discovery only returns PRs that are currently broken).
+**`bypass_dedup`** — When `true`, deduplication is completely bypassed. Every item returned by discovery is processed regardless of previous runs. Use this for tasks where the discovery command itself filters to only items that currently need work (e.g., PRs with failing CI — discovery only returns PRs that are currently broken).
 
 **`cleanup`** — At the end of each task run, all completed/error/canceled runs are checked. For each, `cleanup.command` is executed with the run's `{{url}}` and `{{item_key}}` as template variables. If the output matches the `cleanup.when` regex, the run is moved to `.bin/` (auto-purged after 5 days). This keeps the `runs/` folder clean by removing runs for items that are no longer relevant (e.g., merged PRs).
 

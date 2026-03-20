@@ -97,7 +97,7 @@ export async function runCommand(
 			taskId,
 			items,
 			config.discovery.item_key,
-			{ allowRerun: config.allow_rerun },
+			{ bypassDedup: config.bypass_dedup },
 		);
 
 		if (newItems.length === 0) {

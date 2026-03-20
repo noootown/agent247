@@ -16,7 +16,7 @@ export interface TaskConfig {
 	model: string;
 	prompt_mode: "per_item" | "batch";
 	cwd?: string;
-	allow_rerun?: boolean;
+	bypass_dedup?: boolean;
 	parallel?: boolean;
 	pre_run?: string;
 	post_run?: string;
@@ -60,7 +60,7 @@ export function loadTaskConfig(taskId: string, baseDir: string): TaskConfig {
 		model: (raw.model as string) ?? "sonnet",
 		prompt_mode: (raw.prompt_mode as string) === "batch" ? "batch" : "per_item",
 		cwd: raw.cwd as string | undefined,
-		allow_rerun: (raw.allow_rerun as boolean) ?? false,
+		bypass_dedup: (raw.bypass_dedup as boolean) ?? false,
 		parallel: (raw.parallel as boolean) ?? false,
 		pre_run: raw.pre_run as string | undefined,
 		post_run: raw.post_run as string | undefined,

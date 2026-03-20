@@ -84,7 +84,7 @@ export function getTaskInfoLines(group: TaskGroup): string[] {
 		`  Timeout: ${config.timeout}s`,
 		`  Mode: ${config.prompt_mode}`,
 		config.cwd ? `  CWD: ${DIM}${config.cwd}${RESET}` : null,
-		config.allow_rerun ? `  Allow rerun: ${GREEN}yes${RESET}` : null,
+		config.bypass_dedup ? `  Bypass dedup: ${GREEN}yes${RESET}` : null,
 		config.cleanup ? `  Cleanup: ${DIM}${config.cleanup.when}${RESET}` : null,
 		"",
 		`${"─".repeat(40)}`,
