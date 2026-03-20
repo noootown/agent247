@@ -32,19 +32,20 @@ discovery:
   command: "gh pr list --author 'dependabot[bot]' --json url,number,title"
   item_key: "url"                 # Field that uniquely identifies each item
 
-bypass_dedup: false                # When true, dedup is bypassed — discovery is the sole filter
-
-# 2. Pre-run hook — environment setup (per item, after dedup)
-pre_run: "wt switch {{headRefName}} --no-cd --yes -C {{platform_repo_path}}"
-
-# 3. Claude execution
-cwd: "{{worktree_path}}"          # Working directory for Claude (supports templates)
+# 2. Dedup — skip items already processed
+bypass_dedup: false               # When true, dedup is bypassed — discovery is the sole filter
 parallel: false                   # When true, run discovered items concurrently
 
-# 4. Post-run hook — cleanup (per item, always runs)
+# 3. Pre-run hook — environment setup (per item, after dedup)
+pre_run: "wt switch {{headRefName}} --no-cd --yes -C {{platform_repo_path}}"
+
+# 4. Claude execution
+cwd: "{{worktree_path}}"          # Working directory for Claude (supports templates)
+
+# 5. Post-run hook — cleanup (per item, always runs)
 post_run: "wt remove {{headRefName}} --yes -C {{platform_repo_path}}"
 
-# 5. Run cleanup — move old runs to .bin when condition matches
+# 6. Run cleanup — move old runs to .bin when condition matches
 cleanup:
   command: "gh pr view {{url}} --json state -q '.state'"
   when: "MERGED|CLOSED"           # Regex matched against command output

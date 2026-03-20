@@ -17,7 +17,7 @@ Execute a single task. This is the core command — it runs the full pipeline:
 
 1. Acquire lock (skip if task already running)
 2. Run discovery command to find items
-3. Deduplicate against previous runs (skipped when `allow_rerun: true`)
+3. Deduplicate against previous runs
 4. Render prompt template and invoke Claude for each item (or batch)
 5. Persist results to `runs/<task-id>/`
 6. Run cleanup — move completed/error/canceled runs to `.bin/` when cleanup condition matches
