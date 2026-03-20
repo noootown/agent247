@@ -63,19 +63,21 @@ vars:
 
 **`discovery.item_key`** — The field in each discovered item used for deduplication. Items with a key already seen in completed/processing runs are skipped. Error runs are retried.
 
-**`cwd`** — Optional working directory for the Claude process. Supports template variables, so it can be set per-item (e.g., `{{worktree_path}}`). When set, Claude runs inside this directory and can read/edit files, run commands, and pick up `CLAUDE.md` project instructions.
+**`bypass_dedup`** — When `true`, deduplication is completely bypassed. Every item returned by discovery is processed regardless of previous runs. Use this for tasks where the discovery command itself filters to only items that currently need work (e.g., PRs with failing CI — discovery only returns PRs that are currently broken).
+
+**`parallel`** — When `true`, discovered items are processed concurrently via `Promise.all`. Requires each item to have its own isolated environment (e.g., separate git worktrees via `pre_run`). Defaults to `false` (sequential).
+
+**`pre_run`** — Shell command executed before each Claude invocation, after dedup. Runs synchronously with a 60-second timeout. Has access to all template variables (global + task + item). If it fails, the run is marked as error and `post_run` still executes. Use for environment setup (e.g., creating git worktrees).
+
+**`cwd`** — Working directory for the Claude process. Supports template variables, so it can be set per-item (e.g., `{{worktree_path}}`). When set, Claude runs inside this directory and can read/edit files, run commands, and pick up `CLAUDE.md` project instructions.
 
 **`prompt_mode`** — Controls how Claude is invoked:
 - `per_item`: Claude is called once per discovered item. The item's fields are available as template variables.
 - `batch`: Claude is called once with all items. Use `{{items_json}}` (JSON array) or `{{items_list}}` (bullet list) in your prompt.
 
-**`pre_run`** — Shell command executed before each Claude invocation, after dedup. Runs synchronously with a 60-second timeout. Has access to all template variables (global + task + item). If it fails, the run is marked as error and `post_run` still executes. Use for environment setup (e.g., creating git worktrees).
-
 **`post_run`** — Shell command executed after each Claude invocation. Always runs regardless of success, error, or timeout (like a `finally` block). Has access to all template variables. Failures are logged but don't affect run status. Use for cleanup (e.g., removing git worktrees).
 
-**`bypass_dedup`** — When `true`, deduplication is completely bypassed. Every item returned by discovery is processed regardless of previous runs. Use this for tasks where the discovery command itself filters to only items that currently need work (e.g., PRs with failing CI — discovery only returns PRs that are currently broken).
-
-**`cleanup`** — At the end of each task run, all completed/error/canceled runs are checked. For each, `cleanup.command` is executed with the run's `{{url}}` and `{{item_key}}` as template variables. If the output matches the `cleanup.when` regex, the run is moved to `.bin/` (auto-purged after 5 days). This keeps the `runs/` folder clean by removing runs for items that are no longer relevant (e.g., merged PRs).
+**`cleanup`** — At the end of each task run, all completed/error/canceled runs are checked. For each, `cleanup.command` is executed with the run's `{{url}}` and `{{item_key}}` as template variables. If the output matches the `cleanup.when` regex and `cleanup.retain` period has passed, the run is moved to `.bin/` (auto-purged after 5 days). This keeps the `runs/` folder clean by removing runs for items that are no longer relevant (e.g., merged PRs).
 
 ## Global Variables (`vars.yaml`)
 

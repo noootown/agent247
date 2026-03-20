@@ -22,32 +22,40 @@ Discovered items are filtered against previous runs using `discovery.item_key`:
 - **Retry** items from error runs
 - **Bypass** dedup entirely when `bypass_dedup: true` (discovery is the sole filter)
 
-### 4. Prompt Rendering
-The prompt template (`prompt.md`) is rendered with merged variables (global < task < item). In batch mode, `{{items_json}}` and `{{items_list}}` are injected instead.
+### 4. Pre-run Hook (per item)
+If `pre_run` is configured, the shell command is executed synchronously before Claude runs. Template variables (global + task + item) are available. Used for environment setup (e.g., creating git worktrees via `wt switch`). If it fails, the run is marked as error and skips to post-run.
 
 ### 5. Claude Execution
-Claude CLI is invoked: `claude -p <prompt> --output-format json --model <model>`. The process has a configurable timeout. Output is parsed for:
+Claude CLI is invoked asynchronously via `claude -p <prompt> --output-format stream-json --verbose --model <model>`. Events stream in real-time and are written to `transcript.md` as they arrive. The process has a configurable timeout and can be cancelled mid-run.
+
+Output is parsed for:
 - A URL on the first line — stored as the run's URL
 - The remaining text — stored as the markdown report
 
+When `parallel: true`, multiple items run concurrently (each in its own worktree if pre_run creates one).
+
 ### 6. Run Persistence
-Each execution creates a ULID-named directory under `runs/<task-id>/`:
+Each execution creates a timestamped directory under `runs/<task-id>/`:
 
 ```
-runs/<task-id>/<ulid>/
+runs/<task-id>/YYYYMMDD-HHMMSS-<ulid>/
 ├── meta.yaml            # Status, timestamps, item key, etc.
 ├── log.txt              # Timestamped execution log
 ├── prompt.rendered.md   # Final prompt sent to Claude
-├── raw.json             # Raw Claude JSON output
+├── transcript.md        # Real-time Claude event log (tool calls, reasoning)
+├── raw.json             # Raw Claude JSON result
 └── report.md            # Parsed markdown report
 ```
 
 Skipped runs (no new items) are written to `.bin/<task-id>/` instead, keeping `runs/` clean.
 
-### 7. Cleanup
-After processing (always runs, even when skipped), if the task has `cleanup` configured, the system checks all completed/error/canceled runs. For each, it runs `cleanup.command` with the item's context and matches against `cleanup.when`. Matching runs are moved to `.bin/`.
+### 7. Post-run Hook (per item)
+If `post_run` is configured, the shell command is executed synchronously after Claude finishes. Always runs regardless of success, error, or timeout (like a `finally` block). Used for cleanup (e.g., removing git worktrees via `wt remove`). Failures are logged but don't affect run status.
 
-### 8. Lock Release
+### 8. Cleanup
+After all items are processed (always runs, even when skipped), if the task has `cleanup` configured, the system checks all completed/error/canceled runs. For each, it runs `cleanup.command` with the item's context and matches against `cleanup.when`. Runs older than `cleanup.retain` that match are moved to `.bin/`.
+
+### 9. Lock Release
 
 ## Run Statuses
 
@@ -59,17 +67,6 @@ After processing (always runs, even when skipped), if the task has `cleanup` con
 | `canceled` | Manually stopped | Eligible for cleanup |
 | `skipped` | No new items to process | Written to `.bin/`, not `runs/` |
 
-## Cleanup
-
-When a task has `cleanup` configured, at the end of each run the system checks all completed/error/canceled runs for that task. For each, it executes the `cleanup.command` (with the run's URL and item_key as template variables) and matches the output against the `cleanup.when` regex. Matching runs are moved to `.bin/`, where they are auto-purged after 5 days.
-
-This is used to clean up runs for merged/closed PRs:
-```yaml
-cleanup:
-  command: gh pr view {{url}} --json state -q '.state'
-  when: MERGED|CLOSED
-```
-
 ## launchd Integration
 
 `agent247 sync` writes plist files to `~/Library/LaunchAgents/` for each enabled task. Each task gets a `com.agent247.<task-id>.plist` with:
@@ -78,7 +75,7 @@ cleanup:
 - `EnvironmentVariables`: HOME, USER, PATH (for Claude CLI and Keychain access)
 - `StandardOutPath`/`StandardErrorPath`: `~/Library/Logs/agent247/agent247.log`
 
-Old agents are automatically unloaded and removed when tasks are disabled or deleted.
+Old agents are automatically unloaded and removed when tasks are disabled or deleted. The TUI reads installed agents and their schedules directly from the plist files.
 
 ## Module Map
 
@@ -90,20 +87,20 @@ src/
 │   ├── sync.ts         # launchd sync
 │   ├── init.ts         # Workspace scaffolding
 │   ├── purge.ts        # Run cleanup by age
-│   └── watch/          # Interactive TUI dashboard
+│   └── watch/          # Interactive TUI dashboard (split view only)
 │       ├── index.ts    # Entry point — wires state, input, render loop
 │       ├── state.ts    # State types, WatchContext, initialState()
 │       ├── data.ts     # loadData(), getVisibleLines()
-│       ├── actions.ts  # Shared key handlers (delete, open URL, run, stop, toggle)
+│       ├── actions.ts  # Key handlers (delete, open URL, run, stop, toggle)
 │       ├── modes/      # Per-mode key handlers (split, confirm, help)
 │       └── render/     # Display (split, help, confirm, ANSI utilities)
 └── lib/
-    ├── config.ts       # YAML config loading
+    ├── config.ts       # YAML config loading (TaskConfig interface)
     ├── discovery.ts    # Shell command → JSON items
     ├── dedup.ts        # Filter already-processed items
-    ├── runner.ts       # Claude CLI invocation + output parsing
+    ├── runner.ts       # Async Claude CLI invocation + stream-json parsing
     ├── report.ts       # Run persistence (read/write/list)
-    ├── launchd.ts      # macOS launchd plist management
+    ├── launchd.ts      # macOS launchd plist management + schedule reading
     ├── lock.ts         # PID-based locking
     ├── logger.ts       # File + in-memory logger
     ├── template.ts     # {{variable}} substitution

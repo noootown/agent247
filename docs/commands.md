@@ -9,7 +9,7 @@ All commands accept a `--dir <path>` flag to specify the workspace directory. Wi
 
 ## `agent247 init <path>`
 
-Create a new workspace at the given path. Generates the directory structure with `tasks/`, `runs/`, and a `vars.yaml` template.
+Create a new workspace at the given path. Generates the directory structure with `tasks/`, `runs/`, `.gitignore`, and a `vars.yaml` template.
 
 ## `agent247 run <task-id>`
 
@@ -17,11 +17,14 @@ Execute a single task. This is the core command — it runs the full pipeline:
 
 1. Acquire lock (skip if task already running)
 2. Run discovery command to find items
-3. Deduplicate against previous runs
-4. Render prompt template and invoke Claude for each item (or batch)
-5. Persist results to `runs/<task-id>/`
-6. Run cleanup — move completed/error/canceled runs to `.bin/` when cleanup condition matches
-7. Release lock
+3. Deduplicate against previous runs (skipped when `bypass_dedup: true`)
+4. For each item (parallel if `parallel: true`):
+   a. Execute `pre_run` hook (if configured)
+   b. Render prompt and invoke Claude (async, streams to `transcript.md`)
+   c. Persist results to `runs/<task-id>/YYYYMMDD-HHMMSS-<ulid>/`
+   d. Execute `post_run` hook (if configured, always runs)
+5. Run cleanup — move completed/error/canceled runs to `.bin/` when cleanup condition matches and retention period has passed
+6. Release lock
 
 Skipped runs (no new items) are written to `.bin/<task-id>/` instead of `runs/`.
 
@@ -35,7 +38,7 @@ Delete runs older than the given duration. Format: `7d`, `24h`, `30m`. Also purg
 
 ## `agent247 watch`
 
-Interactive terminal dashboard (split view). Left pane shows tasks and runs, right pane shows task config info or run reports depending on selection.
+Interactive terminal dashboard (split view). Left pane shows tasks and runs, right pane shows task config info (when selecting a task) or run reports (when selecting a run).
 
 ### Keybindings
 
