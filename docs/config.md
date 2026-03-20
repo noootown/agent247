@@ -32,8 +32,13 @@ discovery:
 # Optional fields
 model: "sonnet"                   # Claude model (default: "sonnet")
 prompt_mode: "per_item"           # "per_item" (default) or "batch"
-cwd: "{{worktree_path}}"         # Working directory for Claude (supports templates)
+cwd: "{{worktree_path}}"          # Working directory for Claude (supports templates)
 allow_rerun: false                # When true, dedup is bypassed — discovery is the sole filter
+parallel: false                   # When true, run discovered items concurrently
+
+# Optional: pre/post run hooks (shell commands, run per item after dedup)
+pre_run: "wt switch {{headRefName}} --no-cd --yes -C {{platform_repo_path}}"
+post_run: "wt remove {{headRefName}} --yes -C {{platform_repo_path}}"
 
 # Optional: task-specific template variables
 vars:
@@ -57,6 +62,10 @@ cleanup:
 **`prompt_mode`** — Controls how Claude is invoked:
 - `per_item`: Claude is called once per discovered item. The item's fields are available as template variables.
 - `batch`: Claude is called once with all items. Use `{{items_json}}` (JSON array) or `{{items_list}}` (bullet list) in your prompt.
+
+**`pre_run`** — Shell command executed before each Claude invocation, after dedup. Runs synchronously with a 60-second timeout. Has access to all template variables (global + task + item). If it fails, the run is marked as error and `post_run` still executes. Use for environment setup (e.g., creating git worktrees).
+
+**`post_run`** — Shell command executed after each Claude invocation. Always runs regardless of success, error, or timeout (like a `finally` block). Has access to all template variables. Failures are logged but don't affect run status. Use for cleanup (e.g., removing git worktrees).
 
 **`allow_rerun`** — When `true`, deduplication is completely bypassed. Every item returned by discovery is processed regardless of previous runs. Use this for tasks where the discovery command itself filters to only items that currently need work (e.g., PRs with failing CI — discovery only returns PRs that are currently broken).
 

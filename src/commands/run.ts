@@ -188,6 +188,28 @@ export async function runCommand(
 	}
 }
 
+function runPostHook(
+	config: ReturnType<typeof loadTaskConfig>,
+	globalVars: Record<string, string>,
+	taskVars: Record<string, string>,
+	item: Record<string, string>,
+	logger: ReturnType<typeof createLogger>,
+): void {
+	if (!config.post_run) return;
+	const postRunCmd = render(config.post_run, globalVars, taskVars, item);
+	logger.log(`Post-run: ${postRunCmd}`);
+	try {
+		execSync(postRunCmd, {
+			encoding: "utf-8",
+			timeout: 60_000,
+			shell: "/bin/bash",
+			stdio: "pipe",
+		});
+	} catch (err) {
+		logger.error(`Post-run failed: ${err}`);
+	}
+}
+
 async function executeForItem(
 	config: ReturnType<typeof loadTaskConfig>,
 	globalVars: Record<string, string>,
@@ -198,14 +220,54 @@ async function executeForItem(
 	const runId = ulid();
 	const runDir = join(runsDir, config.id, runDirName(runId));
 	const taskVars = config.vars ?? {};
+
+	const logger = createLogger(join(runDir, "log.txt"));
+	logger.log(`Starting task: ${config.id}`);
+	logger.log(`Item: ${item[config.discovery.item_key]}`);
+
+	// Pre-run hook
+	if (config.pre_run) {
+		const preRunCmd = render(config.pre_run, globalVars, taskVars, item);
+		logger.log(`Pre-run: ${preRunCmd}`);
+		try {
+			execSync(preRunCmd, {
+				encoding: "utf-8",
+				timeout: 60_000,
+				shell: "/bin/bash",
+				stdio: "pipe",
+			});
+		} catch (err) {
+			const finishedAt = new Date().toISOString();
+			logger.error(`Pre-run failed: ${err}`);
+			writeRun(runDir, {
+				meta: {
+					schema_version: 1,
+					id: runId,
+					task: config.id,
+					status: "error",
+					url: item[config.discovery.item_key] ?? null,
+					item_key: item[config.discovery.item_key] ?? null,
+					started_at: startedAt,
+					finished_at: finishedAt,
+					duration_seconds: Math.round(
+						(Date.parse(finishedAt) - Date.parse(startedAt)) / 1000,
+					),
+					exit_code: 1,
+				},
+				log: logger.getEntries().join("\n"),
+			});
+			// Still run post_run for cleanup
+			runPostHook(config, globalVars, taskVars, item, logger);
+			return;
+		}
+	}
+
 	const renderedPrompt = render(config.prompt, globalVars, taskVars, item);
 	const renderedCwd = config.cwd
 		? render(config.cwd, globalVars, taskVars, item)
 		: undefined;
 
-	const logger = createLogger(join(runDir, "log.txt"));
 	writeFileSync(join(runDir, "prompt.rendered.md"), renderedPrompt);
-	// Write initial meta so orphan runs are trackable
 	writeRun(runDir, {
 		meta: {
 			schema_version: 1,
@@ -221,35 +283,60 @@ async function executeForItem(
 		},
 		log: "",
 	});
-	logger.log(`Starting task: ${config.id}`);
-	logger.log(`Item: ${item[config.discovery.item_key]}`);
 	logger.log(`Rendered prompt (${renderedPrompt.length} chars)`);
 	if (renderedCwd) logger.log(`Working directory: ${renderedCwd}`);
 
-	const execResult = await executePrompt(
-		renderedPrompt,
-		config.timeout,
-		"claude",
-		config.model,
-		renderedCwd,
-		join(runDir, "transcript.md"),
-	);
-	const finishedAt = new Date().toISOString();
+	try {
+		const execResult = await executePrompt(
+			renderedPrompt,
+			config.timeout,
+			"claude",
+			config.model,
+			renderedCwd,
+			join(runDir, "transcript.md"),
+		);
+		const finishedAt = new Date().toISOString();
 
-	logger.log(
-		`Process exited with code ${execResult.exitCode}${execResult.timedOut ? " (timed out)" : ""}`,
-	);
+		logger.log(
+			`Process exited with code ${execResult.exitCode}${execResult.timedOut ? " (timed out)" : ""}`,
+		);
 
-	if (execResult.exitCode !== 0) {
-		logger.error(`stderr: ${execResult.stderr}`);
+		if (execResult.exitCode !== 0) {
+			logger.error(`stderr: ${execResult.stderr}`);
+			writeRun(runDir, {
+				meta: {
+					schema_version: 1,
+					id: runId,
+					task: config.id,
+					status: "error",
+					url: item[config.discovery.item_key] ?? null,
+					item_key: item[config.discovery.item_key] ?? null,
+					started_at: startedAt,
+					finished_at: finishedAt,
+					duration_seconds: Math.round(
+						(Date.parse(finishedAt) - Date.parse(startedAt)) / 1000,
+					),
+					exit_code: execResult.exitCode,
+				},
+				prompt: renderedPrompt,
+				log: logger.getEntries().join("\n"),
+			});
+			return;
+		}
+
+		const textOutput = execResult.rawJson
+			? extractTextFromJson(execResult.rawJson)
+			: execResult.stdout;
+		const parsed = parseClaudeOutput(textOutput);
+		logger.log(`Output: ${textOutput.length} chars, status: ${parsed.status}`);
+
 		writeRun(runDir, {
 			meta: {
 				schema_version: 1,
 				id: runId,
 				task: config.id,
-				status: "error",
-
-				url: item[config.discovery.item_key] ?? null,
+				status: parsed.status,
+				url: parsed.url ?? item[config.discovery.item_key] ?? null,
 				item_key: item[config.discovery.item_key] ?? null,
 				started_at: startedAt,
 				finished_at: finishedAt,
@@ -259,38 +346,14 @@ async function executeForItem(
 				exit_code: execResult.exitCode,
 			},
 			prompt: renderedPrompt,
+			rawJson: execResult.rawJson ?? undefined,
+			report: parsed.report,
 			log: logger.getEntries().join("\n"),
 		});
-		return;
+	} finally {
+		// Post-run hook — always runs
+		runPostHook(config, globalVars, taskVars, item, logger);
 	}
-
-	const textOutput = execResult.rawJson
-		? extractTextFromJson(execResult.rawJson)
-		: execResult.stdout;
-	const parsed = parseClaudeOutput(textOutput);
-	logger.log(`Output: ${textOutput.length} chars, status: ${parsed.status}`);
-
-	writeRun(runDir, {
-		meta: {
-			schema_version: 1,
-			id: runId,
-			task: config.id,
-			status: parsed.status,
-
-			url: parsed.url ?? item[config.discovery.item_key] ?? null,
-			item_key: item[config.discovery.item_key] ?? null,
-			started_at: startedAt,
-			finished_at: finishedAt,
-			duration_seconds: Math.round(
-				(Date.parse(finishedAt) - Date.parse(startedAt)) / 1000,
-			),
-			exit_code: execResult.exitCode,
-		},
-		prompt: renderedPrompt,
-		rawJson: execResult.rawJson ?? undefined,
-		report: parsed.report,
-		log: logger.getEntries().join("\n"),
-	});
 }
 
 async function executeForBatch(

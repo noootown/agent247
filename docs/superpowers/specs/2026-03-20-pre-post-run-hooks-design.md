@@ -29,12 +29,12 @@ enabled: true
 model: sonnet
 prompt_mode: per_item
 parallel: true
-cwd: "{{worktree_path}}"
-pre_run: wt switch {{headRefName}} --no-cd --yes -C {{platform_repo_path}}
-post_run: wt remove {{headRefName}} --yes -C {{platform_repo_path}}
 discovery:
   command: bash tasks/pr-review/discover.sh {{github_username}} {{platform_repo}}
   item_key: url
+pre_run: wt switch {{headRefName}} --no-cd --yes -C {{platform_repo_path}}
+cwd: "{{worktree_path}}"
+post_run: wt remove {{headRefName}} --yes -C {{platform_repo_path}}
 ```
 
 ### Discovery
