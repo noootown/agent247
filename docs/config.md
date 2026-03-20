@@ -18,37 +18,41 @@ workspace/
 ## Task Config (`tasks/<task-id>/config.yaml`)
 
 ```yaml
-# Required fields
+# ── Task identity & scheduling ──
 name: "Review Dependabot PRs"     # Display name
 schedule: "*/30 * * * *"          # Cron expression
 timeout: 300                      # Seconds before Claude process is killed
 enabled: true                     # Set false to skip in sync/run
+model: "sonnet"                   # Claude model (default: "sonnet")
+prompt_mode: "per_item"           # "per_item" (default) or "batch"
 
-# Required: how to find items to process
+# ── Execution pipeline (in order) ──
+# 1. Discovery — find items to process
 discovery:
   command: "gh pr list --author 'dependabot[bot]' --json url,number,title"
   item_key: "url"                 # Field that uniquely identifies each item
-
-# Optional fields
-model: "sonnet"                   # Claude model (default: "sonnet")
-prompt_mode: "per_item"           # "per_item" (default) or "batch"
-cwd: "{{worktree_path}}"          # Working directory for Claude (supports templates)
 allow_rerun: false                # When true, dedup is bypassed — discovery is the sole filter
 parallel: false                   # When true, run discovered items concurrently
 
-# Optional: pre/post run hooks (shell commands, run per item after dedup)
+# 2. Pre-run hook — environment setup (per item, after dedup)
 pre_run: "wt switch {{headRefName}} --no-cd --yes -C {{platform_repo_path}}"
+
+# 3. Claude execution
+cwd: "{{worktree_path}}"          # Working directory for Claude (supports templates)
+
+# 4. Post-run hook — cleanup (per item, always runs)
 post_run: "wt remove {{headRefName}} --yes -C {{platform_repo_path}}"
 
-# Optional: task-specific template variables
-vars:
-  repo: "my-org/my-repo"
-  review_style: "thorough"
-
-# Optional: auto-cleanup runs when external state changes
+# 5. Run cleanup — move old runs to .bin when condition matches
 cleanup:
   command: "gh pr view {{url}} --json state -q '.state'"
   when: "MERGED|CLOSED"           # Regex matched against command output
+  retain: "12h"                   # Keep runs for this long before cleanup
+
+# ── Variables ──
+vars:
+  repo: "my-org/my-repo"
+  review_style: "thorough"
 ```
 
 ### Field Details
