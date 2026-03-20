@@ -96,6 +96,7 @@ export function executePrompt(
 			env: process.env,
 			cwd,
 			stdio: ["pipe", "pipe", "pipe"],
+			detached: true,
 		});
 
 		let stdout = "";
@@ -107,7 +108,22 @@ export function executePrompt(
 
 		const timeout = setTimeout(() => {
 			timedOut = true;
-			child.kill("SIGTERM");
+			// Kill the entire process group
+			if (child.pid) {
+				try {
+					process.kill(-child.pid, "SIGTERM");
+				} catch {
+					child.kill("SIGTERM");
+				}
+			}
+			// Force kill after 5 seconds if still alive
+			setTimeout(() => {
+				if (child.pid) {
+					try {
+						process.kill(-child.pid, "SIGKILL");
+					} catch {}
+				}
+			}, 5000);
 		}, timeoutSeconds * 1000);
 
 		if (transcriptPath) {
