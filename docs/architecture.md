@@ -5,14 +5,9 @@
 agent247 is a local CLI tool that runs Claude-powered tasks on a schedule via macOS launchd. It discovers items via shell commands, runs Claude against each item, and persists structured results for review.
 
 ```
-┌─────────┐     ┌───────────┐     ┌───────┐     ┌────────┐     ┌─────────┐
-│ launchd  │────>│ Discovery │────>│ Dedup │────>│ Claude │────>│ Persist │
-└─────────┘     └───────────┘     └───────┘     └────────┘     └─────────┘
-                                                                     │
-                                                                     v
-                                                              ┌─────────────┐
-                                                              │   Cleanup   │
-                                                              └─────────────┘
+┌─────────┐   ┌───────────┐   ┌───────┐   ┌─────────┐   ┌────────┐   ┌─────────┐   ┌──────────┐   ┌─────────┐
+│ launchd  │──>│ Discovery │──>│ Dedup │──>│ Pre-run │──>│ Claude │──>│ Persist │──>│ Post-run │──>│ Cleanup │
+└─────────┘   └───────────┘   └───────┘   └─────────┘   └────────┘   └─────────┘   └──────────┘   └─────────┘
 ```
 
 ## Execution Flow
