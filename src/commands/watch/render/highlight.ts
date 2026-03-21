@@ -54,8 +54,8 @@ const BASH_COMMAND = "\x1B[38;2;152;195;121m"; // green
 
 // ── Diff highlighting ──
 
-const DIFF_ADD = "\x1B[38;2;172;238;187m"; // #aceebb
-const DIFF_DEL = "\x1B[38;2;254;206;202m"; // #fececa
+const DIFF_ADD = "\x1B[38;2;106;171;115m"; // #6aab73 — muted green
+const DIFF_DEL = "\x1B[38;2;200;120;120m"; // #c87878 — muted red
 const DIFF_HEADER = "\x1B[36m"; // cyan
 
 function diffLineTransform(line: string): string {

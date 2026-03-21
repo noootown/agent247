@@ -233,13 +233,13 @@ describe("applyCodeBlockHighlighting", () => {
 
 	it("colors + lines with green inside diff blocks", () => {
 		const lines = applyCodeBlockHighlighting(["```diff", "+added", "```"]);
-		expect(lines[1]).toContain("\x1B[38;2;172;238;187m");
+		expect(lines[1]).toContain("\x1B[38;2;106;171;115m");
 		expect(stripAnsi(lines[1])).toBe("+added");
 	});
 
 	it("colors - lines with red inside diff blocks", () => {
 		const lines = applyCodeBlockHighlighting(["```diff", "-removed", "```"]);
-		expect(lines[1]).toContain("\x1B[38;2;254;206;202m");
+		expect(lines[1]).toContain("\x1B[38;2;200;120;120m");
 	});
 
 	it("colors @@ lines with cyan", () => {
