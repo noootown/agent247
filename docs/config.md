@@ -42,14 +42,15 @@ pre_run: "wt switch {{headRefName}} --no-cd --yes -C {{platform_repo_path}}"
 # 4. Claude execution
 cwd: "{{worktree_path}}"          # Working directory for Claude (supports templates)
 
-# 5. Post-run hook — cleanup (per item, always runs)
-post_run: "wt remove {{headRefName}} --yes -C {{platform_repo_path}}"
+# 5. Post-run hook — runs after each Claude invocation (per item, always runs)
+post_run: "echo 'Run complete'"   # Optional: notifications, logging, etc.
 
-# 6. Run cleanup — move old runs to .bin when condition matches
+# 6. Run cleanup — move old runs to .bin when condition matches, then teardown
 cleanup:
-  command: "gh pr view {{url}} --json state -q '.state'"
-  when: "MERGED|CLOSED"           # Regex matched against command output
+  check: "gh pr view {{url}} --json state -q '.state'"
+  when: "MERGED|CLOSED"           # Regex matched against check output
   retain: "12h"                   # Keep runs for this long before cleanup
+  teardown: "wt remove {{headRefName}} --yes -C {{platform_repo_path}}"  # Runs on move to .bin
 
 # ── Variables ──
 vars:
@@ -75,9 +76,15 @@ vars:
 - `per_item`: Claude is called once per discovered item. The item's fields are available as template variables.
 - `batch`: Claude is called once with all items. Use `{{items_json}}` (JSON array) or `{{items_list}}` (bullet list) in your prompt.
 
-**`post_run`** — Shell command executed after each Claude invocation. Always runs regardless of success, error, or timeout (like a `finally` block). Has access to all template variables. Failures are logged but don't affect run status. Use for cleanup (e.g., removing git worktrees).
+**`post_run`** — Shell command executed after each Claude invocation. Always runs regardless of success, error, or timeout (like a `finally` block). Has access to all template variables. Failures are logged but don't affect run status. Use for post-run actions like notifications — not for resource cleanup (use `cleanup.teardown` instead).
 
-**`cleanup`** — At the end of each task run, all completed/error/canceled runs are checked. For each, `cleanup.command` is executed with the run's `{{url}}` and `{{item_key}}` as template variables. If the output matches the `cleanup.when` regex and `cleanup.retain` period has passed, the run is moved to `.bin/` (auto-purged after 5 days). This keeps the `runs/` folder clean by removing runs for items that are no longer relevant (e.g., merged PRs).
+**`cleanup`** — At the end of each task run, all completed/error/canceled runs are checked:
+- **`cleanup.check`** — Shell command executed per run. Its output is matched against `cleanup.when` regex. Template variables available: global, task, and item vars (from `item.json`). Timeout: 15 seconds. For backwards compatibility, `command` is accepted if `check` is not present.
+- **`cleanup.when`** — Regex pattern. If the check output matches, the run is eligible for cleanup.
+- **`cleanup.retain`** — Duration to wait after eligibility before archiving (e.g., `"12h"`, `"7d"`, `"30m"`).
+- **`cleanup.teardown`** (optional) — Shell command executed once when the run is moved to `.bin/`. Use for resource cleanup like removing git worktrees and local branches. Timeout: 60 seconds. If teardown fails, the run is still archived.
+
+This keeps the `runs/` folder clean by removing runs for items that are no longer relevant (e.g., merged PRs), while keeping worktrees alive until the run is actually archived.
 
 ## Global Variables (`vars.yaml`)
 
