@@ -61,7 +61,31 @@ function renderTabBar(activeTab: number): string {
 	return parts.join("");
 }
 
-function getMetaLines(run: RunRecord, width: number): string[] {
+// ── File prettifiers ──
+// Each takes (content, run, width) and returns styled lines
+
+type Prettifier = (content: string, run: RunRecord, width: number) => string[];
+
+const JSON_KEY = "\x1B[38;2;137;180;250m"; // light blue
+const JSON_STRING = "\x1B[38;2;206;145;120m"; // warm orange
+const JSON_NUMBER = "\x1B[38;2;181;206;168m"; // soft green
+const JSON_BOOL = "\x1B[38;2;206;145;120m"; // warm orange
+const JSON_NULL = `${DIM}`;
+const LOG_TIMESTAMP = `${DIM}`;
+
+function markdownPrettifier(
+	content: string,
+	_run: RunRecord,
+	width: number,
+): string[] {
+	return content.split("\n").map((l) => renderMarkdownLine(l, width));
+}
+
+function metaPrettifier(
+	_content: string,
+	run: RunRecord,
+	_width: number,
+): string[] {
 	const m = run.meta;
 	return [
 		`${BOLD}Run${RESET}`,
@@ -84,29 +108,68 @@ function getMetaLines(run: RunRecord, width: number): string[] {
 	];
 }
 
+function jsonPrettifier(
+	content: string,
+	_run: RunRecord,
+	_width: number,
+): string[] {
+	return content.split("\n").map((line) =>
+		line
+			.replace(/"([^"]+)"(?=\s*:)/g, `${JSON_KEY}"$1"${RESET}`)
+			.replace(/:\s*"([^"]*)"(,?)$/gm, `: ${JSON_STRING}"$1"${RESET}$2`)
+			.replace(/:\s*(\d+\.?\d*)(,?)$/gm, `: ${JSON_NUMBER}$1${RESET}$2`)
+			.replace(/:\s*(true|false)(,?)$/gm, `: ${JSON_BOOL}$1${RESET}$2`)
+			.replace(/:\s*(null)(,?)$/gm, `: ${JSON_NULL}$1${RESET}$2`),
+	);
+}
+
+function logPrettifier(
+	content: string,
+	_run: RunRecord,
+	_width: number,
+): string[] {
+	return content
+		.split("\n")
+		.map((line) =>
+			line.replace(
+				/^(\[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z\])/,
+				`${LOG_TIMESTAMP}$1${RESET}`,
+			),
+		);
+}
+
+function defaultPrettifier(
+	content: string,
+	_run: RunRecord,
+	_width: number,
+): string[] {
+	return content.split("\n");
+}
+
+const prettifiers: Record<string, Prettifier> = {
+	"report.md": markdownPrettifier,
+	"transcript.md": markdownPrettifier,
+	"prompt.rendered.md": markdownPrettifier,
+	"log.txt": logPrettifier,
+	"meta.yaml": metaPrettifier,
+	"vars.json": jsonPrettifier,
+	"response.json": jsonPrettifier,
+};
+
 export function getReportLines(
 	run: RunRecord,
 	width = 40,
 	activeTab = 0,
 ): string[] {
 	const fileName = RUN_TABS[activeTab] ?? "report.md";
-
-	// Prettified meta view
-	if (fileName === "meta.yaml") {
-		return getMetaLines(run, width);
-	}
+	const prettify = prettifiers[fileName] ?? defaultPrettifier;
 
 	const filePath = join(run.dir, fileName);
 	const content = existsSync(filePath)
 		? readFileSync(filePath, "utf-8")
 		: `No ${fileName} available.`;
 
-	const isMarkdown = fileName.endsWith(".md");
-	const contentLines = isMarkdown
-		? content.split("\n").map((l) => renderMarkdownLine(l, width))
-		: content.split("\n");
-
-	return contentLines;
+	return prettify(content, run, width);
 }
 
 export function getTaskInfoLines(group: TaskGroup, width = 40): string[] {
