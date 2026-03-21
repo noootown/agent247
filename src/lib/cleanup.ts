@@ -92,7 +92,6 @@ export function cleanupRuns(
 			run.meta.status !== "canceled"
 		)
 			continue;
-		if (!run.meta.item_key) continue;
 		if (retainMs > 0 && now - Date.parse(run.meta.finished_at) < retainMs)
 			continue;
 		try {
