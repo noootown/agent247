@@ -40,7 +40,7 @@ function renderTabBar(activeTab: number): string {
 	const parts = TAB_LABELS.map((label, i) => {
 		const num = `${i + 1}`;
 		if (i === activeTab) {
-			return `${TAB_ACTIVE_BG} ${num}:${label} ${RESET}`;
+			return `${TAB_ACTIVE_BG}${BOLD} ${num}:${label} ${RESET}`;
 		}
 		return `${DIM} ${num}:${label} ${RESET}`;
 	});
