@@ -152,11 +152,25 @@ export function hljsToAnsi(html: string): string {
 	return result;
 }
 
+/** Minimal bash fallback: color first word as command for lines highlight.js missed */
+const BASH_CMD_COLOR = "\x1B[38;2;152;195;121m"; // green
+function bashFallbackLine(line: string): string {
+	// If line already has ANSI codes, highlight.js handled it
+	if (line.includes("\x1B[")) return line;
+	// Color first word as command
+	return line.replace(/^(\s*)([\w./-]+)/, `$1${BASH_CMD_COLOR}$2${RESET}`);
+}
+
 /** Highlight code with highlight.js and convert to ANSI */
 export function highlightCode(code: string, language: string): string {
 	try {
 		const result = hljs.highlight(code, { language });
-		return hljsToAnsi(result.value);
+		let ansi = hljsToAnsi(result.value);
+		// For bash: apply fallback coloring to lines highlight.js left plain
+		if (language === "bash" || language === "sh" || language === "shell") {
+			ansi = ansi.split("\n").map(bashFallbackLine).join("\n");
+		}
+		return ansi;
 	} catch {
 		return code;
 	}
@@ -173,7 +187,7 @@ export function applyCodeBlockHighlighting(lines: string[]): string[] {
 		if (fenceMatch && !activeLang) {
 			activeLang = fenceMatch[1];
 			blockLines = [];
-			// Don't push fence line — it's just a marker
+			result.push(`${DIM}${line}${RESET}`);
 			continue;
 		}
 		if (activeLang && line.startsWith("```")) {
@@ -187,7 +201,7 @@ export function applyCodeBlockHighlighting(lines: string[]): string[] {
 			}
 			activeLang = null;
 			blockLines = [];
-			// Don't push closing fence
+			result.push(`${DIM}${line}${RESET}`);
 			continue;
 		}
 		if (activeLang) {

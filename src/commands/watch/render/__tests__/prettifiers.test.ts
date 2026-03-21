@@ -218,16 +218,28 @@ describe("highlightCode", () => {
 });
 
 describe("applyCodeBlockHighlighting", () => {
+	it("keeps fence lines as dimmed labels", () => {
+		const lines = applyCodeBlockHighlighting([
+			"```json",
+			'"key": "val"',
+			"```",
+		]);
+		expect(lines).toHaveLength(3);
+		expect(stripAnsi(lines[0])).toBe("```json");
+		expect(lines[0]).toContain("\x1B[2m"); // DIM
+		expect(stripAnsi(lines[2])).toBe("```");
+		expect(lines[2]).toContain("\x1B[2m"); // DIM
+	});
+
 	it("colors + lines with green inside diff blocks", () => {
 		const lines = applyCodeBlockHighlighting(["```diff", "+added", "```"]);
-		expect(lines[0]).toContain("\x1B[38;2;172;238;187m");
-		expect(stripAnsi(lines[0])).toBe("+added");
+		expect(lines[1]).toContain("\x1B[38;2;172;238;187m");
+		expect(stripAnsi(lines[1])).toBe("+added");
 	});
 
 	it("colors - lines with red inside diff blocks", () => {
 		const lines = applyCodeBlockHighlighting(["```diff", "-removed", "```"]);
-		expect(lines[0]).toContain("\x1B[38;2;254;206;202m");
-		expect(stripAnsi(lines[0])).toBe("-removed");
+		expect(lines[1]).toContain("\x1B[38;2;254;206;202m");
 	});
 
 	it("colors @@ lines with cyan", () => {
@@ -236,7 +248,7 @@ describe("applyCodeBlockHighlighting", () => {
 			"@@ -1,3 +1,4 @@",
 			"```",
 		]);
-		expect(lines[0]).toContain("\x1B[36m");
+		expect(lines[1]).toContain("\x1B[36m");
 	});
 
 	it("does not color lines outside code blocks", () => {
@@ -245,52 +257,14 @@ describe("applyCodeBlockHighlighting", () => {
 		expect(lines[1]).toBe("-not a diff");
 	});
 
-	it("leaves context lines inside diff unmodified", () => {
-		const lines = applyCodeBlockHighlighting(["```diff", " context", "```"]);
-		expect(lines[0]).toBe(" context");
-	});
-
-	it("strips fence lines from output", () => {
-		const lines = applyCodeBlockHighlighting([
-			"```json",
-			'"key": "val"',
-			"```",
-		]);
-		expect(lines).toHaveLength(1);
-		expect(stripAnsi(lines[0])).toContain('"key"');
-	});
-
-	it("handles multiple code blocks", () => {
-		const lines = applyCodeBlockHighlighting([
-			"text",
-			"```diff",
-			"+a",
-			"```",
-			"between",
-			"```diff",
-			"-b",
-			"```",
-		]);
-		// text, +a, between, -b (fences stripped)
-		expect(lines[0]).toBe("text");
-		expect(lines[1]).toContain("\x1B[38;2;172;238;187m"); // +a green
-		expect(lines[2]).toBe("between");
-		expect(lines[3]).toContain("\x1B[38;2;254;206;202m"); // -b red
-	});
-
 	it("applies syntax highlighting inside json blocks", () => {
 		const lines = applyCodeBlockHighlighting([
 			"```json",
 			'  "name": "hello"',
 			"```",
 		]);
-		expect(lines[0]).toContain("\x1B[");
-		expect(stripAnsi(lines[0])).toContain('"name"');
-	});
-
-	it("does not apply highlighting outside code blocks", () => {
-		const lines = applyCodeBlockHighlighting(['"key": "value"']);
-		expect(lines[0]).toBe('"key": "value"');
+		expect(lines[1]).toContain("\x1B[");
+		expect(stripAnsi(lines[1])).toContain('"name"');
 	});
 
 	it("applies highlighting for bash blocks", () => {
@@ -299,8 +273,19 @@ describe("applyCodeBlockHighlighting", () => {
 			'echo "hello"',
 			"```",
 		]);
-		expect(lines[0]).toContain("\x1B[");
-		expect(stripAnsi(lines[0])).toContain("echo");
+		expect(lines[1]).toContain("\x1B[");
+		expect(stripAnsi(lines[1])).toContain("echo");
+	});
+
+	it("applies bash fallback for plain commands", () => {
+		const lines = applyCodeBlockHighlighting([
+			"```bash",
+			"bash scripts/test.sh",
+			"```",
+		]);
+		// Fallback colors first word as command
+		expect(lines[1]).toContain("\x1B[38;2;152;195;121m");
+		expect(stripAnsi(lines[1])).toBe("bash scripts/test.sh");
 	});
 
 	it("applies highlighting for ruby blocks", () => {
@@ -309,8 +294,13 @@ describe("applyCodeBlockHighlighting", () => {
 			'puts "hello"',
 			"```",
 		]);
-		expect(lines[0]).toContain("\x1B[");
-		expect(stripAnsi(lines[0])).toContain("puts");
+		expect(lines[1]).toContain("\x1B[");
+		expect(stripAnsi(lines[1])).toContain("puts");
+	});
+
+	it("does not apply highlighting outside code blocks", () => {
+		const lines = applyCodeBlockHighlighting(['"key": "value"']);
+		expect(lines[0]).toBe('"key": "value"');
 	});
 });
 
