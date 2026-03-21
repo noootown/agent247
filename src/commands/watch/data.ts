@@ -63,6 +63,7 @@ export function loadData(
 		taskMap.set(run.meta.task, existing);
 	}
 
+	const isFirstLoad = currentState.groups.length === 0;
 	const prevExpanded = new Set(
 		currentState.groups.filter((g) => g.expanded).map((g) => g.task),
 	);
@@ -82,7 +83,7 @@ export function loadData(
 				prompt: "",
 			},
 			runs: taskRuns,
-			expanded: prevExpanded.has(task),
+			expanded: isFirstLoad ? taskRuns.length > 0 : prevExpanded.has(task),
 			running:
 				isTaskRunning(baseDir, task) ||
 				taskRuns.some((r) => r.meta.status === "processing"),
@@ -95,7 +96,32 @@ export function loadData(
 			return a.task.localeCompare(b.task);
 		});
 
-	return { ...currentState, groups };
+	const newState = { ...currentState, groups };
+
+	// On first load, position cursor on the latest run
+	if (isFirstLoad) {
+		let latestRun: RunRecord | null = null;
+		for (const g of groups) {
+			if (
+				g.runs.length > 0 &&
+				(!latestRun || g.runs[0].meta.id > latestRun.meta.id)
+			) {
+				latestRun = g.runs[0];
+			}
+		}
+		if (latestRun) {
+			const visibleLines = getVisibleLines(newState);
+			const idx = visibleLines.findIndex(
+				(l) => l.type === "run" && l.run.meta.id === latestRun?.meta.id,
+			);
+			if (idx >= 0) {
+				newState.cursor = idx;
+				newState.splitRun = latestRun;
+			}
+		}
+	}
+
+	return newState;
 }
 
 export function getVisibleLines(state: State): VisibleLine[] {
