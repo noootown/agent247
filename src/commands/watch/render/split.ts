@@ -14,11 +14,14 @@ import {
 	formatAgo,
 	formatTime,
 	GREEN,
+	hyperlink,
 	MAGENTA,
 	RED,
 	RESET,
 	SEPARATOR,
 	scrollAnsi,
+	statusIcon,
+	statusText,
 	stripAnsi,
 	YELLOW,
 } from "./ansi.js";
@@ -58,12 +61,41 @@ function renderTabBar(activeTab: number): string {
 	return parts.join("");
 }
 
+function getMetaLines(run: RunRecord, width: number): string[] {
+	const m = run.meta;
+	return [
+		`${BOLD}Run${RESET}`,
+		`  ID: ${m.id}`,
+		`  Task: ${BOLD}${MAGENTA}${m.task}${RESET}`,
+		`  Status: ${statusIcon(m.status)} ${statusText(m.status)}`,
+		"",
+		`${BOLD}Timing${RESET}`,
+		`  Started: ${formatTime(m.started_at)} ${DIM}(${formatAgo(Date.parse(m.started_at))})${RESET}`,
+		`  Finished: ${formatTime(m.finished_at)} ${DIM}(${formatAgo(Date.parse(m.finished_at))})${RESET}`,
+		`  Duration: ${m.duration_seconds}s`,
+		"",
+		`${BOLD}Details${RESET}`,
+		m.url?.startsWith("http")
+			? `  URL: \x1B[94m${hyperlink(m.url, m.url)}${RESET}`
+			: `  URL: ${DIM}—${RESET}`,
+		`  Item key: ${m.item_key ?? `${DIM}—${RESET}`}`,
+		`  Exit code: ${m.exit_code === 0 ? `${GREEN}${m.exit_code}${RESET}` : `${RED}${m.exit_code}${RESET}`}`,
+		`  Schema: v${m.schema_version}`,
+	];
+}
+
 export function getReportLines(
 	run: RunRecord,
 	width = 40,
 	activeTab = 0,
 ): string[] {
 	const fileName = RUN_TABS[activeTab] ?? "report.md";
+
+	// Prettified meta view
+	if (fileName === "meta.yaml") {
+		return getMetaLines(run, width);
+	}
+
 	const filePath = join(run.dir, fileName);
 	const content = existsSync(filePath)
 		? readFileSync(filePath, "utf-8")
