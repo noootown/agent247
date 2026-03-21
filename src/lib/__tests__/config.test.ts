@@ -144,3 +144,40 @@ describe("listTasks", () => {
 		expect(tasks[0].id).toBe("test-task");
 	});
 });
+
+describe("loadTaskConfig cleanup fields", () => {
+	it("loads check and teardown fields", () => {
+		writeFileSync(
+			join(TEST_DIR, "tasks", "test-task", "config.yaml"),
+			`name: Test\nschedule: "* * * * *"\ntimeout: 60\nenabled: true\ndiscovery:\n  command: "echo '[]'"\n  item_key: url\ncleanup:\n  check: "echo MERGED"\n  when: MERGED\n  retain: 12h\n  teardown: "rm -rf /tmp/test"\n`,
+		);
+		writeFileSync(join(TEST_DIR, "tasks", "test-task", "prompt.md"), "prompt");
+		const config = loadTaskConfig("test-task", TEST_DIR);
+		expect(config.cleanup?.check).toBe("echo MERGED");
+		expect(config.cleanup?.when).toBe("MERGED");
+		expect(config.cleanup?.retain).toBe("12h");
+		expect(config.cleanup?.teardown).toBe("rm -rf /tmp/test");
+	});
+
+	it("falls back to command field when check is missing (backwards compat)", () => {
+		writeFileSync(
+			join(TEST_DIR, "tasks", "test-task", "config.yaml"),
+			`name: Test\nschedule: "* * * * *"\ntimeout: 60\nenabled: true\ndiscovery:\n  command: "echo '[]'"\n  item_key: url\ncleanup:\n  command: "echo OLD"\n  when: OLD\n`,
+		);
+		writeFileSync(join(TEST_DIR, "tasks", "test-task", "prompt.md"), "prompt");
+		const config = loadTaskConfig("test-task", TEST_DIR);
+		expect(config.cleanup?.check).toBe("echo OLD");
+		expect(config.cleanup?.teardown).toBeUndefined();
+	});
+
+	it("loads cleanup without teardown", () => {
+		writeFileSync(
+			join(TEST_DIR, "tasks", "test-task", "config.yaml"),
+			`name: Test\nschedule: "* * * * *"\ntimeout: 60\nenabled: true\ndiscovery:\n  command: "echo '[]'"\n  item_key: url\ncleanup:\n  check: "echo OK"\n  when: OK\n`,
+		);
+		writeFileSync(join(TEST_DIR, "tasks", "test-task", "prompt.md"), "prompt");
+		const config = loadTaskConfig("test-task", TEST_DIR);
+		expect(config.cleanup?.check).toBe("echo OK");
+		expect(config.cleanup?.teardown).toBeUndefined();
+	});
+});

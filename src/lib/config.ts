@@ -21,9 +21,10 @@ export interface TaskConfig {
 	pre_run?: string;
 	post_run?: string;
 	cleanup?: {
-		command: string;
+		check: string;
 		when: string;
 		retain?: string; // e.g. "12h", "7d", "30m" — keep runs for this long before cleanup
+		teardown?: string;
 	};
 	prompt: string;
 }
@@ -64,7 +65,17 @@ export function loadTaskConfig(taskId: string, baseDir: string): TaskConfig {
 		parallel: (raw.parallel as boolean) ?? false,
 		pre_run: raw.pre_run as string | undefined,
 		post_run: raw.post_run as string | undefined,
-		cleanup: raw.cleanup as TaskConfig["cleanup"],
+		cleanup: raw.cleanup
+			? (() => {
+					const c = raw.cleanup as Record<string, unknown>;
+					return {
+						check: (c.check as string) ?? (c.command as string),
+						when: c.when as string,
+						retain: c.retain as string | undefined,
+						teardown: c.teardown as string | undefined,
+					};
+				})()
+			: undefined,
 		prompt,
 	};
 }

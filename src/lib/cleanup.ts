@@ -23,15 +23,17 @@ export function parseRetain(retain?: string): number {
 }
 
 export interface CleanupConfig {
-	command: string;
+	check: string;
 	when: string;
 	retain?: string;
+	teardown?: string;
 }
 
 export function cleanupRuns(
 	runs: RunRecord[],
 	cleanupConfig: CleanupConfig,
 	globalVars: Record<string, string>,
+	taskVars: Record<string, string>,
 	binDir: string,
 	taskId: string,
 ): number {
@@ -60,19 +62,49 @@ export function cleanupRuns(
 			}
 			if (run.meta.url) itemVars.url = run.meta.url;
 			if (run.meta.item_key) itemVars.item_key = run.meta.item_key;
-			const cmd = render(cleanupConfig.command, globalVars, {}, itemVars);
-			const output = execSync(cmd, {
+			const checkCmd = render(
+				cleanupConfig.check,
+				globalVars,
+				taskVars,
+				itemVars,
+			);
+			const output = execSync(checkCmd, {
 				encoding: "utf-8",
 				timeout: 15_000,
 				shell: "/bin/bash",
 			}).trim();
 			if (cleanupPattern.test(output)) {
+				// Render teardown BEFORE move
+				let renderedTeardown: string | undefined;
+				if (cleanupConfig.teardown) {
+					renderedTeardown = render(
+						cleanupConfig.teardown,
+						globalVars,
+						taskVars,
+						itemVars,
+					);
+				}
+
+				// Move to .bin
 				const parts = run.dir.split("/");
 				const runId = parts[parts.length - 1];
 				const dest = join(binDir, taskId, runId);
 				mkdirSync(join(binDir, taskId), { recursive: true });
 				renameSync(run.dir, dest);
 				cleaned++;
+
+				// Execute teardown AFTER move
+				if (renderedTeardown) {
+					try {
+						execSync(renderedTeardown, {
+							encoding: "utf-8",
+							timeout: 60_000,
+							shell: "/bin/bash",
+						});
+					} catch {
+						// Teardown failed — run is already in .bin, continue
+					}
+				}
 			}
 		} catch {
 			// Cleanup check failed — skip silently

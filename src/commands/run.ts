@@ -141,6 +141,7 @@ export async function runCommand(
 				allRuns,
 				config.cleanup,
 				globalVars,
+				config.vars ?? {},
 				join(baseDir, ".bin"),
 				taskId,
 			);

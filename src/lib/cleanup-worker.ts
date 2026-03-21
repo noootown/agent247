@@ -20,6 +20,7 @@ for (const t of allTaskConfigs) {
 			taskRuns,
 			t.config.cleanup,
 			globalVars,
+			t.config.vars ?? {},
 			binDir,
 			t.id,
 		);
