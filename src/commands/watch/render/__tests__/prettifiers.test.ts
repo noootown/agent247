@@ -9,6 +9,7 @@ import {
 	headings,
 	horizontalRule,
 	inlineCode,
+	italicText,
 	jsonBooleans,
 	jsonKeys,
 	jsonNulls,
@@ -57,6 +58,24 @@ describe("boldText transform", () => {
 	});
 	it("handles multiple bold spans", () => {
 		expect(stripAnsi(boldText("**a** and **b**"))).toBe("a and b");
+	});
+});
+
+describe("italicText transform", () => {
+	it("converts _text_ to italic", () => {
+		const result = italicText("_Potential issue_");
+		expect(stripAnsi(result)).toBe("Potential issue");
+		expect(result).toContain("\x1B[3m"); // ITALIC
+	});
+	it("handles multiple italic spans", () => {
+		expect(stripAnsi(italicText("_a_ | _b_"))).toBe("a | b");
+	});
+	it("does not match underscores inside words", () => {
+		expect(italicText("snake_case_name")).toBe("snake_case_name");
+	});
+	it("handles emoji + italic combo", () => {
+		const result = italicText("_⚠️ Potential issue_ | _🟠 Major_");
+		expect(stripAnsi(result)).toBe("⚠️ Potential issue | 🟠 Major");
 	});
 });
 

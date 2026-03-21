@@ -27,6 +27,11 @@ export const headings: Transform = (line) =>
 export const boldText: Transform = (line) =>
 	line.replace(/\*\*(.+?)\*\*/g, `${BOLD}$1${RESET}`);
 
+/** _italic_ → ANSI italic */
+const ITALIC = "\x1B[3m";
+export const italicText: Transform = (line) =>
+	line.replace(/(?<!\w)_([^_]+?)_(?!\w)/g, `${ITALIC}$1${RESET}`);
+
 /** `code` → colored */
 const CODE_COLOR = "\x1B[38;2;175;185;254m";
 export const inlineCode: Transform = (line) =>
@@ -102,6 +107,7 @@ export function markdownPrettifier(
 	return applyTransforms(content.split("\n"), [
 		headings,
 		boldText,
+		italicText,
 		inlineCode,
 		horizontalRule(width),
 		urls,
@@ -172,6 +178,7 @@ export function renderMarkdownLine(line: string, width = 40): string {
 	const transforms = [
 		headings,
 		boldText,
+		italicText,
 		inlineCode,
 		horizontalRule(width),
 		urls,
