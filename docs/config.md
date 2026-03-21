@@ -79,7 +79,7 @@ vars:
 **`post_run`** — Shell command executed after each Claude invocation. Always runs regardless of success, error, or timeout (like a `finally` block). Has access to all template variables. Failures are logged but don't affect run status. Use for post-run actions like notifications — not for resource cleanup (use `cleanup.teardown` instead).
 
 **`cleanup`** — At the end of each task run, all completed/error/canceled runs are checked:
-- **`cleanup.check`** — Shell command executed per run. Its output is matched against `cleanup.when` regex. Template variables available: global, task, and item vars (from `item.json`). Timeout: 15 seconds. For backwards compatibility, `command` is accepted if `check` is not present.
+- **`cleanup.check`** — Shell command executed per run. Its output is matched against `cleanup.when` regex. Template variables available: global, task, and item vars (from `vars.json`). Timeout: 15 seconds. For backwards compatibility, `command` is accepted if `check` is not present.
 - **`cleanup.when`** — Regex pattern. If the check output matches, the run is eligible for cleanup.
 - **`cleanup.retain`** — Duration to wait after eligibility before archiving (e.g., `"12h"`, `"7d"`, `"30m"`).
 - **`cleanup.teardown`** (optional) — Shell command executed once when the run is moved to `.bin/`. Use for resource cleanup like removing git worktrees and local branches. Timeout: 60 seconds. If teardown fails, the run is still archived.
