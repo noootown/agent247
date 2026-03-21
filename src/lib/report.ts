@@ -48,7 +48,7 @@ export function writeRun(runDir: string, data: RunData): void {
 		try {
 			formatted = JSON.stringify(JSON.parse(data.rawJson), null, 2);
 		} catch {}
-		writeFileSync(join(runDir, "raw.json"), formatted);
+		writeFileSync(join(runDir, "response.json"), formatted);
 	}
 	if (data.report !== undefined) {
 		writeFileSync(join(runDir, "report.md"), data.report);

@@ -37,7 +37,7 @@ describe("writeRun", () => {
 		});
 		expect(existsSync(join(runDir, "meta.yaml"))).toBe(true);
 		expect(existsSync(join(runDir, "prompt.rendered.md"))).toBe(true);
-		expect(existsSync(join(runDir, "raw.json"))).toBe(true);
+		expect(existsSync(join(runDir, "response.json"))).toBe(true);
 		expect(existsSync(join(runDir, "report.md"))).toBe(true);
 		expect(existsSync(join(runDir, "log.txt"))).toBe(true);
 	});

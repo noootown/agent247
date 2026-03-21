@@ -190,7 +190,7 @@ async function executeForItem(
 	const logger = createLogger(join(runDir, "log.txt"));
 	// Save item vars for post-run cleanup (e.g., when canceled from TUI)
 	mkdirSync(runDir, { recursive: true });
-	writeFileSync(join(runDir, "item.json"), JSON.stringify(item));
+	writeFileSync(join(runDir, "vars.json"), JSON.stringify(item, null, 2));
 	logger.log(`Starting task: ${config.id}`);
 	logger.log(`Item: ${item[config.discovery.item_key]}`);
 

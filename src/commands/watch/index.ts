@@ -42,7 +42,7 @@ export function watchCommand(
 			} catch {}
 			let itemVars: Record<string, string> = {};
 			try {
-				const itemPath = join(runDir, "item.json");
+				const itemPath = join(runDir, "vars.json");
 				if (existsSync(itemPath)) {
 					itemVars = JSON.parse(readFileSync(itemPath, "utf-8"));
 				}
@@ -83,7 +83,7 @@ export function watchCommand(
 					// Run post_run hook for cleanup
 					if (taskConfig?.post_run) {
 						try {
-							const itemPath = join(run.dir, "item.json");
+							const itemPath = join(run.dir, "vars.json");
 							const itemVars = existsSync(itemPath)
 								? JSON.parse(readFileSync(itemPath, "utf-8"))
 								: {};

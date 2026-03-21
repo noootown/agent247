@@ -17,7 +17,7 @@ function makeRun(
 	const runDir = join(RUNS_DIR, id);
 	mkdirSync(runDir, { recursive: true });
 	if (itemVars) {
-		writeFileSync(join(runDir, "item.json"), JSON.stringify(itemVars));
+		writeFileSync(join(runDir, "vars.json"), JSON.stringify(itemVars));
 	}
 	return {
 		meta: {
