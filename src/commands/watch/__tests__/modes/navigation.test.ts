@@ -14,6 +14,7 @@ function makeState(overrides: Partial<State> = {}): State {
 		scroll: 0,
 		mode: "split",
 		splitRun: null,
+		activeTab: 0,
 		reportScroll: 0,
 		reportScrollX: 0,
 		confirmTask: null,

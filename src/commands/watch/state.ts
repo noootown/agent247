@@ -18,12 +18,25 @@ export type VisibleLine =
 	| { type: "group"; group: TaskGroup; index: number }
 	| { type: "run"; run: RunRecord; group: TaskGroup; index: number };
 
+export const RUN_TABS = [
+	"report.md",
+	"transcript.md",
+	"prompt.rendered.md",
+	"log.txt",
+	"meta.yaml",
+	"vars.json",
+	"response.json",
+] as const;
+
+export type RunTab = (typeof RUN_TABS)[number];
+
 export interface State {
 	groups: TaskGroup[];
 	cursor: number;
 	scroll: number;
 	mode: ViewMode;
 	splitRun: RunRecord | null;
+	activeTab: number;
 	reportScroll: number;
 	reportScrollX: number;
 	confirmTask: string | null;
@@ -50,6 +63,7 @@ export function initialState(): State {
 		scroll: 0,
 		mode: "split",
 		splitRun: null,
+		activeTab: 0,
 		reportScroll: 0,
 		reportScrollX: 0,
 		confirmTask: null,

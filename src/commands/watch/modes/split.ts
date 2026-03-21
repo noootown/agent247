@@ -5,12 +5,23 @@ import {
 	actionStop,
 	actionToggle,
 } from "../actions.js";
-import type { State, VisibleLine, WatchContext } from "../state.js";
+import {
+	RUN_TABS,
+	type State,
+	type VisibleLine,
+	type WatchContext,
+} from "../state.js";
 
 function withSplitRun(state: State, lines: VisibleLine[]): State {
 	const line = lines[state.cursor];
 	const splitRun = line?.type === "run" ? line.run : null;
-	return { ...state, splitRun, reportScroll: 0, reportScrollX: 0 };
+	return {
+		...state,
+		splitRun,
+		activeTab: 0,
+		reportScroll: 0,
+		reportScrollX: 0,
+	};
 }
 
 export function handleKey(
@@ -55,6 +66,17 @@ export function handleKey(
 	}
 
 	if (key === "?") return { ...state, mode: "help" };
+
+	// Number keys 1-6: switch run file tab
+	const tabNum = Number.parseInt(key, 10);
+	if (tabNum >= 1 && tabNum <= RUN_TABS.length && line?.type === "run") {
+		return {
+			...state,
+			activeTab: tabNum - 1,
+			reportScroll: 0,
+			reportScrollX: 0,
+		};
+	}
 
 	if (key === "w")
 		return { ...state, reportScroll: Math.max(0, state.reportScroll - 1) };

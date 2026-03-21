@@ -1,7 +1,12 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { RunRecord } from "../../../lib/report.js";
-import type { State, TaskGroup, VisibleLine } from "../state.js";
+import {
+	RUN_TABS,
+	type State,
+	type TaskGroup,
+	type VisibleLine,
+} from "../state.js";
 import {
 	BOLD,
 	DIM,
@@ -34,7 +39,33 @@ export function renderMarkdownLine(line: string, width = 40): string {
 	return line;
 }
 
-export function getReportLines(run: RunRecord, width = 40): string[] {
+const TAB_LABELS = [
+	"report",
+	"transcript",
+	"prompt",
+	"log",
+	"meta",
+	"vars",
+	"response",
+];
+const TAB_ACTIVE_BG = "\x1B[44m\x1B[97m"; // bright white on blue
+
+function renderTabBar(activeTab: number): string {
+	const parts = TAB_LABELS.map((label, i) => {
+		const num = `${i + 1}`;
+		if (i === activeTab) {
+			return `${TAB_ACTIVE_BG} ${num}:${label} ${RESET}`;
+		}
+		return `${DIM} ${num}:${label} ${RESET}`;
+	});
+	return parts.join("");
+}
+
+export function getReportLines(
+	run: RunRecord,
+	width = 40,
+	activeTab = 0,
+): string[] {
 	const header = [
 		`${BOLD}Run: ${run.meta.id}${RESET}`,
 		`Task: ${BOLD}${MAGENTA}${run.meta.task}${RESET}`,
@@ -45,18 +76,23 @@ export function getReportLines(run: RunRecord, width = 40): string[] {
 			? `URL: \x1B[94m${hyperlink(run.meta.url, run.meta.url)}${RESET}`
 			: null,
 		"",
+		renderTabBar(activeTab),
 		`${"─".repeat(width)}`,
 		"",
 	].filter((l): l is string => l !== null);
 
-	const reportPath = join(run.dir, "report.md");
-	const report = existsSync(reportPath)
-		? readFileSync(reportPath, "utf-8")
-		: "No report available.";
-	return [
-		...header,
-		...report.split("\n").map((l) => renderMarkdownLine(l, width)),
-	];
+	const fileName = RUN_TABS[activeTab] ?? "report.md";
+	const filePath = join(run.dir, fileName);
+	const content = existsSync(filePath)
+		? readFileSync(filePath, "utf-8")
+		: `No ${fileName} available.`;
+
+	const isMarkdown = fileName.endsWith(".md");
+	const contentLines = isMarkdown
+		? content.split("\n").map((l) => renderMarkdownLine(l, width))
+		: content.split("\n");
+
+	return [...header, ...contentLines];
 }
 
 export function getTaskInfoLines(group: TaskGroup, width = 40): string[] {
@@ -114,7 +150,7 @@ function getRightPaneLines(
 ): string[] {
 	const line = lines[state.cursor];
 	if (line?.type === "run" && state.splitRun) {
-		return getReportLines(state.splitRun, width);
+		return getReportLines(state.splitRun, width, state.activeTab);
 	}
 	if (line?.type === "group") {
 		return getTaskInfoLines(line.group, width);
@@ -165,7 +201,10 @@ export function renderSplitHorizontal(
 	process.stdout.write("\x1B[2J\x1B[H");
 
 	const cursorLine = lines[state.cursor];
-	const rightTitle = cursorLine?.type === "run" ? "Report" : "Task Info";
+	const rightTitle =
+		cursorLine?.type === "run"
+			? (RUN_TABS[state.activeTab] ?? "Report")
+			: "Task Info";
 	const leftHeader = ` ${BOLD}${botName}${RESET} — ${state.groups.length} tasks`;
 	const rightHeader = ` ${BOLD}${rightTitle}${RESET}`;
 	const leftHeaderPad = " ".repeat(
@@ -261,7 +300,10 @@ export function renderSplitVertical(
 	}
 
 	const cursorLine = lines[state.cursor];
-	const rightTitle = cursorLine?.type === "run" ? "Report" : "Task Info";
+	const rightTitle =
+		cursorLine?.type === "run"
+			? (RUN_TABS[state.activeTab] ?? "Report")
+			: "Task Info";
 	process.stdout.write(
 		`${DIM}${"─".repeat(cols)}${RESET} ${BOLD}${rightTitle}${RESET}\n`,
 	);
