@@ -1,15 +1,8 @@
 import { execSync, spawn } from "node:child_process";
-import {
-	existsSync,
-	mkdirSync,
-	readFileSync,
-	renameSync,
-	unlinkSync,
-	writeFileSync,
-} from "node:fs";
+import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import yaml from "js-yaml";
-import { cleanupRunsAsync } from "../../lib/cleanup.js";
+import { archiveRun, cleanupRunsAsync } from "../../lib/cleanup.js";
 import { loadGlobalVars, loadTaskConfig } from "../../lib/config.js";
 import { listRuns, updateRunMeta } from "../../lib/report.js";
 import { render as renderTemplate } from "../../lib/template.js";
@@ -42,11 +35,27 @@ export function watchCommand(
 		reload: (s) => loadData(baseDir, runsDir, s, options),
 		softDelete: (runDir) => {
 			const parts = runDir.split("/");
-			const runId = parts[parts.length - 1];
 			const task = parts[parts.length - 2];
-			const dest = join(binDir, task, runId);
-			mkdirSync(join(binDir, task), { recursive: true });
-			renameSync(runDir, dest);
+			let taskConfig: ReturnType<typeof loadTaskConfig> | null = null;
+			try {
+				taskConfig = loadTaskConfig(task, baseDir);
+			} catch {}
+			let itemVars: Record<string, string> = {};
+			try {
+				const itemPath = join(runDir, "item.json");
+				if (existsSync(itemPath)) {
+					itemVars = JSON.parse(readFileSync(itemPath, "utf-8"));
+				}
+			} catch {}
+			archiveRun(
+				runDir,
+				binDir,
+				task,
+				taskConfig?.cleanup?.teardown,
+				globalVars,
+				taskConfig?.vars ?? {},
+				itemVars,
+			);
 		},
 		stopTask: (taskId) => {
 			const lockPath = join(baseDir, "tasks", taskId, ".lock");

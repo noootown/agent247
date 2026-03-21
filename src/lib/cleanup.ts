@@ -29,6 +29,46 @@ export interface CleanupConfig {
 	teardown?: string;
 }
 
+/**
+ * Move a run directory to .bin and execute teardown command if configured.
+ * Shared by automatic cleanup and manual soft-delete from TUI.
+ */
+export function archiveRun(
+	runDir: string,
+	binDir: string,
+	taskId: string,
+	teardownCmd?: string,
+	globalVars: Record<string, string> = {},
+	taskVars: Record<string, string> = {},
+	itemVars: Record<string, string> = {},
+): void {
+	// Render teardown BEFORE move (item.json still at original path)
+	let renderedTeardown: string | undefined;
+	if (teardownCmd) {
+		renderedTeardown = render(teardownCmd, globalVars, taskVars, itemVars);
+	}
+
+	// Move to .bin
+	const parts = runDir.split("/");
+	const runId = parts[parts.length - 1];
+	const dest = join(binDir, taskId, runId);
+	mkdirSync(join(binDir, taskId), { recursive: true });
+	renameSync(runDir, dest);
+
+	// Execute teardown AFTER move
+	if (renderedTeardown) {
+		try {
+			execSync(renderedTeardown, {
+				encoding: "utf-8",
+				timeout: 60_000,
+				shell: "/bin/bash",
+			});
+		} catch {
+			// Teardown failed — run is already in .bin, continue
+		}
+	}
+}
+
 export function cleanupRuns(
 	runs: RunRecord[],
 	cleanupConfig: CleanupConfig,
@@ -74,37 +114,16 @@ export function cleanupRuns(
 				shell: "/bin/bash",
 			}).trim();
 			if (cleanupPattern.test(output)) {
-				// Render teardown BEFORE move
-				let renderedTeardown: string | undefined;
-				if (cleanupConfig.teardown) {
-					renderedTeardown = render(
-						cleanupConfig.teardown,
-						globalVars,
-						taskVars,
-						itemVars,
-					);
-				}
-
-				// Move to .bin
-				const parts = run.dir.split("/");
-				const runId = parts[parts.length - 1];
-				const dest = join(binDir, taskId, runId);
-				mkdirSync(join(binDir, taskId), { recursive: true });
-				renameSync(run.dir, dest);
+				archiveRun(
+					run.dir,
+					binDir,
+					taskId,
+					cleanupConfig.teardown,
+					globalVars,
+					taskVars,
+					itemVars,
+				);
 				cleaned++;
-
-				// Execute teardown AFTER move
-				if (renderedTeardown) {
-					try {
-						execSync(renderedTeardown, {
-							encoding: "utf-8",
-							timeout: 60_000,
-							shell: "/bin/bash",
-						});
-					} catch {
-						// Teardown failed — run is already in .bin, continue
-					}
-				}
 			}
 		} catch {
 			// Cleanup check failed — skip silently
