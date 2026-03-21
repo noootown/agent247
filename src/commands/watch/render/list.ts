@@ -5,7 +5,7 @@ import {
 	DIM,
 	fitToWidth,
 	formatAgo,
-	formatTime,
+	formatTimeShort,
 	getSpinnerFrame,
 	hyperlink,
 	MAGENTA,
@@ -39,7 +39,7 @@ export function renderListRow(
 	}
 
 	const ago = formatAgo(Date.parse(line.run.meta.started_at));
-	const timeBase = formatTime(line.run.meta.started_at);
+	const timeBase = formatTimeShort(line.run.meta.started_at);
 	const rawUrl = line.run.meta.url;
 	const hasUrl = rawUrl?.startsWith("http");
 	const slug = hasUrl && rawUrl ? formatUrlSlug(rawUrl) : "—";
@@ -52,7 +52,7 @@ export function renderListRow(
 					? "●"
 					: "○";
 		const status = line.run.meta.status.padEnd(10);
-		const plain = `     ${plainIcon} ${status} ${timeBase} (${ago})  ${slug}`;
+		const plain = `    ${plainIcon} ${status} ${timeBase} (${ago})  ${slug}`;
 		return `${SELECT_BG}${plain.substring(0, width).padEnd(width)}${RESET}`;
 	}
 
@@ -63,5 +63,5 @@ export function renderListRow(
 		? `${BLUE}${hyperlink(rawUrl ?? "", slug)}${RESET}`
 		: `${DIM}—${RESET}`;
 	const time = `${timeBase} ${DIM}(${ago})${RESET}`;
-	return fitToWidth(`     ${icon} ${status} ${time}  ${link}`, width);
+	return fitToWidth(`    ${icon} ${status} ${time}  ${link}`, width);
 }
