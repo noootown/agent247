@@ -29,8 +29,8 @@ const TAB_LABELS = [
 	"report",
 	"transcript",
 	"prompt",
-	"log",
 	"meta",
+	"log",
 	"vars",
 	"response",
 ];

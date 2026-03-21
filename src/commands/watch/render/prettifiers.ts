@@ -203,12 +203,16 @@ export function jsonPrettifier(
 	]);
 }
 
+/** Strip ISO timestamps from log lines */
+export const stripTimestamps: Transform = (line) =>
+	line.replace(/^\[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z\]\s*/, "");
+
 export function logPrettifier(
 	content: string,
 	_run: RunRecord,
 	_width: number,
 ): string[] {
-	return applyTransforms(content.split("\n"), [timestamps, urls]);
+	return applyTransforms(content.split("\n"), [stripTimestamps, urls]);
 }
 
 export function defaultPrettifier(

@@ -21,6 +21,7 @@ import {
 	markdownPrettifier,
 	metaPrettifier,
 	renderMarkdownLine,
+	stripTimestamps,
 	timestamps,
 	urls,
 } from "../prettifiers.js";
@@ -117,6 +118,17 @@ describe("timestamps transform", () => {
 	});
 	it("passes lines without timestamps through", () => {
 		expect(timestamps("no timestamp")).toBe("no timestamp");
+	});
+});
+
+describe("stripTimestamps transform", () => {
+	it("strips ISO timestamps from log lines", () => {
+		expect(stripTimestamps("[2026-03-21T10:00:00.000Z] [INFO] Starting")).toBe(
+			"[INFO] Starting",
+		);
+	});
+	it("passes lines without timestamps through", () => {
+		expect(stripTimestamps("no timestamp")).toBe("no timestamp");
 	});
 });
 
@@ -341,11 +353,11 @@ describe("jsonPrettifier", () => {
 });
 
 describe("logPrettifier", () => {
-	it("dims ISO timestamps", () => {
+	it("strips ISO timestamps", () => {
 		const input = "[2026-03-21T10:00:00.000Z] [INFO] Starting";
 		const lines = logPrettifier(input, mockRun, 80);
-		expect(lines[0]).toContain("\x1B[2m"); // DIM
-		expect(stripAnsi(lines[0])).toBe(input);
+		expect(lines[0]).not.toContain("2026-03-21");
+		expect(stripAnsi(lines[0])).toBe("[INFO] Starting");
 	});
 
 	it("passes lines without timestamps through", () => {
