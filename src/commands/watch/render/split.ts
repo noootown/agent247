@@ -90,7 +90,9 @@ export function getTaskInfoLines(group: TaskGroup, width = 40): string[] {
 		`  Mode: ${config.prompt_mode}`,
 		config.cwd ? `  CWD: ${DIM}${config.cwd}${RESET}` : null,
 		config.bypass_dedup ? `  Bypass dedup: ${GREEN}yes${RESET}` : null,
-		config.cleanup ? `  Cleanup: ${DIM}${config.cleanup.when}${RESET}` : null,
+		config.cleanup
+			? `  Cleanup: ${DIM}when ${config.cleanup.when}${config.cleanup.teardown ? " + teardown" : ""}${RESET}`
+			: null,
 		"",
 		`${"─".repeat(width)}`,
 		"",
