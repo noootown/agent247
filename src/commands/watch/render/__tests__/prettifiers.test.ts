@@ -65,7 +65,7 @@ describe("italicText transform", () => {
 	it("converts _text_ to italic", () => {
 		const result = italicText("_Potential issue_");
 		expect(stripAnsi(result)).toBe("Potential issue");
-		expect(result).toContain("\x1B[3m"); // ITALIC
+		expect(result).toContain("\x1B[38;2;189;129;184m"); // #bd81b8
 	});
 	it("handles multiple italic spans", () => {
 		expect(stripAnsi(italicText("_a_ | _b_"))).toBe("a | b");

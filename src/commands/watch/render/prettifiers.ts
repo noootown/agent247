@@ -27,10 +27,10 @@ export const headings: Transform = (line) =>
 export const boldText: Transform = (line) =>
 	line.replace(/\*\*(.+?)\*\*/g, `${BOLD}$1${RESET}`);
 
-/** _italic_ → ANSI italic */
-const ITALIC = "\x1B[3m";
+/** _italic_ → colored (#bd81b8) */
+const ITALIC_COLOR = "\x1B[38;2;189;129;184m";
 export const italicText: Transform = (line) =>
-	line.replace(/(?<!\w)_([^_]+?)_(?!\w)/g, `${ITALIC}$1${RESET}`);
+	line.replace(/(?<!\w)_([^_]+?)_(?!\w)/g, `${ITALIC_COLOR}$1${RESET}`);
 
 /** `code` → colored */
 const CODE_COLOR = "\x1B[38;2;175;185;254m";
