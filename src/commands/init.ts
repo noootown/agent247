@@ -9,6 +9,9 @@ Thumbs.db
 runs/
 .bin/
 tasks/*/.lock
+
+# secret
+.env.local
 `;
 
 const VARS_TEMPLATE = `# Bot identity

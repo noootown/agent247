@@ -1,6 +1,7 @@
-import { execSync } from "node:child_process";
+import { execSync, fork } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, renameSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { RunRecord } from "./report.js";
 import { render } from "./template.js";
 
@@ -78,4 +79,24 @@ export function cleanupRuns(
 		}
 	}
 	return cleaned;
+}
+
+/**
+ * Run cleanup in a forked child process so it doesn't block the event loop.
+ * Calls `onDone` with the number of cleaned runs when finished.
+ */
+export function cleanupRunsAsync(
+	baseDir: string,
+	onDone: (cleaned: number) => void,
+): void {
+	const workerPath = fileURLToPath(
+		new URL("cleanup-worker.js", import.meta.url),
+	);
+	const child = fork(workerPath, [baseDir], { stdio: "ignore" });
+	child.on("message", (msg: unknown) => {
+		const { cleaned } = msg as { cleaned: number };
+		onDone(cleaned);
+	});
+	child.on("error", () => onDone(0));
+	child.on("exit", () => {});
 }

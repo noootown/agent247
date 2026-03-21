@@ -9,8 +9,8 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 import yaml from "js-yaml";
-import { cleanupRuns } from "../../lib/cleanup.js";
-import { listTasks, loadGlobalVars, loadTaskConfig } from "../../lib/config.js";
+import { cleanupRunsAsync } from "../../lib/cleanup.js";
+import { loadGlobalVars, loadTaskConfig } from "../../lib/config.js";
 import { listRuns, updateRunMeta } from "../../lib/report.js";
 import { render as renderTemplate } from "../../lib/template.js";
 import { syncCommand } from "../sync.js";
@@ -183,30 +183,13 @@ export function watchCommand(
 
 	render(state, getVisibleLines(state), botName);
 
-	// Run cleanup in background on startup so it doesn't block the UI
-	setTimeout(() => {
-		try {
-			const allTaskConfigs = listTasks(baseDir);
-			const runs = listRuns(runsDir);
-			let cleaned = 0;
-			for (const t of allTaskConfigs) {
-				if (t.config.cleanup) {
-					const taskRuns = runs.filter((r) => r.meta.task === t.id);
-					cleaned += cleanupRuns(
-						taskRuns,
-						t.config.cleanup,
-						globalVars,
-						join(baseDir, ".bin"),
-						t.id,
-					);
-				}
-			}
-			if (cleaned > 0) {
-				state = ctx.reload(state);
-				render(state, getVisibleLines(state), botName);
-			}
-		} catch {}
-	}, 0);
+	// Run cleanup in a forked child process so it doesn't block the UI
+	cleanupRunsAsync(baseDir, (cleaned) => {
+		if (cleaned > 0) {
+			state = ctx.reload(state);
+			render(state, getVisibleLines(state), botName);
+		}
+	});
 
 	let dataTickCount = 0;
 	const refreshInterval = setInterval(() => {

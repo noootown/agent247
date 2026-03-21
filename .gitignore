@@ -5,3 +5,5 @@ tasks/
 .env.local
 *.lock
 vars.yaml
+
+.env.local
