@@ -151,6 +151,16 @@ export function watchCommand(
 
 	function handleInput(key: Buffer): void {
 		const str = key.toString();
+		// In full pane mode, q/Esc exits full mode instead of quitting
+		if (
+			state.mode === "split" &&
+			state.fullPane &&
+			(str === "q" || str === "\x1B")
+		) {
+			state = { ...state, fullPane: false };
+			render(state, getVisibleLines(state), botName);
+			return;
+		}
 		// Global quit
 		if (
 			state.mode === "split" &&
