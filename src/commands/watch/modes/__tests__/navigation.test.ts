@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
-import { handleKey } from "../../modes/split.js";
 import type {
 	State,
 	TaskGroup,
 	VisibleLine,
 	WatchContext,
 } from "../../state.js";
+import { handleKey } from "../split.js";
 
 function makeState(overrides: Partial<State> = {}): State {
 	return {

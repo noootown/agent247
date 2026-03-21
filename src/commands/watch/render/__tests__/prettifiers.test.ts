@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { RunRecord } from "../../../../lib/report.js";
-import { stripAnsi } from "../../render/ansi.js";
+import { stripAnsi } from "../ansi.js";
 import {
 	defaultPrettifier,
 	getPrettifier,
@@ -9,7 +9,7 @@ import {
 	markdownPrettifier,
 	metaPrettifier,
 	renderMarkdownLine,
-} from "../../render/prettifiers.js";
+} from "../prettifiers.js";
 
 const mockRun: RunRecord = {
 	meta: {

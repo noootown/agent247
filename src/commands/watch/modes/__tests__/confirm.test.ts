@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { handleKey } from "../../modes/confirm.js";
 import type { State, WatchContext } from "../../state.js";
+import { handleKey } from "../confirm.js";
 
 function makeState(overrides: Partial<State> = {}): State {
 	return {

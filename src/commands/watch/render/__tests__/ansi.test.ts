@@ -5,7 +5,7 @@ import {
 	formatTime,
 	scrollAnsi,
 	stripAnsi,
-} from "../../render/ansi.js";
+} from "../ansi.js";
 
 describe("stripAnsi", () => {
 	it("returns plain text unchanged", () => {
