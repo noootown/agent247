@@ -98,6 +98,7 @@ export function watchCommand(
 								timeout: 60_000,
 								shell: "/bin/bash",
 								stdio: "pipe",
+								cwd: baseDir,
 							});
 						} catch {}
 					}

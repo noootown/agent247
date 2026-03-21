@@ -115,6 +115,7 @@ export function cleanupRuns(
 				encoding: "utf-8",
 				timeout: 15_000,
 				shell: "/bin/bash",
+				cwd: baseDir,
 			}).trim();
 			if (cleanupPattern.test(output)) {
 				archiveRun(

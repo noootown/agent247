@@ -122,12 +122,12 @@ export async function runCommand(
 			if (config.parallel) {
 				await Promise.all(
 					newItems.map((item) =>
-						executeForItem(config, globalVars, item, runsDir),
+						executeForItem(config, globalVars, item, runsDir, baseDir),
 					),
 				);
 			} else {
 				for (const item of newItems) {
-					await executeForItem(config, globalVars, item, runsDir);
+					await executeForItem(config, globalVars, item, runsDir, baseDir);
 				}
 			}
 		} else {
@@ -157,6 +157,7 @@ function runPostHook(
 	taskVars: Record<string, string>,
 	item: Record<string, string>,
 	logger: ReturnType<typeof createLogger>,
+	baseDir?: string,
 ): void {
 	if (!config.post_run) return;
 	const postRunCmd = render(config.post_run, globalVars, taskVars, item);
@@ -167,6 +168,7 @@ function runPostHook(
 			timeout: 60_000,
 			shell: "/bin/bash",
 			stdio: "pipe",
+			cwd: baseDir,
 		});
 	} catch (err) {
 		logger.error(`Post-run failed: ${err}`);
@@ -178,6 +180,7 @@ async function executeForItem(
 	globalVars: Record<string, string>,
 	item: Record<string, string>,
 	runsDir: string,
+	baseDir?: string,
 ): Promise<void> {
 	const startedAt = new Date().toISOString();
 	const runId = ulid();
@@ -201,6 +204,7 @@ async function executeForItem(
 				timeout: 60_000,
 				shell: "/bin/bash",
 				stdio: "pipe",
+				cwd: baseDir,
 			});
 		} catch (err) {
 			const finishedAt = new Date().toISOString();
@@ -223,7 +227,7 @@ async function executeForItem(
 				log: logger.getEntries().join("\n"),
 			});
 			// Still run post_run for cleanup
-			runPostHook(config, globalVars, taskVars, item, logger);
+			runPostHook(config, globalVars, taskVars, item, logger, baseDir);
 			return;
 		}
 	}
@@ -318,7 +322,7 @@ async function executeForItem(
 		});
 	} finally {
 		// Post-run hook — always runs
-		runPostHook(config, globalVars, taskVars, item, logger);
+		runPostHook(config, globalVars, taskVars, item, logger, baseDir);
 	}
 }
 
