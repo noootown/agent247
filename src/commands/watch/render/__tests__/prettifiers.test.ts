@@ -218,16 +218,16 @@ describe("highlightCode", () => {
 });
 
 describe("applyCodeBlockHighlighting", () => {
-	it("keeps fence lines as dimmed labels", () => {
+	it("renders fence lines as dimmed separator with language label", () => {
 		const lines = applyCodeBlockHighlighting([
 			"```json",
 			'"key": "val"',
 			"```",
 		]);
 		expect(lines).toHaveLength(3);
-		expect(stripAnsi(lines[0])).toBe("```json");
+		expect(stripAnsi(lines[0])).toBe("────────── json ──────────");
 		expect(lines[0]).toContain("\x1B[2m"); // DIM
-		expect(stripAnsi(lines[2])).toBe("```");
+		expect(stripAnsi(lines[2])).toMatch(/^─+$/);
 		expect(lines[2]).toContain("\x1B[2m"); // DIM
 	});
 

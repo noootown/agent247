@@ -99,7 +99,9 @@ export function applyCodeBlockHighlighting(lines: string[]): string[] {
 		if (fenceMatch && !activeLang) {
 			activeLang = fenceMatch[1];
 			blockLines = [];
-			result.push(`${DIM}${line}${RESET}`);
+			const label = ` ${activeLang} `;
+			const side = "─".repeat(10);
+			result.push(`${DIM}${side}${label}${side}${RESET}`);
 			continue;
 		}
 		if (activeLang && line.startsWith("```")) {
@@ -111,9 +113,10 @@ export function applyCodeBlockHighlighting(lines: string[]): string[] {
 				const highlighted = highlightCode(blockLines.join("\n"), activeLang);
 				result.push(...highlighted.split("\n"));
 			}
+			const closingWidth = 10 + activeLang.length + 2 + 10;
+			result.push(`${DIM}${"─".repeat(closingWidth)}${RESET}`);
 			activeLang = null;
 			blockLines = [];
-			result.push(`${DIM}${line}${RESET}`);
 			continue;
 		}
 		if (activeLang) {
