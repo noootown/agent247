@@ -46,7 +46,7 @@ export function horizontalRule(width: number): Transform {
 /** URLs → blue clickable hyperlinks */
 export const urls: Transform = (line) =>
 	line.replace(
-		/(https?:\/\/[^\s)>\]]+)/g,
+		/(https?:\/\/[^\s)>\]"*\\]+)/g,
 		(url) => `\x1B[94m${hyperlink(url, url)}${RESET}`,
 	);
 
@@ -62,10 +62,14 @@ const JSON_KEY = "\x1B[38;2;137;180;250m";
 export const jsonKeys: Transform = (line) =>
 	line.replace(/"([^"]+)"(?=\s*:)/g, `${JSON_KEY}"$1"${RESET}`);
 
-/** JSON string values → colored */
+/** JSON string values → colored (URLs rendered without quotes) */
 const JSON_STRING = "\x1B[38;2;206;145;120m";
 export const jsonStrings: Transform = (line) =>
-	line.replace(/:\s*"([^"]*)"(,?)$/gm, `: ${JSON_STRING}"$1"${RESET}$2`);
+	line.replace(/:\s*"([^"]*)"(,?)$/gm, (_match, val, comma) =>
+		/^https?:\/\//.test(val)
+			? `: ${val}${comma}`
+			: `: ${JSON_STRING}"${val}"${RESET}${comma}`,
+	);
 
 /** JSON number values → colored */
 const JSON_NUMBER = "\x1B[38;2;181;206;168m";
