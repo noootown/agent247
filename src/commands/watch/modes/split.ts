@@ -67,12 +67,29 @@ export function handleKey(
 
 	if (key === "?") return { ...state, mode: "help" };
 
-	// Number keys 1-6: switch run file tab
+	// Number keys 1-7: switch run file tab
 	const tabNum = Number.parseInt(key, 10);
 	if (tabNum >= 1 && tabNum <= RUN_TABS.length && line?.type === "run") {
 		return {
 			...state,
 			activeTab: tabNum - 1,
+			reportScroll: 0,
+			reportScrollX: 0,
+		};
+	}
+	// Tab: next tab, Shift+Tab: previous tab
+	if (key === "\t" && line?.type === "run") {
+		return {
+			...state,
+			activeTab: (state.activeTab + 1) % RUN_TABS.length,
+			reportScroll: 0,
+			reportScrollX: 0,
+		};
+	}
+	if (key === "\x1B[Z" && line?.type === "run") {
+		return {
+			...state,
+			activeTab: (state.activeTab - 1 + RUN_TABS.length) % RUN_TABS.length,
 			reportScroll: 0,
 			reportScrollX: 0,
 		};
