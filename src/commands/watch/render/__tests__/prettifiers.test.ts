@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { RunRecord } from "../../../../lib/report.js";
 import { stripAnsi } from "../ansi.js";
 import {
+	applyDiffHighlighting,
 	applyTransforms,
 	boldText,
 	defaultPrettifier,
@@ -148,6 +149,52 @@ describe("applyTransforms", () => {
 	});
 	it("handles empty transforms", () => {
 		expect(applyTransforms(["a", "b"], [])).toEqual(["a", "b"]);
+	});
+});
+
+describe("applyDiffHighlighting", () => {
+	it("colors + lines with green bg inside diff blocks", () => {
+		const lines = applyDiffHighlighting(["```diff", "+added", "```"]);
+		expect(lines[1]).toContain("\x1B[38;2;172;238;187m"); // green bg
+		expect(stripAnsi(lines[1])).toBe("+added");
+	});
+
+	it("colors - lines with red bg inside diff blocks", () => {
+		const lines = applyDiffHighlighting(["```diff", "-removed", "```"]);
+		expect(lines[1]).toContain("\x1B[38;2;254;206;202m"); // red bg
+		expect(stripAnsi(lines[1])).toBe("-removed");
+	});
+
+	it("colors @@ lines with cyan", () => {
+		const lines = applyDiffHighlighting(["```diff", "@@ -1,3 +1,4 @@", "```"]);
+		expect(lines[1]).toContain("\x1B[36m"); // cyan
+	});
+
+	it("does not color lines outside diff blocks", () => {
+		const lines = applyDiffHighlighting(["+not a diff", "-not a diff"]);
+		expect(lines[0]).toBe("+not a diff");
+		expect(lines[1]).toBe("-not a diff");
+	});
+
+	it("leaves context lines inside diff unmodified", () => {
+		const lines = applyDiffHighlighting(["```diff", " context", "```"]);
+		expect(lines[1]).toBe(" context");
+	});
+
+	it("handles multiple diff blocks", () => {
+		const lines = applyDiffHighlighting([
+			"text",
+			"```diff",
+			"+a",
+			"```",
+			"between",
+			"```diff",
+			"-b",
+			"```",
+		]);
+		expect(lines[2]).toContain("\x1B[38;2;172;238;187m");
+		expect(lines[4]).toBe("between");
+		expect(lines[6]).toContain("\x1B[38;2;254;206;202m");
 	});
 });
 

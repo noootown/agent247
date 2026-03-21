@@ -91,6 +91,30 @@ export function applyTransforms(
 	return lines.map((line) => transforms.reduce((l, fn) => fn(l), line));
 }
 
+/** Color diff lines: red bg for -, green bg for + (GitHub style) */
+const DIFF_ADD = "\x1B[38;2;172;238;187m"; // #aceebb text
+const DIFF_DEL = "\x1B[38;2;254;206;202m"; // #fececa text
+const DIFF_HEADER_COLOR = "\x1B[36m"; // cyan for @@ lines
+
+export function applyDiffHighlighting(lines: string[]): string[] {
+	let inDiff = false;
+	return lines.map((line) => {
+		if (line.startsWith("```diff")) {
+			inDiff = true;
+			return line;
+		}
+		if (inDiff && line.startsWith("```")) {
+			inDiff = false;
+			return line;
+		}
+		if (!inDiff) return line;
+		if (line.startsWith("+")) return `${DIFF_ADD}${line}${RESET}`;
+		if (line.startsWith("-")) return `${DIFF_DEL}${line}${RESET}`;
+		if (line.startsWith("@@")) return `${DIFF_HEADER_COLOR}${line}${RESET}`;
+		return line;
+	});
+}
+
 // ── Prettifiers (composed from transforms) ──
 
 export type Prettifier = (
@@ -104,7 +128,10 @@ export function markdownPrettifier(
 	_run: RunRecord,
 	width: number,
 ): string[] {
-	return applyTransforms(content.split("\n"), [
+	// First pass: diff block highlighting (stateful, must run before per-line transforms)
+	const diffHighlighted = applyDiffHighlighting(content.split("\n"));
+	// Second pass: per-line transforms
+	return applyTransforms(diffHighlighted, [
 		headings,
 		boldText,
 		italicText,
