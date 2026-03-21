@@ -69,14 +69,54 @@ export function loadTaskConfig(taskId: string, baseDir: string): TaskConfig {
 	};
 }
 
+function loadEnvLocal(baseDir: string): void {
+	const envPath = join(baseDir, ".env.local");
+	if (!existsSync(envPath)) return;
+	const content = readFileSync(envPath, "utf-8");
+	for (const line of content.split("\n")) {
+		const trimmed = line.trim();
+		if (!trimmed || trimmed.startsWith("#")) continue;
+		const eqIdx = trimmed.indexOf("=");
+		if (eqIdx === -1) continue;
+		const key = trimmed.slice(0, eqIdx).trim();
+		let value = trimmed.slice(eqIdx + 1).trim();
+		if (
+			(value.startsWith('"') && value.endsWith('"')) ||
+			(value.startsWith("'") && value.endsWith("'"))
+		) {
+			value = value.slice(1, -1);
+		}
+		process.env[key] = value;
+	}
+}
+
+function resolveEnvVars(vars: Record<string, string>): Record<string, string> {
+	const resolved: Record<string, string> = {};
+	for (const [key, value] of Object.entries(vars)) {
+		if (typeof value !== "string") {
+			resolved[key] = value;
+			continue;
+		}
+		resolved[key] = value.replace(
+			/\{\{([A-Z_][A-Z0-9_]*)\}\}/g,
+			(match, envKey) => {
+				return process.env[envKey] ?? match;
+			},
+		);
+	}
+	return resolved;
+}
+
 export function loadGlobalVars(baseDir: string): Record<string, string> {
+	loadEnvLocal(baseDir);
 	const varsPath = join(baseDir, "vars.yaml");
 	if (!existsSync(varsPath)) return {};
 	const raw = yaml.load(readFileSync(varsPath, "utf-8")) as Record<
 		string,
 		string
 	>;
-	return raw ?? {};
+	if (!raw) return {};
+	return resolveEnvVars(raw);
 }
 
 export function listTasks(
