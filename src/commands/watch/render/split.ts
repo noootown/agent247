@@ -156,10 +156,14 @@ export function renderSplitHorizontal(
 		Math.max(0, maxLen - rightWidth + 1),
 	);
 
-	let reportScroll = state.reportScroll;
-	if (reportScroll > reportLines.length - contentRows)
-		reportScroll = Math.max(0, reportLines.length - contentRows);
-	if (reportScroll < 0) reportScroll = 0;
+	// Cap scroll values to prevent unbounded growth
+	const maxReportScroll = Math.max(0, reportLines.length - contentRows);
+	const reportScroll = Math.min(
+		Math.max(0, state.reportScroll),
+		maxReportScroll,
+	);
+	state.reportScroll = reportScroll;
+	state.reportScrollX = cappedScrollX;
 
 	const visibleReport = reportLines.slice(
 		reportScroll,
@@ -239,10 +243,14 @@ export function renderSplitVertical(
 		Math.max(0, maxLen - cols + 1),
 	);
 
-	let reportScroll = state.reportScroll;
-	if (reportScroll > reportLines.length - bottomRows)
-		reportScroll = Math.max(0, reportLines.length - bottomRows);
-	if (reportScroll < 0) reportScroll = 0;
+	// Cap scroll values to prevent unbounded growth
+	const maxReportScroll = Math.max(0, reportLines.length - bottomRows);
+	const reportScroll = Math.min(
+		Math.max(0, state.reportScroll),
+		maxReportScroll,
+	);
+	state.reportScroll = reportScroll;
+	state.reportScrollX = cappedScrollX;
 
 	const visibleReport = reportLines.slice(
 		reportScroll,
