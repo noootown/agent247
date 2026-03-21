@@ -1,8 +1,9 @@
 import { execSync } from "node:child_process";
-import { mkdirSync, renameSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { ulid } from "ulid";
 import { purgeBin } from "../lib/bin.js";
+import { cleanupRuns } from "../lib/cleanup.js";
 import { loadGlobalVars, loadTaskConfig } from "../lib/config.js";
 import { filterNewItems } from "../lib/dedup.js";
 import { discoverItems } from "../lib/discovery.js";
@@ -15,23 +16,6 @@ import {
 	parseClaudeOutput,
 } from "../lib/runner.js";
 import { render } from "../lib/template.js";
-
-function parseRetain(retain?: string): number {
-	if (!retain) return 0;
-	const match = retain.match(/^(\d+)(d|h|m)$/);
-	if (!match) return 0;
-	const value = Number(match[1]);
-	switch (match[2]) {
-		case "d":
-			return value * 86400 * 1000;
-		case "h":
-			return value * 3600 * 1000;
-		case "m":
-			return value * 60 * 1000;
-		default:
-			return 0;
-	}
-}
 
 function runDirName(id: string): string {
 	const now = new Date();
@@ -148,41 +132,13 @@ export async function runCommand(
 		// Cleanup: always runs, even when skipped — move completed/error runs to .bin
 		if (config.cleanup) {
 			const allRuns = listRuns(runsDir, { task: taskId });
-			const cleanupPattern = new RegExp(config.cleanup.when);
-			const retainMs = parseRetain(config.cleanup.retain);
-			const now = Date.now();
-			for (const run of allRuns) {
-				if (
-					run.meta.status !== "completed" &&
-					run.meta.status !== "error" &&
-					run.meta.status !== "canceled"
-				)
-					continue;
-				if (!run.meta.item_key) continue;
-				// Respect retention period
-				if (retainMs > 0 && now - Date.parse(run.meta.finished_at) < retainMs)
-					continue;
-				try {
-					const itemVars: Record<string, string> = {};
-					if (run.meta.url) itemVars.url = run.meta.url;
-					if (run.meta.item_key) itemVars.item_key = run.meta.item_key;
-					const cmd = render(config.cleanup.command, globalVars, {}, itemVars);
-					const output = execSync(cmd, {
-						encoding: "utf-8",
-						timeout: 15_000,
-						shell: "/bin/bash",
-					}).trim();
-					if (cleanupPattern.test(output)) {
-						const parts = run.dir.split("/");
-						const runId = parts[parts.length - 1];
-						const dest = join(baseDir, ".bin", taskId, runId);
-						mkdirSync(join(baseDir, ".bin", taskId), { recursive: true });
-						renameSync(run.dir, dest);
-					}
-				} catch {
-					// Cleanup check failed — skip silently
-				}
-			}
+			cleanupRuns(
+				allRuns,
+				config.cleanup,
+				globalVars,
+				join(baseDir, ".bin"),
+				taskId,
+			);
 		}
 		releaseLock(taskId, baseDir);
 	}

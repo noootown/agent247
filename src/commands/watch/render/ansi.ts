@@ -9,6 +9,13 @@ export const MAGENTA = "\x1B[35m";
 export const SEPARATOR = "\x1B[90m│\x1B[0m";
 export const SPINNER = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
+const IN_TMUX = !!process.env.TMUX;
+
+export function hyperlink(url: string, text: string): string {
+	if (IN_TMUX) return text;
+	return `\x1B]8;;${url}\x07${text}\x1B]8;;\x07`;
+}
+
 let spinnerFrame = 0;
 
 export function tickSpinner(): void {
@@ -115,11 +122,13 @@ export function statusText(status: string): string {
 
 export function formatTime(iso: string): string {
 	const d = new Date(iso);
+	const year = d.getFullYear();
 	const month = String(d.getMonth() + 1).padStart(2, "0");
 	const day = String(d.getDate()).padStart(2, "0");
 	const hour = String(d.getHours()).padStart(2, "0");
 	const min = String(d.getMinutes()).padStart(2, "0");
-	return `${month}/${day} ${hour}:${min}`;
+	const sec = String(d.getSeconds()).padStart(2, "0");
+	return `${year}/${month}/${day} ${hour}:${min}:${sec}`;
 }
 
 export function formatAgo(timestamp: number): string {

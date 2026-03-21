@@ -85,8 +85,8 @@ describe("formatAgo", () => {
 });
 
 describe("formatTime", () => {
-	it("formats an ISO string as MM/DD HH:MM", () => {
+	it("formats an ISO string as YYYY/MM/DD HH:MM:SS", () => {
 		const result = formatTime("2026-03-17T00:00:00Z");
-		expect(result).toMatch(/^\d{2}\/\d{2} \d{2}:\d{2}$/);
+		expect(result).toMatch(/^\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2}$/);
 	});
 });

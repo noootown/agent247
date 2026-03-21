@@ -7,6 +7,7 @@ import {
 	formatAgo,
 	formatTime,
 	getSpinnerFrame,
+	hyperlink,
 	MAGENTA,
 	RESET,
 	SELECT_BG,
@@ -59,7 +60,7 @@ export function renderListRow(
 	const status = statusText(line.run.meta.status);
 	const BLUE = "\x1B[94m";
 	const link = hasUrl
-		? `${BLUE}\x1B]8;;${rawUrl}\x07${slug}\x1B]8;;\x07${RESET}`
+		? `${BLUE}${hyperlink(rawUrl ?? "", slug)}${RESET}`
 		: `${DIM}—${RESET}`;
 	const time = `${timeBase} ${DIM}(${ago})${RESET}`;
 	return fitToWidth(`     ${icon} ${status} ${time}  ${link}`, width);

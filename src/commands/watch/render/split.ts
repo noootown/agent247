@@ -7,7 +7,9 @@ import {
 	DIM,
 	fitToWidth,
 	formatAgo,
+	formatTime,
 	GREEN,
+	hyperlink,
 	MAGENTA,
 	RED,
 	RESET,
@@ -20,30 +22,30 @@ import {
 } from "./ansi.js";
 import { renderListRow } from "./list.js";
 
-export function renderMarkdownLine(line: string): string {
+export function renderMarkdownLine(line: string, width = 40): string {
 	if (/^#{1,3} /.test(line)) {
 		return `${BOLD}${line.replace(/^#{1,3} /, "")}${RESET}`;
 	}
 	line = line.replace(/\*\*(.+?)\*\*/g, `${BOLD}$1${RESET}`);
 	line = line.replace(/`(.+?)`/g, "\x1B[38;2;175;185;254m$1\x1B[0m");
 	if (/^---+$/.test(line)) {
-		return `${DIM}${"─".repeat(40)}${RESET}`;
+		return `${DIM}${"─".repeat(width)}${RESET}`;
 	}
 	return line;
 }
 
-export function getReportLines(run: RunRecord): string[] {
+export function getReportLines(run: RunRecord, width = 40): string[] {
 	const header = [
 		`${BOLD}Run: ${run.meta.id}${RESET}`,
 		`Task: ${BOLD}${MAGENTA}${run.meta.task}${RESET}`,
 		`Status: ${statusIcon(run.meta.status)} ${statusText(run.meta.status)}`,
-		`Time: ${run.meta.started_at} ${DIM}(${formatAgo(Date.parse(run.meta.started_at))})${RESET}`,
+		`Time: ${formatTime(run.meta.started_at)} ${DIM}(${formatAgo(Date.parse(run.meta.started_at))})${RESET}`,
 		`Duration: ${run.meta.duration_seconds}s`,
 		run.meta.url?.startsWith("http")
-			? `URL: \x1B[94m\x1B]8;;${run.meta.url}\x07${run.meta.url}\x1B]8;;\x07${RESET}`
+			? `URL: \x1B[94m${hyperlink(run.meta.url, run.meta.url)}${RESET}`
 			: null,
 		"",
-		`${"─".repeat(40)}`,
+		`${"─".repeat(width)}`,
 		"",
 	].filter((l): l is string => l !== null);
 
@@ -51,10 +53,13 @@ export function getReportLines(run: RunRecord): string[] {
 	const report = existsSync(reportPath)
 		? readFileSync(reportPath, "utf-8")
 		: "No report available.";
-	return [...header, ...report.split("\n").map(renderMarkdownLine)];
+	return [
+		...header,
+		...report.split("\n").map((l) => renderMarkdownLine(l, width)),
+	];
 }
 
-export function getTaskInfoLines(group: TaskGroup): string[] {
+export function getTaskInfoLines(group: TaskGroup, width = 40): string[] {
 	const { config } = group;
 	const errors = group.runs.filter((r) => r.meta.status === "error").length;
 	const completed = group.runs.filter(
@@ -74,10 +79,10 @@ export function getTaskInfoLines(group: TaskGroup): string[] {
 		`Status: ${group.running ? `${YELLOW}running${RESET}` : group.enabled ? `${GREEN}enabled${RESET}` : `${DIM}disabled${RESET}`}`,
 		group.schedule ? `Schedule: ${group.schedule}` : null,
 		group.lastCheck
-			? `Last check: ${group.lastCheck} ${DIM}(${formatAgo(Date.parse(group.lastCheck))})${RESET}`
+			? `Last check: ${formatTime(group.lastCheck)} ${DIM}(${formatAgo(Date.parse(group.lastCheck))})${RESET}`
 			: null,
 		"",
-		`${"─".repeat(40)}`,
+		`${"─".repeat(width)}`,
 		"",
 		`${BOLD}Config${RESET}`,
 		`  Model: ${config.model}`,
@@ -87,7 +92,7 @@ export function getTaskInfoLines(group: TaskGroup): string[] {
 		config.bypass_dedup ? `  Bypass dedup: ${GREEN}yes${RESET}` : null,
 		config.cleanup ? `  Cleanup: ${DIM}${config.cleanup.when}${RESET}` : null,
 		"",
-		`${"─".repeat(40)}`,
+		`${"─".repeat(width)}`,
 		"",
 		`${BOLD}Runs${RESET}`,
 		`  Total: ${group.runs.length}`,
@@ -100,13 +105,17 @@ export function getTaskInfoLines(group: TaskGroup): string[] {
 	return lines.filter((l): l is string => l !== null);
 }
 
-function getRightPaneLines(state: State, lines: VisibleLine[]): string[] {
+function getRightPaneLines(
+	state: State,
+	lines: VisibleLine[],
+	width = 40,
+): string[] {
 	const line = lines[state.cursor];
 	if (line?.type === "run" && state.splitRun) {
-		return getReportLines(state.splitRun);
+		return getReportLines(state.splitRun, width);
 	}
 	if (line?.type === "group") {
-		return getTaskInfoLines(line.group);
+		return getTaskInfoLines(line.group, width);
 	}
 	return ["Navigate to a task or run to view details."];
 }
@@ -129,7 +138,7 @@ export function renderSplitHorizontal(
 	}
 	if (lines.length > 0 && cursor >= lines.length) cursor = lines.length - 1;
 
-	const reportLines = getRightPaneLines(state, lines);
+	const reportLines = getRightPaneLines(state, lines, rightWidth);
 
 	// Cap reportScrollX to longest visible line
 	const maxLen = reportLines.reduce(
@@ -211,7 +220,7 @@ export function renderSplitVertical(
 	}
 	if (lines.length > 0 && cursor >= lines.length) cursor = lines.length - 1;
 
-	const reportLines = getRightPaneLines(state, lines);
+	const reportLines = getRightPaneLines(state, lines, cols);
 
 	const maxLen = reportLines.reduce(
 		(max, l) => Math.max(max, stripAnsi(l).length),

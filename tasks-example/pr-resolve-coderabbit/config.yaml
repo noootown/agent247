@@ -19,6 +19,6 @@ cwd: "{{worktree_path}}"
 
 # 6. Run cleanup
 cleanup:
-  command: gh pr view $(echo '{{url}}' | grep -oE 'https://github.com/[^/]+/[^/]+/pull/[0-9]+') --json state -q '.state'
+  command: gh pr view {{pr_url}} --json state -q '.state'
   when: MERGED|CLOSED
   retain: 12h
