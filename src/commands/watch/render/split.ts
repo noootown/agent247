@@ -293,11 +293,70 @@ export function renderSplitVertical(
 	);
 }
 
+function renderFullPane(
+	state: State,
+	lines: VisibleLine[],
+	_botName: string,
+): void {
+	const rows = process.stdout.rows ?? 24;
+	const cols = process.stdout.columns ?? 80;
+	const contentRows = rows - 3;
+
+	const reportLines = getRightPaneLines(state, lines, cols);
+
+	const maxLen = reportLines.reduce(
+		(max, l) => Math.max(max, stripAnsi(l).length),
+		0,
+	);
+	const cappedScrollX = Math.min(
+		state.reportScrollX,
+		Math.max(0, maxLen - cols + 1),
+	);
+
+	const maxReportScroll = Math.max(0, reportLines.length - contentRows);
+	const reportScroll = Math.min(
+		Math.max(0, state.reportScroll),
+		maxReportScroll,
+	);
+	state.reportScroll = reportScroll;
+	state.reportScrollX = cappedScrollX;
+
+	const visibleReport = reportLines.slice(
+		reportScroll,
+		reportScroll + contentRows,
+	);
+
+	process.stdout.write("\x1B[2J\x1B[H");
+
+	const cursorLine = lines[state.cursor];
+	const header =
+		cursorLine?.type === "run"
+			? ` ${renderTabBar(state.activeTab)}`
+			: ` ${BOLD}Task Info${RESET}`;
+	process.stdout.write(`${header}\n`);
+	process.stdout.write(`${DIM}${"─".repeat(cols)}${RESET}\n`);
+
+	for (let i = 0; i < contentRows; i++) {
+		const reportLine = visibleReport[i] ?? "";
+		const colorRight = ` ${reportLine}`;
+		const scrolled = scrollAnsi(colorRight, cappedScrollX);
+		process.stdout.write(`${fitToWidth(scrolled, cols)}\n`);
+	}
+
+	process.stdout.write(
+		`  ${DIM}f back  wasd scroll  1-7 tabs  ? help  q quit${RESET}`,
+	);
+}
+
 export function renderSplit(
 	state: State,
 	lines: VisibleLine[],
 	botName: string,
 ): void {
+	if (state.fullPane) {
+		renderFullPane(state, lines, botName);
+		return;
+	}
 	const rows = process.stdout.rows ?? 24;
 	const cols = process.stdout.columns ?? 80;
 	if (cols / rows < 2.5) {

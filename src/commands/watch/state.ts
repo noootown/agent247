@@ -37,6 +37,7 @@ export interface State {
 	mode: ViewMode;
 	splitRun: RunRecord | null;
 	activeTab: number;
+	fullPane: boolean;
 	reportScroll: number;
 	reportScrollX: number;
 	confirmTask: string | null;
@@ -64,6 +65,7 @@ export function initialState(): State {
 		mode: "split",
 		splitRun: null,
 		activeTab: 0,
+		fullPane: false,
 		reportScroll: 0,
 		reportScrollX: 0,
 		confirmTask: null,

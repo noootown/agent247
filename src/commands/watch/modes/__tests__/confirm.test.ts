@@ -10,6 +10,7 @@ function makeState(overrides: Partial<State> = {}): State {
 		mode: "confirm-run",
 		splitRun: null,
 		activeTab: 0,
+		fullPane: false,
 		reportScroll: 0,
 		reportScrollX: 0,
 		confirmTask: "my-task",
