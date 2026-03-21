@@ -189,20 +189,6 @@ export function defaultPrettifier(
 	return content.split("\n");
 }
 
-// ── Backward compat export ──
-
-export function renderMarkdownLine(line: string, width = 40): string {
-	const transforms = [
-		headings,
-		boldText,
-		italicText,
-		inlineCode,
-		horizontalRule(width),
-		urls,
-	];
-	return transforms.reduce((l, fn) => fn(l), line);
-}
-
 // ── Prettifier registry ──
 
 export const prettifiers: Record<string, Prettifier> = {

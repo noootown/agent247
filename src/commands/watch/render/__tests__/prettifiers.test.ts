@@ -22,7 +22,6 @@ import {
 	logPrettifier,
 	markdownPrettifier,
 	metaPrettifier,
-	renderMarkdownLine,
 	stripTimestamps,
 	timestamps,
 	urls,
@@ -305,53 +304,6 @@ describe("applyCodeBlockHighlighting", () => {
 });
 
 // ── Composed Prettifiers ──
-
-describe("renderMarkdownLine", () => {
-	it("renders headings as bold", () => {
-		const result = renderMarkdownLine("# Hello");
-		expect(stripAnsi(result)).toBe("Hello");
-		expect(result).toContain("\x1B[1m"); // BOLD
-	});
-
-	it("renders h2 headings", () => {
-		const result = renderMarkdownLine("## Section");
-		expect(stripAnsi(result)).toBe("Section");
-	});
-
-	it("renders bold text", () => {
-		const result = renderMarkdownLine("this is **bold** text");
-		expect(stripAnsi(result)).toBe("this is bold text");
-		expect(result).toContain("\x1B[1m");
-	});
-
-	it("renders inline code", () => {
-		const result = renderMarkdownLine("use `foo()` here");
-		expect(stripAnsi(result)).toBe("use foo() here");
-	});
-
-	it("renders URLs as clickable hyperlinks", () => {
-		const result = renderMarkdownLine(
-			"see https://example.com/pr/1 for details",
-		);
-		expect(result).toContain("\x1B[94m"); // blue color
-		expect(result).toContain("https://example.com/pr/1");
-		expect(stripAnsi(result)).toBe("see https://example.com/pr/1 for details");
-	});
-
-	it("renders multiple URLs on one line", () => {
-		const result = renderMarkdownLine("a https://a.com b https://b.com c");
-		expect(stripAnsi(result)).toBe("a https://a.com b https://b.com c");
-	});
-
-	it("renders horizontal rules", () => {
-		const result = renderMarkdownLine("---", 20);
-		expect(stripAnsi(result)).toBe("─".repeat(20));
-	});
-
-	it("passes plain text through", () => {
-		expect(renderMarkdownLine("plain text")).toBe("plain text");
-	});
-});
 
 describe("markdownPrettifier", () => {
 	it("splits content into lines and renders markdown", () => {

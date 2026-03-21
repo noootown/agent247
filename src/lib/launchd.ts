@@ -372,12 +372,3 @@ export function getAgentSchedules(): Map<string, string> {
 	}
 	return result;
 }
-
-/** Remove all agent247 launch agents */
-export function unsyncLaunchd(): string[] {
-	const ids = listInstalledAgents();
-	for (const id of ids) {
-		removeAgent(id);
-	}
-	return ids;
-}

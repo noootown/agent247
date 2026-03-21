@@ -101,15 +101,3 @@ export function listRuns(runsDir: string, filter?: RunFilter): RunRecord[] {
 	runs.sort((a, b) => a.meta.id.localeCompare(b.meta.id));
 	return runs;
 }
-
-export function findRunDir(runsDir: string, runId: string): string | null {
-	if (!existsSync(runsDir)) return null;
-	const taskDirs = readdirSync(runsDir, { withFileTypes: true }).filter((d) =>
-		d.isDirectory(),
-	);
-	for (const taskDir of taskDirs) {
-		const candidate = join(runsDir, taskDir.name, runId);
-		if (existsSync(join(candidate, "meta.yaml"))) return candidate;
-	}
-	return null;
-}

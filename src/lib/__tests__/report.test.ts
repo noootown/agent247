@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { findRunDir, listRuns, readRun, writeRun } from "../report.js";
+import { listRuns, readRun, writeRun } from "../report.js";
 
 const TEST_DIR = join(process.cwd(), "__test_report_tmp__");
 const RUNS_DIR = join(TEST_DIR, "runs");
@@ -157,33 +157,5 @@ describe("listRuns", () => {
 		const completed = listRuns(RUNS_DIR, { status: "completed" });
 		expect(completed).toHaveLength(1);
 		expect(completed[0].meta.status).toBe("completed");
-	});
-});
-
-describe("findRunDir", () => {
-	it("finds a run across task subdirectories", () => {
-		writeRun(join(RUNS_DIR, "task-a", "01FIND001"), {
-			meta: {
-				schema_version: 1,
-				id: "01FIND001",
-				task: "task-a",
-				status: "completed",
-
-				url: null,
-				item_key: null,
-				started_at: "2026-03-15T10:00:00Z",
-				finished_at: "2026-03-15T10:01:00Z",
-				duration_seconds: 60,
-				exit_code: 0,
-			},
-			log: "log",
-		});
-		expect(findRunDir(RUNS_DIR, "01FIND001")).toBe(
-			join(RUNS_DIR, "task-a", "01FIND001"),
-		);
-	});
-
-	it("returns null for nonexistent run", () => {
-		expect(findRunDir(RUNS_DIR, "NONEXISTENT")).toBeNull();
 	});
 });

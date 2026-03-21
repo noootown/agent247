@@ -1,6 +1,5 @@
 import { join, resolve } from "node:path";
 import { listTasks } from "../lib/config.js";
-import { removeCrontabBlock } from "../lib/crontab.js";
 import { syncLaunchd } from "../lib/launchd.js";
 
 export function syncCommand(baseDir: string): void {
@@ -30,9 +29,6 @@ export function syncCommand(baseDir: string): void {
 			return true;
 		})
 		.join(":");
-
-	// Migrate from crontab if needed
-	removeCrontabBlock();
 
 	syncLaunchd(enabledTasks, process.execPath, distCli, absBaseDir, envVars);
 
