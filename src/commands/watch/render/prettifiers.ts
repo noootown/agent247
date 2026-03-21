@@ -1,3 +1,4 @@
+import hljs from "highlight.js";
 import type { RunRecord } from "../../../lib/report.js";
 import {
 	BOLD,
@@ -107,36 +108,98 @@ function diffLineTransform(line: string): string {
 	return line;
 }
 
-function jsonLineTransform(line: string): string {
-	return [jsonKeys, jsonStrings, jsonNumbers, jsonBooleans, jsonNulls].reduce(
-		(l, fn) => fn(l),
-		line,
+// ── highlight.js → ANSI thin wrapper ──
+
+/** Map hljs CSS classes to ANSI colors */
+const HLJS_THEME: Record<string, string> = {
+	"hljs-keyword": "\x1B[38;2;198;120;221m", // purple
+	"hljs-string": "\x1B[38;2;152;195;121m", // green
+	"hljs-number": "\x1B[38;2;209;154;102m", // orange
+	"hljs-literal": "\x1B[38;2;209;154;102m", // orange (true/false/null)
+	"hljs-built_in": "\x1B[38;2;97;175;239m", // blue
+	"hljs-comment": "\x1B[38;2;128;128;128m", // gray
+	"hljs-attr": "\x1B[38;2;97;175;239m", // blue (JSON keys, HTML attrs)
+	"hljs-title": "\x1B[38;2;97;175;239m", // blue (function/class names)
+	"hljs-variable": "\x1B[38;2;224;108;117m", // red
+	"hljs-params": "\x1B[38;2;171;178;191m", // light gray
+	"hljs-punctuation": `${DIM}`, // dim
+	"hljs-subst": "\x1B[38;2;224;108;117m", // red (interpolation)
+	"hljs-type": "\x1B[38;2;229;192;123m", // yellow
+	"hljs-meta": `${DIM}`, // dim
+	"hljs-regexp": "\x1B[38;2;152;195;121m", // green
+	"hljs-symbol": "\x1B[38;2;209;154;102m", // orange
+};
+
+/** Convert highlight.js HTML output to ANSI-colored string */
+export function hljsToAnsi(html: string): string {
+	// Replace <span class="hljs-xxx">...</span> with ANSI (before entity decoding)
+	let result = html.replace(
+		/<span class="(hljs-[\w-]+)">([\s\S]*?)<\/span>/g,
+		(_match, cls: string, content: string) => {
+			const color = HLJS_THEME[cls];
+			const inner = hljsToAnsi(content);
+			return color ? `${color}${inner}${RESET}` : inner;
+		},
 	);
+	// Strip any remaining HTML tags
+	result = result.replace(/<[^>]+>/g, "");
+	// Decode HTML entities last (after tags are gone, so < > don't get stripped)
+	result = result
+		.replace(/&amp;/g, "&")
+		.replace(/&lt;/g, "<")
+		.replace(/&gt;/g, ">")
+		.replace(/&quot;/g, '"');
+	return result;
 }
 
-/** Per-language transforms for fenced code blocks */
-const codeBlockTransforms: Record<string, (line: string) => string> = {
-	diff: diffLineTransform,
-	json: jsonLineTransform,
-};
+/** Highlight code with highlight.js and convert to ANSI */
+export function highlightCode(code: string, language: string): string {
+	try {
+		const result = hljs.highlight(code, { language });
+		return hljsToAnsi(result.value);
+	} catch {
+		return code;
+	}
+}
 
 /** Apply syntax highlighting inside fenced code blocks (```lang) */
 export function applyCodeBlockHighlighting(lines: string[]): string[] {
+	const result: string[] = [];
 	let activeLang: string | null = null;
-	return lines.map((line) => {
+	let blockLines: string[] = [];
+
+	for (const line of lines) {
 		const fenceMatch = line.match(/^```(\w+)/);
-		if (fenceMatch) {
+		if (fenceMatch && !activeLang) {
 			activeLang = fenceMatch[1];
-			return line;
+			blockLines = [];
+			// Don't push fence line — it's just a marker
+			continue;
 		}
 		if (activeLang && line.startsWith("```")) {
+			if (activeLang === "diff") {
+				for (const bl of blockLines) {
+					result.push(diffLineTransform(bl));
+				}
+			} else {
+				const highlighted = highlightCode(blockLines.join("\n"), activeLang);
+				result.push(...highlighted.split("\n"));
+			}
 			activeLang = null;
-			return line;
+			blockLines = [];
+			// Don't push closing fence
+			continue;
 		}
-		if (!activeLang) return line;
-		const transform = codeBlockTransforms[activeLang];
-		return transform ? transform(line) : line;
-	});
+		if (activeLang) {
+			blockLines.push(line);
+		} else {
+			result.push(line);
+		}
+	}
+	if (activeLang && blockLines.length > 0) {
+		result.push(...blockLines);
+	}
+	return result;
 }
 
 // ── Prettifiers (composed from transforms) ──
@@ -197,14 +260,8 @@ export function jsonPrettifier(
 	_run: RunRecord,
 	_width: number,
 ): string[] {
-	return applyTransforms(content.split("\n"), [
-		jsonKeys,
-		jsonStrings,
-		jsonNumbers,
-		jsonBooleans,
-		jsonNulls,
-		urls,
-	]);
+	const highlighted = highlightCode(content, "json");
+	return applyTransforms(highlighted.split("\n"), [urls]);
 }
 
 /** Strip ISO timestamps from log lines */

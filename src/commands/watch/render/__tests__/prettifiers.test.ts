@@ -8,6 +8,8 @@ import {
 	defaultPrettifier,
 	getPrettifier,
 	headings,
+	highlightCode,
+	hljsToAnsi,
 	horizontalRule,
 	inlineCode,
 	italicText,
@@ -164,17 +166,68 @@ describe("applyTransforms", () => {
 	});
 });
 
+describe("hljsToAnsi", () => {
+	it("converts hljs-keyword spans to purple", () => {
+		const result = hljsToAnsi('<span class="hljs-keyword">const</span>');
+		expect(result).toContain("\x1B[38;2;198;120;221m");
+		expect(stripAnsi(result)).toBe("const");
+	});
+
+	it("converts hljs-string spans to green", () => {
+		const result = hljsToAnsi(
+			'<span class="hljs-string">&quot;hello&quot;</span>',
+		);
+		expect(result).toContain("\x1B[38;2;152;195;121m");
+		expect(stripAnsi(result)).toBe('"hello"');
+	});
+
+	it("handles nested spans", () => {
+		const result = hljsToAnsi(
+			'<span class="hljs-literal"><span class="hljs-keyword">true</span></span>',
+		);
+		expect(stripAnsi(result)).toBe("true");
+		expect(result).toContain("\x1B[");
+	});
+
+	it("decodes HTML entities", () => {
+		expect(hljsToAnsi("&amp; &lt; &gt; &quot;")).toBe('& < > "');
+	});
+
+	it("passes plain text through", () => {
+		expect(hljsToAnsi("hello world")).toBe("hello world");
+	});
+});
+
+describe("highlightCode", () => {
+	it("highlights JSON", () => {
+		const result = highlightCode('{"key": "val"}', "json");
+		expect(result).toContain("\x1B[");
+		expect(stripAnsi(result)).toBe('{"key": "val"}');
+	});
+
+	it("highlights bash", () => {
+		const result = highlightCode('echo "hi"', "bash");
+		expect(result).toContain("\x1B[");
+		expect(stripAnsi(result)).toBe('echo "hi"');
+	});
+
+	it("falls back to plain text for unknown language", () => {
+		const result = highlightCode("hello", "notareallanguage");
+		expect(result).toBe("hello");
+	});
+});
+
 describe("applyCodeBlockHighlighting", () => {
 	it("colors + lines with green inside diff blocks", () => {
 		const lines = applyCodeBlockHighlighting(["```diff", "+added", "```"]);
-		expect(lines[1]).toContain("\x1B[38;2;172;238;187m");
-		expect(stripAnsi(lines[1])).toBe("+added");
+		expect(lines[0]).toContain("\x1B[38;2;172;238;187m");
+		expect(stripAnsi(lines[0])).toBe("+added");
 	});
 
 	it("colors - lines with red inside diff blocks", () => {
 		const lines = applyCodeBlockHighlighting(["```diff", "-removed", "```"]);
-		expect(lines[1]).toContain("\x1B[38;2;254;206;202m");
-		expect(stripAnsi(lines[1])).toBe("-removed");
+		expect(lines[0]).toContain("\x1B[38;2;254;206;202m");
+		expect(stripAnsi(lines[0])).toBe("-removed");
 	});
 
 	it("colors @@ lines with cyan", () => {
@@ -183,7 +236,7 @@ describe("applyCodeBlockHighlighting", () => {
 			"@@ -1,3 +1,4 @@",
 			"```",
 		]);
-		expect(lines[1]).toContain("\x1B[36m");
+		expect(lines[0]).toContain("\x1B[36m");
 	});
 
 	it("does not color lines outside code blocks", () => {
@@ -194,7 +247,17 @@ describe("applyCodeBlockHighlighting", () => {
 
 	it("leaves context lines inside diff unmodified", () => {
 		const lines = applyCodeBlockHighlighting(["```diff", " context", "```"]);
-		expect(lines[1]).toBe(" context");
+		expect(lines[0]).toBe(" context");
+	});
+
+	it("strips fence lines from output", () => {
+		const lines = applyCodeBlockHighlighting([
+			"```json",
+			'"key": "val"',
+			"```",
+		]);
+		expect(lines).toHaveLength(1);
+		expect(stripAnsi(lines[0])).toContain('"key"');
 	});
 
 	it("handles multiple code blocks", () => {
@@ -208,50 +271,46 @@ describe("applyCodeBlockHighlighting", () => {
 			"-b",
 			"```",
 		]);
-		expect(lines[2]).toContain("\x1B[38;2;172;238;187m");
-		expect(lines[4]).toBe("between");
-		expect(lines[6]).toContain("\x1B[38;2;254;206;202m");
+		// text, +a, between, -b (fences stripped)
+		expect(lines[0]).toBe("text");
+		expect(lines[1]).toContain("\x1B[38;2;172;238;187m"); // +a green
+		expect(lines[2]).toBe("between");
+		expect(lines[3]).toContain("\x1B[38;2;254;206;202m"); // -b red
 	});
 
-	it("highlights JSON keys inside json blocks", () => {
+	it("applies syntax highlighting inside json blocks", () => {
 		const lines = applyCodeBlockHighlighting([
 			"```json",
 			'  "name": "hello"',
 			"```",
 		]);
-		expect(lines[1]).toContain("\x1B[38;2;137;180;250m"); // JSON_KEY
+		expect(lines[0]).toContain("\x1B[");
+		expect(stripAnsi(lines[0])).toContain('"name"');
 	});
 
-	it("highlights JSON string values inside json blocks", () => {
-		const lines = applyCodeBlockHighlighting([
-			"```json",
-			'  "key": "value"',
-			"```",
-		]);
-		expect(lines[1]).toContain("\x1B[38;2;206;145;120m"); // JSON_STRING
-	});
-
-	it("highlights JSON numbers inside json blocks", () => {
-		const lines = applyCodeBlockHighlighting([
-			"```json",
-			'  "count": 42',
-			"```",
-		]);
-		expect(lines[1]).toContain("\x1B[38;2;181;206;168m"); // JSON_NUMBER
-	});
-
-	it("does not apply json highlighting outside json blocks", () => {
+	it("does not apply highlighting outside code blocks", () => {
 		const lines = applyCodeBlockHighlighting(['"key": "value"']);
 		expect(lines[0]).toBe('"key": "value"');
 	});
 
-	it("leaves unknown languages unmodified", () => {
+	it("applies highlighting for bash blocks", () => {
 		const lines = applyCodeBlockHighlighting([
-			"```python",
-			"print('hi')",
+			"```bash",
+			'echo "hello"',
 			"```",
 		]);
-		expect(lines[1]).toBe("print('hi')");
+		expect(lines[0]).toContain("\x1B[");
+		expect(stripAnsi(lines[0])).toContain("echo");
+	});
+
+	it("applies highlighting for ruby blocks", () => {
+		const lines = applyCodeBlockHighlighting([
+			"```ruby",
+			'puts "hello"',
+			"```",
+		]);
+		expect(lines[0]).toContain("\x1B[");
+		expect(stripAnsi(lines[0])).toContain("puts");
 	});
 });
 
@@ -315,40 +374,26 @@ describe("markdownPrettifier", () => {
 });
 
 describe("jsonPrettifier", () => {
-	it("highlights JSON keys", () => {
-		const lines = jsonPrettifier('  "name": "hello"', mockRun, 80);
-		expect(lines[0]).toContain("\x1B[38;2;137;180;250m"); // JSON_KEY color
-	});
-
-	it("highlights string values", () => {
-		const lines = jsonPrettifier('  "key": "value"', mockRun, 80);
-		expect(lines[0]).toContain("\x1B[38;2;206;145;120m"); // JSON_STRING color
-	});
-
-	it("highlights number values", () => {
-		const lines = jsonPrettifier('  "count": 42', mockRun, 80);
-		expect(lines[0]).toContain("\x1B[38;2;181;206;168m"); // JSON_NUMBER color
-	});
-
-	it("highlights boolean values", () => {
-		const lines = jsonPrettifier('  "enabled": true', mockRun, 80);
-		expect(lines[0]).toContain("\x1B[38;2;206;145;120m"); // JSON_BOOL color
-	});
-
-	it("highlights null values", () => {
-		const lines = jsonPrettifier('  "value": null', mockRun, 80);
-		expect(lines[0]).toContain("\x1B[2m"); // DIM
-	});
-
-	it("handles multi-line JSON", () => {
-		const input = '{\n  "a": 1,\n  "b": "x"\n}';
+	it("applies highlight.js syntax highlighting", () => {
+		const input = '{\n  "name": "hello",\n  "count": 42\n}';
 		const lines = jsonPrettifier(input, mockRun, 80);
 		expect(lines).toHaveLength(4);
+		expect(lines[1]).toContain("\x1B[");
+		expect(stripAnsi(lines[1])).toContain('"name"');
 	});
 
-	it("highlights URLs in JSON string values", () => {
-		const lines = jsonPrettifier('  "url": "https://example.com"', mockRun, 80);
-		expect(lines[0]).toContain("\x1B[94m");
+	it("preserves text content", () => {
+		const input = '{\n  "key": "value"\n}';
+		const lines = jsonPrettifier(input, mockRun, 80);
+		const plain = stripAnsi(lines.join("\n"));
+		expect(plain).toContain('"key"');
+		expect(plain).toContain('"value"');
+	});
+
+	it("highlights URLs in JSON", () => {
+		const input = '{\n  "url": "https://example.com"\n}';
+		const lines = jsonPrettifier(input, mockRun, 80);
+		expect(lines.join("\n")).toContain("\x1B[94m"); // URL blue
 	});
 });
 
