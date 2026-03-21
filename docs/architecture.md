@@ -40,10 +40,11 @@ Each execution creates a timestamped directory under `runs/<task-id>/`:
 ```
 runs/<task-id>/YYYYMMDD-HHMMSS-<ulid>/
 ├── meta.yaml            # Status, timestamps, item key, etc.
+├── vars.json            # Template variables (global + task + item) for this run
 ├── log.txt              # Timestamped execution log
 ├── prompt.rendered.md   # Final prompt sent to Claude
 ├── transcript.md        # Real-time Claude event log (tool calls, reasoning)
-├── raw.json             # Raw Claude JSON result
+├── response.json        # Raw Claude JSON result
 └── report.md            # Parsed markdown report
 ```
 
