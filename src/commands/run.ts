@@ -50,7 +50,12 @@ export async function runCommand(
 				globalVars,
 				config.vars ?? {},
 			);
-			items = discoverItems(discoveryCmd, undefined, baseDir);
+			// Pass globalVars as env so discovery scripts can read secrets
+			// without them appearing in CLI args (e.g., LINEAR_API_KEY)
+			const discoveryEnv = Object.fromEntries(
+				Object.entries(globalVars).map(([k, v]) => [k.toUpperCase(), v]),
+			);
+			items = discoverItems(discoveryCmd, discoveryEnv, baseDir);
 		} catch (err) {
 			const runId = ulid();
 			const runDir = join(runsDir, taskId, runDirName(runId));
