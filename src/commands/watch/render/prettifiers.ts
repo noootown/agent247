@@ -27,6 +27,11 @@ export function renderMarkdownLine(line: string, width = 40): string {
 	}
 	line = line.replace(/\*\*(.+?)\*\*/g, `${BOLD}$1${RESET}`);
 	line = line.replace(/`(.+?)`/g, "\x1B[38;2;175;185;254m$1\x1B[0m");
+	// Clickable hyperlinks for URLs
+	line = line.replace(
+		/(https?:\/\/[^\s)>\]]+)/g,
+		(url) => `\x1B[94m${hyperlink(url, url)}${RESET}`,
+	);
 	if (/^---+$/.test(line)) {
 		return `${DIM}${"─".repeat(width)}${RESET}`;
 	}

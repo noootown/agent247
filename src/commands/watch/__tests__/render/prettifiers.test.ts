@@ -50,6 +50,20 @@ describe("renderMarkdownLine", () => {
 		expect(stripAnsi(result)).toBe("use foo() here");
 	});
 
+	it("renders URLs as clickable hyperlinks", () => {
+		const result = renderMarkdownLine(
+			"see https://example.com/pr/1 for details",
+		);
+		expect(result).toContain("\x1B[94m"); // blue color
+		expect(result).toContain("https://example.com/pr/1");
+		expect(stripAnsi(result)).toBe("see https://example.com/pr/1 for details");
+	});
+
+	it("renders multiple URLs on one line", () => {
+		const result = renderMarkdownLine("a https://a.com b https://b.com c");
+		expect(stripAnsi(result)).toBe("a https://a.com b https://b.com c");
+	});
+
 	it("renders horizontal rules", () => {
 		const result = renderMarkdownLine("---", 20);
 		expect(stripAnsi(result)).toBe("─".repeat(20));
