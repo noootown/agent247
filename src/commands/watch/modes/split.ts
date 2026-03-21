@@ -32,6 +32,44 @@ export function handleKey(
 ): State {
 	const line = lines[state.cursor];
 
+	// In full pane mode, only allow pane-relevant keys
+	if (state.fullPane) {
+		if (key === "f") return { ...state, fullPane: false };
+		if (key === "w")
+			return { ...state, reportScroll: Math.max(0, state.reportScroll - 1) };
+		if (key === "s") return { ...state, reportScroll: state.reportScroll + 1 };
+		if (key === "a")
+			return { ...state, reportScrollX: Math.max(0, state.reportScrollX - 4) };
+		if (key === "d")
+			return { ...state, reportScrollX: state.reportScrollX + 4 };
+		const tabNum = Number.parseInt(key, 10);
+		if (tabNum >= 1 && tabNum <= RUN_TABS.length) {
+			return {
+				...state,
+				activeTab: tabNum - 1,
+				reportScroll: 0,
+				reportScrollX: 0,
+			};
+		}
+		if (key === "\t" || key === "\x18") {
+			return {
+				...state,
+				activeTab: (state.activeTab + 1) % RUN_TABS.length,
+				reportScroll: 0,
+				reportScrollX: 0,
+			};
+		}
+		if (key === "\x1B[Z" || key === "\x1A") {
+			return {
+				...state,
+				activeTab: (state.activeTab - 1 + RUN_TABS.length) % RUN_TABS.length,
+				reportScroll: 0,
+				reportScrollX: 0,
+			};
+		}
+		return state;
+	}
+
 	if (key === "\x1B[A") {
 		const cursor = state.cursor <= 0 ? lines.length - 1 : state.cursor - 1;
 		return withSplitRun({ ...state, cursor }, lines);
