@@ -2,13 +2,25 @@ import { describe, expect, it } from "vitest";
 import type { RunRecord } from "../../../../lib/report.js";
 import { stripAnsi } from "../ansi.js";
 import {
+	applyTransforms,
+	boldText,
 	defaultPrettifier,
 	getPrettifier,
+	headings,
+	horizontalRule,
+	inlineCode,
+	jsonBooleans,
+	jsonKeys,
+	jsonNulls,
+	jsonNumbers,
 	jsonPrettifier,
+	jsonStrings,
 	logPrettifier,
 	markdownPrettifier,
 	metaPrettifier,
 	renderMarkdownLine,
+	timestamps,
+	urls,
 } from "../prettifiers.js";
 
 const mockRun: RunRecord = {
@@ -26,6 +38,101 @@ const mockRun: RunRecord = {
 	},
 	dir: "/tmp/test-run",
 };
+
+// ── Individual Transforms ──
+
+describe("headings transform", () => {
+	it("converts # heading to bold", () => {
+		expect(stripAnsi(headings("# Title"))).toBe("Title");
+		expect(headings("# Title")).toContain("\x1B[1m");
+	});
+	it("passes non-headings through", () => {
+		expect(headings("plain")).toBe("plain");
+	});
+});
+
+describe("boldText transform", () => {
+	it("converts **text** to bold", () => {
+		expect(stripAnsi(boldText("**hi**"))).toBe("hi");
+	});
+	it("handles multiple bold spans", () => {
+		expect(stripAnsi(boldText("**a** and **b**"))).toBe("a and b");
+	});
+});
+
+describe("inlineCode transform", () => {
+	it("highlights `code`", () => {
+		const result = inlineCode("use `foo()`");
+		expect(stripAnsi(result)).toBe("use foo()");
+		expect(result).toContain("\x1B[38;2;175;185;254m");
+	});
+});
+
+describe("horizontalRule transform", () => {
+	it("replaces --- with dim line", () => {
+		const transform = horizontalRule(30);
+		expect(stripAnsi(transform("---"))).toBe("─".repeat(30));
+	});
+	it("passes non-rules through", () => {
+		expect(horizontalRule(30)("text")).toBe("text");
+	});
+});
+
+describe("urls transform", () => {
+	it("makes URLs clickable", () => {
+		const result = urls("visit https://example.com now");
+		expect(result).toContain("\x1B[94m");
+		expect(stripAnsi(result)).toBe("visit https://example.com now");
+	});
+	it("handles no URLs", () => {
+		expect(urls("plain text")).toBe("plain text");
+	});
+});
+
+describe("timestamps transform", () => {
+	it("dims ISO timestamps", () => {
+		const result = timestamps("[2026-03-21T10:00:00.000Z] info");
+		expect(result).toContain("\x1B[2m");
+		expect(stripAnsi(result)).toBe("[2026-03-21T10:00:00.000Z] info");
+	});
+	it("passes lines without timestamps through", () => {
+		expect(timestamps("no timestamp")).toBe("no timestamp");
+	});
+});
+
+describe("JSON transforms", () => {
+	it("jsonKeys colors keys", () => {
+		expect(jsonKeys('"name": "val"')).toContain("\x1B[38;2;137;180;250m");
+	});
+	it("jsonStrings colors string values", () => {
+		expect(jsonStrings('  "k": "val"')).toContain("\x1B[38;2;206;145;120m");
+	});
+	it("jsonNumbers colors numbers", () => {
+		expect(jsonNumbers('  "k": 42')).toContain("\x1B[38;2;181;206;168m");
+	});
+	it("jsonBooleans colors booleans", () => {
+		expect(jsonBooleans('  "k": true')).toContain("\x1B[38;2;206;145;120m");
+	});
+	it("jsonNulls dims null", () => {
+		expect(jsonNulls('  "k": null')).toContain("\x1B[2m");
+	});
+});
+
+describe("applyTransforms", () => {
+	it("applies transforms left to right", () => {
+		const upper: (l: string) => string = (l) => l.toUpperCase();
+		const exclaim: (l: string) => string = (l) => `${l}!`;
+		expect(applyTransforms(["hi"], [upper, exclaim])).toEqual(["HI!"]);
+	});
+	it("handles empty lines", () => {
+		expect(applyTransforms([], [urls])).toEqual([]);
+	});
+	it("handles empty transforms", () => {
+		expect(applyTransforms(["a", "b"], [])).toEqual(["a", "b"]);
+	});
+});
+
+// ── Composed Prettifiers ──
 
 describe("renderMarkdownLine", () => {
 	it("renders headings as bold", () => {
@@ -115,6 +222,11 @@ describe("jsonPrettifier", () => {
 		const lines = jsonPrettifier(input, mockRun, 80);
 		expect(lines).toHaveLength(4);
 	});
+
+	it("highlights URLs in JSON string values", () => {
+		const lines = jsonPrettifier('  "url": "https://example.com"', mockRun, 80);
+		expect(lines[0]).toContain("\x1B[94m");
+	});
 });
 
 describe("logPrettifier", () => {
@@ -128,6 +240,11 @@ describe("logPrettifier", () => {
 	it("passes lines without timestamps through", () => {
 		const lines = logPrettifier("no timestamp here", mockRun, 80);
 		expect(lines[0]).toBe("no timestamp here");
+	});
+
+	it("highlights URLs in log lines", () => {
+		const lines = logPrettifier("see https://example.com/pr/1", mockRun, 80);
+		expect(lines[0]).toContain("\x1B[94m");
 	});
 });
 

@@ -13,40 +13,100 @@ import {
 	statusText,
 } from "./ansi.js";
 
+// ── Line Transforms (composable building blocks) ──
+
+export type Transform = (line: string) => string;
+
+/** Markdown headings → bold */
+export const headings: Transform = (line) =>
+	/^#{1,3} /.test(line)
+		? `${BOLD}${line.replace(/^#{1,3} /, "")}${RESET}`
+		: line;
+
+/** **bold** → ANSI bold */
+export const boldText: Transform = (line) =>
+	line.replace(/\*\*(.+?)\*\*/g, `${BOLD}$1${RESET}`);
+
+/** `code` → colored */
+const CODE_COLOR = "\x1B[38;2;175;185;254m";
+export const inlineCode: Transform = (line) =>
+	line.replace(/`(.+?)`/g, `${CODE_COLOR}$1${RESET}`);
+
+/** --- → dim horizontal rule (width-aware, returns factory) */
+export function horizontalRule(width: number): Transform {
+	return (line) =>
+		/^---+$/.test(line) ? `${DIM}${"─".repeat(width)}${RESET}` : line;
+}
+
+/** URLs → blue clickable hyperlinks */
+export const urls: Transform = (line) =>
+	line.replace(
+		/(https?:\/\/[^\s)>\]]+)/g,
+		(url) => `\x1B[94m${hyperlink(url, url)}${RESET}`,
+	);
+
+/** ISO timestamps [2026-03-21T...] → dimmed */
+export const timestamps: Transform = (line) =>
+	line.replace(
+		/^(\[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z\])/,
+		`${DIM}$1${RESET}`,
+	);
+
+/** JSON keys → colored */
+const JSON_KEY = "\x1B[38;2;137;180;250m";
+export const jsonKeys: Transform = (line) =>
+	line.replace(/"([^"]+)"(?=\s*:)/g, `${JSON_KEY}"$1"${RESET}`);
+
+/** JSON string values → colored */
+const JSON_STRING = "\x1B[38;2;206;145;120m";
+export const jsonStrings: Transform = (line) =>
+	line.replace(/:\s*"([^"]*)"(,?)$/gm, `: ${JSON_STRING}"$1"${RESET}$2`);
+
+/** JSON number values → colored */
+const JSON_NUMBER = "\x1B[38;2;181;206;168m";
+export const jsonNumbers: Transform = (line) =>
+	line.replace(/:\s*(\d+\.?\d*)(,?)$/gm, `: ${JSON_NUMBER}$1${RESET}$2`);
+
+/** JSON boolean values → colored */
+const JSON_BOOL = "\x1B[38;2;206;145;120m";
+export const jsonBooleans: Transform = (line) =>
+	line.replace(/:\s*(true|false)(,?)$/gm, `: ${JSON_BOOL}$1${RESET}$2`);
+
+/** JSON null values → dimmed */
+export const jsonNulls: Transform = (line) =>
+	line.replace(/:\s*(null)(,?)$/gm, `: ${DIM}$1${RESET}$2`);
+
+// ── Transform Composition ──
+
+/** Apply transforms left-to-right to each line */
+export function applyTransforms(
+	lines: string[],
+	transforms: Transform[],
+): string[] {
+	return lines.map((line) => transforms.reduce((l, fn) => fn(l), line));
+}
+
+// ── Prettifiers (composed from transforms) ──
+
 export type Prettifier = (
 	content: string,
 	run: RunRecord,
 	width: number,
 ) => string[];
 
-// ── Markdown ──
-
-export function renderMarkdownLine(line: string, width = 40): string {
-	if (/^#{1,3} /.test(line)) {
-		return `${BOLD}${line.replace(/^#{1,3} /, "")}${RESET}`;
-	}
-	line = line.replace(/\*\*(.+?)\*\*/g, `${BOLD}$1${RESET}`);
-	line = line.replace(/`(.+?)`/g, "\x1B[38;2;175;185;254m$1\x1B[0m");
-	// Clickable hyperlinks for URLs
-	line = line.replace(
-		/(https?:\/\/[^\s)>\]]+)/g,
-		(url) => `\x1B[94m${hyperlink(url, url)}${RESET}`,
-	);
-	if (/^---+$/.test(line)) {
-		return `${DIM}${"─".repeat(width)}${RESET}`;
-	}
-	return line;
-}
-
 export function markdownPrettifier(
 	content: string,
 	_run: RunRecord,
 	width: number,
 ): string[] {
-	return content.split("\n").map((l) => renderMarkdownLine(l, width));
+	return applyTransforms(content.split("\n"), [
+		headings,
+		boldText,
+		inlineCode,
+		horizontalRule(width),
+		urls,
+	]);
 }
-
-// ── Meta (prettified from run.meta, ignores raw content) ──
 
 export function metaPrettifier(
 	_content: string,
@@ -54,7 +114,7 @@ export function metaPrettifier(
 	_width: number,
 ): string[] {
 	const m = run.meta;
-	return [
+	const lines = [
 		`${BOLD}Run${RESET}`,
 		`  ID: ${m.id}`,
 		`  Task: ${BOLD}${MAGENTA}${m.task}${RESET}`,
@@ -66,58 +126,37 @@ export function metaPrettifier(
 		`  Duration: ${m.duration_seconds}s`,
 		"",
 		`${BOLD}Details${RESET}`,
-		m.url?.startsWith("http")
-			? `  URL: \x1B[94m${hyperlink(m.url, m.url)}${RESET}`
-			: `  URL: ${DIM}—${RESET}`,
+		m.url ? `  URL: ${m.url}` : `  URL: ${DIM}—${RESET}`,
 		`  Item key: ${m.item_key ?? `${DIM}—${RESET}`}`,
 		`  Exit code: ${m.exit_code === 0 ? `${GREEN}${m.exit_code}${RESET}` : `${RED}${m.exit_code}${RESET}`}`,
 		`  Schema: v${m.schema_version}`,
 	];
+	// Apply shared transforms (URLs become clickable hyperlinks)
+	return applyTransforms(lines, [urls]);
 }
-
-// ── JSON (syntax highlighted) ──
-
-const JSON_KEY = "\x1B[38;2;137;180;250m"; // light blue
-const JSON_STRING = "\x1B[38;2;206;145;120m"; // warm orange
-const JSON_NUMBER = "\x1B[38;2;181;206;168m"; // soft green
-const JSON_BOOL = "\x1B[38;2;206;145;120m"; // warm orange
-const JSON_NULL = `${DIM}`;
 
 export function jsonPrettifier(
 	content: string,
 	_run: RunRecord,
 	_width: number,
 ): string[] {
-	return content.split("\n").map((line) =>
-		line
-			.replace(/"([^"]+)"(?=\s*:)/g, `${JSON_KEY}"$1"${RESET}`)
-			.replace(/:\s*"([^"]*)"(,?)$/gm, `: ${JSON_STRING}"$1"${RESET}$2`)
-			.replace(/:\s*(\d+\.?\d*)(,?)$/gm, `: ${JSON_NUMBER}$1${RESET}$2`)
-			.replace(/:\s*(true|false)(,?)$/gm, `: ${JSON_BOOL}$1${RESET}$2`)
-			.replace(/:\s*(null)(,?)$/gm, `: ${JSON_NULL}$1${RESET}$2`),
-	);
+	return applyTransforms(content.split("\n"), [
+		jsonKeys,
+		jsonStrings,
+		jsonNumbers,
+		jsonBooleans,
+		jsonNulls,
+		urls,
+	]);
 }
-
-// ── Log (dimmed timestamps) ──
-
-const LOG_TIMESTAMP = `${DIM}`;
 
 export function logPrettifier(
 	content: string,
 	_run: RunRecord,
 	_width: number,
 ): string[] {
-	return content
-		.split("\n")
-		.map((line) =>
-			line.replace(
-				/^(\[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z\])/,
-				`${LOG_TIMESTAMP}$1${RESET}`,
-			),
-		);
+	return applyTransforms(content.split("\n"), [timestamps, urls]);
 }
-
-// ── Default (raw lines) ──
 
 export function defaultPrettifier(
 	content: string,
@@ -125,6 +164,19 @@ export function defaultPrettifier(
 	_width: number,
 ): string[] {
 	return content.split("\n");
+}
+
+// ── Backward compat export ──
+
+export function renderMarkdownLine(line: string, width = 40): string {
+	const transforms = [
+		headings,
+		boldText,
+		inlineCode,
+		horizontalRule(width),
+		urls,
+	];
+	return transforms.reduce((l, fn) => fn(l), line);
 }
 
 // ── Prettifier registry ──
