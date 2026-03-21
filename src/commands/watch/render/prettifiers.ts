@@ -100,6 +100,16 @@ export function applyTransforms(
 export const stripTimestamps: Transform = (line) =>
 	line.replace(/^\[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z\]\s*/, "");
 
+/** Color log levels [INFO] [ERROR] [WARN] etc. */
+const LOG_INFO = "\x1B[38;2;97;175;239m"; // blue
+const LOG_ERROR = "\x1B[38;2;224;108;117m"; // red
+const LOG_WARN = "\x1B[38;2;229;192;123m"; // yellow
+export const logLevels: Transform = (line) =>
+	line
+		.replace(/\[INFO\]/g, `${LOG_INFO}[INFO]${RESET}`)
+		.replace(/\[ERROR\]/g, `${LOG_ERROR}[ERROR]${RESET}`)
+		.replace(/\[WARN\]/g, `${LOG_WARN}[WARN]${RESET}`);
+
 // ── Prettifiers (composed from transforms) ──
 
 export type Prettifier = (
@@ -164,7 +174,11 @@ export function logPrettifier(
 	_run: RunRecord,
 	_width: number,
 ): string[] {
-	return applyTransforms(content.split("\n"), [stripTimestamps, urls]);
+	return applyTransforms(content.split("\n"), [
+		stripTimestamps,
+		logLevels,
+		urls,
+	]);
 }
 
 export function defaultPrettifier(
