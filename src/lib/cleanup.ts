@@ -41,6 +41,7 @@ export function archiveRun(
 	globalVars: Record<string, string> = {},
 	taskVars: Record<string, string> = {},
 	itemVars: Record<string, string> = {},
+	cwd?: string,
 ): void {
 	// Render teardown BEFORE move (item.json still at original path)
 	let renderedTeardown: string | undefined;
@@ -62,6 +63,7 @@ export function archiveRun(
 				encoding: "utf-8",
 				timeout: 60_000,
 				shell: "/bin/bash",
+				cwd,
 			});
 		} catch {
 			// Teardown failed — run is already in .bin, continue
@@ -76,6 +78,7 @@ export function cleanupRuns(
 	taskVars: Record<string, string>,
 	binDir: string,
 	taskId: string,
+	baseDir?: string,
 ): number {
 	const cleanupPattern = new RegExp(cleanupConfig.when);
 	const retainMs = parseRetain(cleanupConfig.retain);
@@ -122,6 +125,7 @@ export function cleanupRuns(
 					globalVars,
 					taskVars,
 					itemVars,
+					baseDir,
 				);
 				cleaned++;
 			}

@@ -144,6 +144,7 @@ export async function runCommand(
 				config.vars ?? {},
 				join(baseDir, ".bin"),
 				taskId,
+				baseDir,
 			);
 		}
 		releaseLock(taskId, baseDir);

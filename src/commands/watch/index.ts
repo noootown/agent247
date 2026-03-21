@@ -55,6 +55,7 @@ export function watchCommand(
 				globalVars,
 				taskConfig?.vars ?? {},
 				itemVars,
+				baseDir,
 			);
 		},
 		stopTask: (taskId) => {

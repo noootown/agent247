@@ -23,6 +23,7 @@ for (const t of allTaskConfigs) {
 			t.config.vars ?? {},
 			binDir,
 			t.id,
+			baseDir,
 		);
 	}
 }
