@@ -14,14 +14,11 @@ import {
 	formatAgo,
 	formatTime,
 	GREEN,
-	hyperlink,
 	MAGENTA,
 	RED,
 	RESET,
 	SEPARATOR,
 	scrollAnsi,
-	statusIcon,
-	statusText,
 	stripAnsi,
 	YELLOW,
 } from "./ansi.js";
@@ -66,20 +63,6 @@ export function getReportLines(
 	width = 40,
 	activeTab = 0,
 ): string[] {
-	const header = [
-		`${BOLD}Run: ${run.meta.id}${RESET}`,
-		`Task: ${BOLD}${MAGENTA}${run.meta.task}${RESET}`,
-		`Status: ${statusIcon(run.meta.status)} ${statusText(run.meta.status)}`,
-		`Time: ${formatTime(run.meta.started_at)} ${DIM}(${formatAgo(Date.parse(run.meta.started_at))})${RESET}`,
-		`Duration: ${run.meta.duration_seconds}s`,
-		run.meta.url?.startsWith("http")
-			? `URL: \x1B[94m${hyperlink(run.meta.url, run.meta.url)}${RESET}`
-			: null,
-		"",
-		`${"─".repeat(width)}`,
-		"",
-	].filter((l): l is string => l !== null);
-
 	const fileName = RUN_TABS[activeTab] ?? "report.md";
 	const filePath = join(run.dir, fileName);
 	const content = existsSync(filePath)
@@ -91,7 +74,7 @@ export function getReportLines(
 		? content.split("\n").map((l) => renderMarkdownLine(l, width))
 		: content.split("\n");
 
-	return [...header, ...contentLines];
+	return contentLines;
 }
 
 export function getTaskInfoLines(group: TaskGroup, width = 40): string[] {
