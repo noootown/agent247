@@ -77,8 +77,8 @@ export function handleKey(
 			reportScrollX: 0,
 		};
 	}
-	// Tab: next tab, Shift+Tab: previous tab
-	if (key === "\t" && line?.type === "run") {
+	// Tab/Ctrl+X: next tab, Shift+Tab/Ctrl+Z: previous tab
+	if ((key === "\t" || key === "\x18") && line?.type === "run") {
 		return {
 			...state,
 			activeTab: (state.activeTab + 1) % RUN_TABS.length,
@@ -86,7 +86,7 @@ export function handleKey(
 			reportScrollX: 0,
 		};
 	}
-	if (key === "\x1B[Z" && line?.type === "run") {
+	if ((key === "\x1B[Z" || key === "\x1A") && line?.type === "run") {
 		return {
 			...state,
 			activeTab: (state.activeTab - 1 + RUN_TABS.length) % RUN_TABS.length,
