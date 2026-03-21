@@ -211,7 +211,7 @@ export function renderSplitHorizontal(
 	}
 
 	process.stdout.write(
-		`  ${DIM}↑↓ navigate  wasd scroll  ? help  q quit${RESET}`,
+		`  ${DIM}↑↓ navigate  wasd scroll  1-7/tab tabs  f full  ? help  q quit${RESET}`,
 	);
 }
 
@@ -289,7 +289,7 @@ export function renderSplitVertical(
 	}
 
 	process.stdout.write(
-		`  ${DIM}↑↓ navigate  wasd scroll  ? help  q quit${RESET}`,
+		`  ${DIM}↑↓ navigate  wasd scroll  1-7/tab tabs  f full  ? help  q quit${RESET}`,
 	);
 }
 
@@ -344,7 +344,7 @@ function renderFullPane(
 	}
 
 	process.stdout.write(
-		`  ${DIM}f back  wasd scroll  1-7 tabs  ? help  q quit${RESET}`,
+		`  ${DIM}f/q/esc back  wasd scroll  1-7/tab tabs  ? help${RESET}`,
 	);
 }
 
