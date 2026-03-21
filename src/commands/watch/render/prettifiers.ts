@@ -91,27 +91,47 @@ export function applyTransforms(
 	return lines.map((line) => transforms.reduce((l, fn) => fn(l), line));
 }
 
-/** Color diff lines: red bg for -, green bg for + (GitHub style) */
+/** Color diff lines with text colors (GitHub style) */
 const DIFF_ADD = "\x1B[38;2;172;238;187m"; // #aceebb text
 const DIFF_DEL = "\x1B[38;2;254;206;202m"; // #fececa text
 const DIFF_HEADER_COLOR = "\x1B[36m"; // cyan for @@ lines
 
-export function applyDiffHighlighting(lines: string[]): string[] {
-	let inDiff = false;
+function diffLineTransform(line: string): string {
+	if (line.startsWith("+")) return `${DIFF_ADD}${line}${RESET}`;
+	if (line.startsWith("-")) return `${DIFF_DEL}${line}${RESET}`;
+	if (line.startsWith("@@")) return `${DIFF_HEADER_COLOR}${line}${RESET}`;
+	return line;
+}
+
+function jsonLineTransform(line: string): string {
+	return [jsonKeys, jsonStrings, jsonNumbers, jsonBooleans, jsonNulls].reduce(
+		(l, fn) => fn(l),
+		line,
+	);
+}
+
+/** Per-language transforms for fenced code blocks */
+const codeBlockTransforms: Record<string, (line: string) => string> = {
+	diff: diffLineTransform,
+	json: jsonLineTransform,
+};
+
+/** Apply syntax highlighting inside fenced code blocks (```lang) */
+export function applyCodeBlockHighlighting(lines: string[]): string[] {
+	let activeLang: string | null = null;
 	return lines.map((line) => {
-		if (line.startsWith("```diff")) {
-			inDiff = true;
+		const fenceMatch = line.match(/^```(\w+)/);
+		if (fenceMatch) {
+			activeLang = fenceMatch[1];
 			return line;
 		}
-		if (inDiff && line.startsWith("```")) {
-			inDiff = false;
+		if (activeLang && line.startsWith("```")) {
+			activeLang = null;
 			return line;
 		}
-		if (!inDiff) return line;
-		if (line.startsWith("+")) return `${DIFF_ADD}${line}${RESET}`;
-		if (line.startsWith("-")) return `${DIFF_DEL}${line}${RESET}`;
-		if (line.startsWith("@@")) return `${DIFF_HEADER_COLOR}${line}${RESET}`;
-		return line;
+		if (!activeLang) return line;
+		const transform = codeBlockTransforms[activeLang];
+		return transform ? transform(line) : line;
 	});
 }
 
@@ -128,10 +148,10 @@ export function markdownPrettifier(
 	_run: RunRecord,
 	width: number,
 ): string[] {
-	// First pass: diff block highlighting (stateful, must run before per-line transforms)
-	const diffHighlighted = applyDiffHighlighting(content.split("\n"));
+	// First pass: code block highlighting (stateful, must run before per-line transforms)
+	const codeHighlighted = applyCodeBlockHighlighting(content.split("\n"));
 	// Second pass: per-line transforms
-	return applyTransforms(diffHighlighted, [
+	return applyTransforms(codeHighlighted, [
 		headings,
 		boldText,
 		italicText,

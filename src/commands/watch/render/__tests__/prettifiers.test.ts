@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { RunRecord } from "../../../../lib/report.js";
 import { stripAnsi } from "../ansi.js";
 import {
-	applyDiffHighlighting,
+	applyCodeBlockHighlighting,
 	applyTransforms,
 	boldText,
 	defaultPrettifier,
@@ -152,37 +152,41 @@ describe("applyTransforms", () => {
 	});
 });
 
-describe("applyDiffHighlighting", () => {
-	it("colors + lines with green bg inside diff blocks", () => {
-		const lines = applyDiffHighlighting(["```diff", "+added", "```"]);
-		expect(lines[1]).toContain("\x1B[38;2;172;238;187m"); // green bg
+describe("applyCodeBlockHighlighting", () => {
+	it("colors + lines with green inside diff blocks", () => {
+		const lines = applyCodeBlockHighlighting(["```diff", "+added", "```"]);
+		expect(lines[1]).toContain("\x1B[38;2;172;238;187m");
 		expect(stripAnsi(lines[1])).toBe("+added");
 	});
 
-	it("colors - lines with red bg inside diff blocks", () => {
-		const lines = applyDiffHighlighting(["```diff", "-removed", "```"]);
-		expect(lines[1]).toContain("\x1B[38;2;254;206;202m"); // red bg
+	it("colors - lines with red inside diff blocks", () => {
+		const lines = applyCodeBlockHighlighting(["```diff", "-removed", "```"]);
+		expect(lines[1]).toContain("\x1B[38;2;254;206;202m");
 		expect(stripAnsi(lines[1])).toBe("-removed");
 	});
 
 	it("colors @@ lines with cyan", () => {
-		const lines = applyDiffHighlighting(["```diff", "@@ -1,3 +1,4 @@", "```"]);
-		expect(lines[1]).toContain("\x1B[36m"); // cyan
+		const lines = applyCodeBlockHighlighting([
+			"```diff",
+			"@@ -1,3 +1,4 @@",
+			"```",
+		]);
+		expect(lines[1]).toContain("\x1B[36m");
 	});
 
-	it("does not color lines outside diff blocks", () => {
-		const lines = applyDiffHighlighting(["+not a diff", "-not a diff"]);
+	it("does not color lines outside code blocks", () => {
+		const lines = applyCodeBlockHighlighting(["+not a diff", "-not a diff"]);
 		expect(lines[0]).toBe("+not a diff");
 		expect(lines[1]).toBe("-not a diff");
 	});
 
 	it("leaves context lines inside diff unmodified", () => {
-		const lines = applyDiffHighlighting(["```diff", " context", "```"]);
+		const lines = applyCodeBlockHighlighting(["```diff", " context", "```"]);
 		expect(lines[1]).toBe(" context");
 	});
 
-	it("handles multiple diff blocks", () => {
-		const lines = applyDiffHighlighting([
+	it("handles multiple code blocks", () => {
+		const lines = applyCodeBlockHighlighting([
 			"text",
 			"```diff",
 			"+a",
@@ -195,6 +199,47 @@ describe("applyDiffHighlighting", () => {
 		expect(lines[2]).toContain("\x1B[38;2;172;238;187m");
 		expect(lines[4]).toBe("between");
 		expect(lines[6]).toContain("\x1B[38;2;254;206;202m");
+	});
+
+	it("highlights JSON keys inside json blocks", () => {
+		const lines = applyCodeBlockHighlighting([
+			"```json",
+			'  "name": "hello"',
+			"```",
+		]);
+		expect(lines[1]).toContain("\x1B[38;2;137;180;250m"); // JSON_KEY
+	});
+
+	it("highlights JSON string values inside json blocks", () => {
+		const lines = applyCodeBlockHighlighting([
+			"```json",
+			'  "key": "value"',
+			"```",
+		]);
+		expect(lines[1]).toContain("\x1B[38;2;206;145;120m"); // JSON_STRING
+	});
+
+	it("highlights JSON numbers inside json blocks", () => {
+		const lines = applyCodeBlockHighlighting([
+			"```json",
+			'  "count": 42',
+			"```",
+		]);
+		expect(lines[1]).toContain("\x1B[38;2;181;206;168m"); // JSON_NUMBER
+	});
+
+	it("does not apply json highlighting outside json blocks", () => {
+		const lines = applyCodeBlockHighlighting(['"key": "value"']);
+		expect(lines[0]).toBe('"key": "value"');
+	});
+
+	it("leaves unknown languages unmodified", () => {
+		const lines = applyCodeBlockHighlighting([
+			"```python",
+			"print('hi')",
+			"```",
+		]);
+		expect(lines[1]).toBe("print('hi')");
 	});
 });
 
