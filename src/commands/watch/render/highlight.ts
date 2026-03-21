@@ -39,6 +39,8 @@ export function hljsToAnsi(html: string): string {
 	);
 	result = result.replace(/<[^>]+>/g, "");
 	result = result
+		.replace(/&#x27;/g, "'")
+		.replace(/&#39;/g, "'")
 		.replace(/&amp;/g, "&")
 		.replace(/&lt;/g, "<")
 		.replace(/&gt;/g, ">")
