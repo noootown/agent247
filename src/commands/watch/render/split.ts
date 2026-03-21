@@ -76,7 +76,6 @@ export function getReportLines(
 			? `URL: \x1B[94m${hyperlink(run.meta.url, run.meta.url)}${RESET}`
 			: null,
 		"",
-		renderTabBar(activeTab),
 		`${"─".repeat(width)}`,
 		"",
 	].filter((l): l is string => l !== null);
@@ -201,12 +200,11 @@ export function renderSplitHorizontal(
 	process.stdout.write("\x1B[2J\x1B[H");
 
 	const cursorLine = lines[state.cursor];
-	const rightTitle =
+	const rightHeader =
 		cursorLine?.type === "run"
-			? (RUN_TABS[state.activeTab] ?? "Report")
-			: "Task Info";
+			? ` ${renderTabBar(state.activeTab)}`
+			: ` ${BOLD}Task Info${RESET}`;
 	const leftHeader = ` ${BOLD}${botName}${RESET} — ${state.groups.length} tasks`;
-	const rightHeader = ` ${BOLD}${rightTitle}${RESET}`;
 	const leftHeaderPad = " ".repeat(
 		Math.max(0, leftWidth - stripAnsi(leftHeader).length),
 	);
@@ -300,13 +298,11 @@ export function renderSplitVertical(
 	}
 
 	const cursorLine = lines[state.cursor];
-	const rightTitle =
+	const bottomHeader =
 		cursorLine?.type === "run"
-			? (RUN_TABS[state.activeTab] ?? "Report")
-			: "Task Info";
-	process.stdout.write(
-		`${DIM}${"─".repeat(cols)}${RESET} ${BOLD}${rightTitle}${RESET}\n`,
-	);
+			? renderTabBar(state.activeTab)
+			: `${BOLD}Task Info${RESET}`;
+	process.stdout.write(`${DIM}${"─".repeat(cols)}${RESET} ${bottomHeader}\n`);
 
 	for (let i = 0; i < bottomRows; i++) {
 		const reportLine = visibleReport[i] ?? "";
