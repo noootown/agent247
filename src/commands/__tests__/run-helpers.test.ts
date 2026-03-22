@@ -1,3 +1,6 @@
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 import { describe, expect, it } from "vitest";
 
 /**
@@ -122,5 +125,68 @@ describe("runDirName", () => {
 		expect(pattern.test("20260319-143652-01KM3QG86FD10RNRY35AN1ZDG8")).toBe(
 			true,
 		);
+	});
+});
+
+// Exact copy of loadInjectVars from run.ts
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+function loadInjectVars(taskId: string, baseDir: string): Record<string, string> {
+	const injectDir = join(baseDir, "tasks", taskId, "inject");
+	if (!existsSync(injectDir)) return {};
+	const vars: Record<string, string> = {};
+	for (const dirent of readdirSync(injectDir, { withFileTypes: true })) {
+		if (!dirent.isFile()) continue;
+		if (!dirent.name.endsWith(".md")) continue;
+		const key = dirent.name.slice(0, -3);
+		try {
+			vars[key] = readFileSync(join(injectDir, dirent.name), "utf-8");
+		} catch (err) {
+			console.warn(`loadInjectVars: skipping ${dirent.name}: ${err}`);
+		}
+	}
+	return vars;
+}
+
+describe("loadInjectVars", () => {
+	it("returns {} when inject dir is absent", () => {
+		const base = mkdtempSync(join(tmpdir(), "agent247-test-"));
+		try {
+			expect(loadInjectVars("my-task", base)).toEqual({});
+		} finally {
+			rmSync(base, { recursive: true, force: true });
+		}
+	});
+
+	it("loads only .md files and uses filename without extension as key", () => {
+		const base = mkdtempSync(join(tmpdir(), "agent247-test-"));
+		try {
+			const injectDir = join(base, "tasks", "my-task", "inject");
+			mkdirSync(injectDir, { recursive: true });
+			writeFileSync(join(injectDir, "context.md"), "some context");
+			writeFileSync(join(injectDir, "notes.md"), "some notes");
+			writeFileSync(join(injectDir, "readme.txt"), "should be ignored");
+			const result = loadInjectVars("my-task", base);
+			expect(result).toEqual({
+				context: "some context",
+				notes: "some notes",
+			});
+			expect(result).not.toHaveProperty("readme.txt");
+		} finally {
+			rmSync(base, { recursive: true, force: true });
+		}
+	});
+
+	it("skips subdirectories inside inject dir", () => {
+		const base = mkdtempSync(join(tmpdir(), "agent247-test-"));
+		try {
+			const injectDir = join(base, "tasks", "my-task", "inject");
+			mkdirSync(injectDir, { recursive: true });
+			mkdirSync(join(injectDir, "subdir.md"), { recursive: true });
+			writeFileSync(join(injectDir, "valid.md"), "valid content");
+			const result = loadInjectVars("my-task", base);
+			expect(result).toEqual({ valid: "valid content" });
+		} finally {
+			rmSync(base, { recursive: true, force: true });
+		}
 	});
 });

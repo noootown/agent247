@@ -10,5 +10,5 @@ tasks/*/.lock
 # secret
 .env.local
 
-# local notes (not version controlled)
-tasks/*/notes.md
+# local inject files (not version controlled)
+tasks/*/inject/

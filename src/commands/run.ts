@@ -1,5 +1,5 @@
 import { execSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { ulid } from "ulid";
 import { purgeBin } from "../lib/bin.js";
@@ -17,9 +17,21 @@ import {
 } from "../lib/runner.js";
 import { render } from "../lib/template.js";
 
-function loadNotes(taskId: string, baseDir: string): string {
-	const notesPath = join(baseDir, "tasks", taskId, "notes.md");
-	return existsSync(notesPath) ? readFileSync(notesPath, "utf-8") : "";
+function loadInjectVars(taskId: string, baseDir: string): Record<string, string> {
+	const injectDir = join(baseDir, "tasks", taskId, "inject");
+	if (!existsSync(injectDir)) return {};
+	const vars: Record<string, string> = {};
+	for (const dirent of readdirSync(injectDir, { withFileTypes: true })) {
+		if (!dirent.isFile()) continue;
+		if (!dirent.name.endsWith(".md")) continue;
+		const key = dirent.name.slice(0, -3);
+		try {
+			vars[key] = readFileSync(join(injectDir, dirent.name), "utf-8");
+		} catch (err) {
+			console.warn(`loadInjectVars: skipping ${dirent.name}: ${err}`);
+		}
+	}
+	return vars;
 }
 
 function runDirName(id: string): string {
@@ -242,7 +254,7 @@ async function executeForItem(
 		}
 	}
 
-	const reservedVars = { notes: loadNotes(config.id, baseDir ?? "") };
+	const reservedVars = loadInjectVars(config.id, baseDir ?? "");
 	const renderedPrompt = render(config.prompt, globalVars, taskVars, item, reservedVars);
 	const renderedCwd = config.cwd
 		? render(config.cwd, globalVars, taskVars, item)
@@ -355,7 +367,7 @@ async function executeForBatch(
 		.join("\n");
 	const batchVars = { items_json: itemsJson, items_list: itemsList };
 
-	const reservedVars = { notes: loadNotes(config.id, baseDir ?? "") };
+	const reservedVars = loadInjectVars(config.id, baseDir ?? "");
 	const renderedPrompt = render(config.prompt, globalVars, taskVars, batchVars, reservedVars);
 	const renderedCwd = config.cwd
 		? render(config.cwd, globalVars, taskVars)

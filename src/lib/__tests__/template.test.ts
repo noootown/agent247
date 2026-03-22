@@ -26,4 +26,14 @@ describe("template", () => {
 	it("handles empty template", () => {
 		expect(render("", { name: "test" })).toBe("");
 	});
+
+	it("reservedVars (5th param) overrides globalVars, taskVars, and itemVars for the same key", () => {
+		const global = { key: "global", other: "global-other" };
+		const task = { key: "task" };
+		const item = { key: "item" };
+		const reserved = { key: "reserved" };
+		expect(render("{{key}} {{other}}", global, task, item, reserved)).toBe(
+			"reserved global-other",
+		);
+	});
 });

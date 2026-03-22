@@ -107,27 +107,19 @@ Prompts and discovery commands use `{{variable_name}}` substitution. Variables a
 
 Unresolved `{{placeholders}}` are left as-is.
 
-### Reserved Variables
+### Inject Files (`tasks/<task-id>/inject/`)
 
-These names are reserved and always set by agent247. Do not use them in `vars.yaml` or task `vars:`.
+Each task can have an optional `inject/` folder. Any `.md` file inside is automatically injected as a template variable named after the file (without the `.md` extension). These files are gitignored and not version controlled — use them for local context that changes frequently.
 
-| Variable | Description |
-|----------|-------------|
-| `{{notes}}` | Contents of `tasks/<task-id>/notes.md` if it exists, empty string otherwise. Use for per-task local notes, checklists, or context that changes frequently and should not be version controlled. |
+| File | Variable |
+|------|----------|
+| `inject/notes.md` | `{{notes}}` |
+| `inject/checklist.md` | `{{checklist}}` |
+| `inject/context.md` | `{{context}}` |
 
-### Per-Task Notes (`tasks/<task-id>/notes.md`)
+Inject variables take highest priority — they override global, task, and item variables of the same name. The `prompt.md` decides how to use them.
 
-Each task can have an optional `notes.md` file. It is gitignored (not version controlled) and its contents are injected as `{{notes}}` before the prompt is rendered. The `prompt.md` decides how to use it — as a checklist, scratchpad, extra context, etc.
-
-Example `prompt.md` usage:
-```
-{{#if notes}}
-## Notes
-{{notes}}
-{{/if}}
-```
-
-Or simply reference it inline:
+Example:
 ```
 Additional context: {{notes}}
 ```
