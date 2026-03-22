@@ -44,49 +44,54 @@ export async function runCommand(
 
 	try {
 		let items: Record<string, string>[];
-		try {
-			const discoveryCmd = render(
-				config.discovery.command,
-				globalVars,
-				config.vars ?? {},
-			);
-			// Pass globalVars as env so discovery scripts can read secrets
-			// without them appearing in CLI args (e.g., LINEAR_API_KEY)
-			const discoveryEnv = Object.fromEntries(
-				Object.entries(globalVars).map(([k, v]) => [k.toUpperCase(), v]),
-			);
-			items = discoverItems(discoveryCmd, discoveryEnv, baseDir);
-		} catch (err) {
-			const runId = ulid();
-			const runDir = join(runsDir, taskId, runDirName(runId));
-			const logger = createLogger(join(runDir, "log.txt"));
-			logger.error(`Discovery failed: ${err}`);
-			writeRun(runDir, {
-				meta: {
-					schema_version: 1,
-					id: runId,
-					task: taskId,
-					status: "error",
+		if (config.discovery) {
+			try {
+				const discoveryCmd = render(
+					config.discovery.command,
+					globalVars,
+					config.vars ?? {},
+				);
+				// Pass globalVars as env so discovery scripts can read secrets
+				// without them appearing in CLI args (e.g., LINEAR_API_KEY)
+				const discoveryEnv = Object.fromEntries(
+					Object.entries(globalVars).map(([k, v]) => [k.toUpperCase(), v]),
+				);
+				items = discoverItems(discoveryCmd, discoveryEnv, baseDir);
+			} catch (err) {
+				const runId = ulid();
+				const runDir = join(runsDir, taskId, runDirName(runId));
+				const logger = createLogger(join(runDir, "log.txt"));
+				logger.error(`Discovery failed: ${err}`);
+				writeRun(runDir, {
+					meta: {
+						schema_version: 1,
+						id: runId,
+						task: taskId,
+						status: "error",
 
-					url: null,
-					item_key: null,
-					started_at: startedAt,
-					finished_at: new Date().toISOString(),
-					duration_seconds: 0,
-					exit_code: 1,
-				},
-				log: logger.getEntries().join("\n"),
-			});
-			console.error(`Discovery failed for ${taskId}: ${err}`);
-			return;
+						url: null,
+						item_key: null,
+						started_at: startedAt,
+						finished_at: new Date().toISOString(),
+						duration_seconds: 0,
+						exit_code: 1,
+					},
+					log: logger.getEntries().join("\n"),
+				});
+				console.error(`Discovery failed for ${taskId}: ${err}`);
+				return;
+			}
+		} else {
+			// No discovery configured — run once with an empty item
+			items = [{}];
 		}
 
 		const newItems = filterNewItems(
 			runsDir,
 			taskId,
 			items,
-			config.discovery.item_key,
-			{ bypassDedup: config.bypass_dedup },
+			config.discovery?.item_key ?? "",
+			{ bypassDedup: config.discovery ? config.bypass_dedup : true },
 		);
 
 		if (newItems.length === 0) {
@@ -192,7 +197,7 @@ async function executeForItem(
 	mkdirSync(runDir, { recursive: true });
 	writeFileSync(join(runDir, "vars.json"), JSON.stringify(item, null, 2));
 	logger.log(`Starting task: ${config.id}`);
-	logger.log(`Item: ${item[config.discovery.item_key]}`);
+	if (config.discovery) logger.log(`Item: ${item[config.discovery?.item_key ?? ""]}`);
 
 	// Pre-run hook
 	if (config.pre_run) {
@@ -215,8 +220,8 @@ async function executeForItem(
 					id: runId,
 					task: config.id,
 					status: "error",
-					url: item[config.discovery.item_key] ?? null,
-					item_key: item[config.discovery.item_key] ?? null,
+					url: item[config.discovery?.item_key ?? ""] ?? null,
+					item_key: item[config.discovery?.item_key ?? ""] ?? null,
 					started_at: startedAt,
 					finished_at: finishedAt,
 					duration_seconds: Math.round(
@@ -244,8 +249,8 @@ async function executeForItem(
 			id: runId,
 			task: config.id,
 			status: "processing",
-			url: item[config.discovery.item_key] ?? null,
-			item_key: item[config.discovery.item_key] ?? null,
+			url: item[config.discovery?.item_key ?? ""] ?? null,
+			item_key: item[config.discovery?.item_key ?? ""] ?? null,
 			started_at: startedAt,
 			finished_at: startedAt,
 			duration_seconds: 0,
@@ -279,8 +284,8 @@ async function executeForItem(
 					id: runId,
 					task: config.id,
 					status: "error",
-					url: item[config.discovery.item_key] ?? null,
-					item_key: item[config.discovery.item_key] ?? null,
+					url: item[config.discovery?.item_key ?? ""] ?? null,
+					item_key: item[config.discovery?.item_key ?? ""] ?? null,
 					started_at: startedAt,
 					finished_at: finishedAt,
 					duration_seconds: Math.round(
@@ -306,8 +311,8 @@ async function executeForItem(
 				id: runId,
 				task: config.id,
 				status: parsed.status,
-				url: parsed.url ?? item[config.discovery.item_key] ?? null,
-				item_key: item[config.discovery.item_key] ?? null,
+				url: parsed.url ?? item[config.discovery?.item_key ?? ""] ?? null,
+				item_key: item[config.discovery?.item_key ?? ""] ?? null,
 				started_at: startedAt,
 				finished_at: finishedAt,
 				duration_seconds: Math.round(
@@ -339,7 +344,7 @@ async function executeForBatch(
 
 	const itemsJson = JSON.stringify(items);
 	const itemsList = items
-		.map((i) => `- ${i[config.discovery.item_key]}`)
+		.map((i) => `- ${i[config.discovery?.item_key ?? ""]}`)
 		.join("\n");
 	const batchVars = { items_json: itemsJson, items_list: itemsList };
 

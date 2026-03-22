@@ -9,7 +9,7 @@ export interface TaskConfig {
 	timeout: number;
 	enabled: boolean;
 	vars?: Record<string, string>;
-	discovery: {
+	discovery?: {
 		command: string;
 		item_key: string;
 	};
@@ -43,7 +43,7 @@ export function loadTaskConfig(taskId: string, baseDir: string): TaskConfig {
 			`Invalid config for task ${taskId}: empty or not an object`,
 		);
 	}
-	for (const field of ["name", "schedule", "timeout", "enabled", "discovery"]) {
+	for (const field of ["name", "schedule", "timeout", "enabled"]) {
 		if (!(field in raw)) {
 			throw new Error(`Task ${taskId} config missing required field: ${field}`);
 		}
@@ -57,7 +57,7 @@ export function loadTaskConfig(taskId: string, baseDir: string): TaskConfig {
 		timeout: raw.timeout as number,
 		enabled: raw.enabled as boolean,
 		vars: raw.vars as Record<string, string> | undefined,
-		discovery: raw.discovery as { command: string; item_key: string },
+		discovery: raw.discovery as { command: string; item_key: string } | undefined,
 		model: (raw.model as string) ?? "sonnet",
 		prompt_mode: (raw.prompt_mode as string) === "batch" ? "batch" : "per_item",
 		cwd: raw.cwd as string | undefined,

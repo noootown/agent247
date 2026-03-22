@@ -28,10 +28,26 @@ describe("loadTaskConfig", () => {
 		expect(config.schedule).toBe("*/30 * * * *");
 		expect(config.timeout).toBe(300);
 		expect(config.enabled).toBe(true);
-		expect(config.discovery.command).toBe("echo '[]'");
-		expect(config.discovery.item_key).toBe("url");
+		expect(config.discovery?.command).toBe("echo '[]'");
+		expect(config.discovery?.item_key).toBe("url");
 		expect(config.prompt_mode).toBe("per_item");
 		expect(config.prompt).toBe("Test prompt {{url}}");
+	});
+});
+
+describe("loadTaskConfig without discovery", () => {
+	it("parses a valid config without discovery field", () => {
+		writeFileSync(
+			join(TEST_DIR, "tasks", "test-task", "config.yaml"),
+			`name: Test Task\nschedule: "0 8 * * *"\ntimeout: 180\nenabled: true\n`,
+		);
+		writeFileSync(
+			join(TEST_DIR, "tasks", "test-task", "prompt.md"),
+			"Check something",
+		);
+		const config = loadTaskConfig("test-task", TEST_DIR);
+		expect(config.discovery).toBeUndefined();
+		expect(config.name).toBe("Test Task");
 	});
 });
 
