@@ -38,6 +38,10 @@ export function handleKey(
 		if (key === "w")
 			return { ...state, reportScroll: Math.max(0, state.reportScroll - 1) };
 		if (key === "s") return { ...state, reportScroll: state.reportScroll + 1 };
+		if (key === "\x1B[H" || key === "\x1B[1~")
+			return { ...state, reportScroll: 0 };
+		if (key === "\x1B[F" || key === "\x1B[4~")
+			return { ...state, reportScroll: Number.MAX_SAFE_INTEGER };
 		if (key === "a")
 			return { ...state, reportScrollX: Math.max(0, state.reportScrollX - 4) };
 		if (key === "d")
@@ -139,6 +143,10 @@ export function handleKey(
 	if (key === "w")
 		return { ...state, reportScroll: Math.max(0, state.reportScroll - 1) };
 	if (key === "s") return { ...state, reportScroll: state.reportScroll + 1 };
+	if (key === "\x1B[H" || key === "\x1B[1~")
+		return { ...state, reportScroll: 0 };
+	if (key === "\x1B[F" || key === "\x1B[4~")
+		return { ...state, reportScroll: Number.MAX_SAFE_INTEGER };
 	if (key === "a")
 		return {
 			...state,
