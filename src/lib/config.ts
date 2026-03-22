@@ -21,8 +21,8 @@ export interface TaskConfig {
 	pre_run?: string;
 	post_run?: string;
 	cleanup?: {
-		check: string;
-		when: string;
+		check?: string;
+		when?: string;
 		retain?: string; // e.g. "12h", "7d", "30m" — keep runs for this long before cleanup
 		teardown?: string;
 	};

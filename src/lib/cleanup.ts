@@ -23,8 +23,8 @@ export function parseRetain(retain?: string): number {
 }
 
 export interface CleanupConfig {
-	check: string;
-	when: string;
+	check?: string;
+	when?: string;
 	retain?: string;
 	teardown?: string;
 }
@@ -80,7 +80,6 @@ export function cleanupRuns(
 	taskId: string,
 	baseDir?: string,
 ): number {
-	const cleanupPattern = new RegExp(cleanupConfig.when);
 	const retainMs = parseRetain(cleanupConfig.retain);
 	const now = Date.now();
 	let cleaned = 0;
@@ -104,19 +103,26 @@ export function cleanupRuns(
 			}
 			if (run.meta.url) itemVars.url = run.meta.url;
 			if (run.meta.item_key) itemVars.item_key = run.meta.item_key;
-			const checkCmd = render(
-				cleanupConfig.check,
-				globalVars,
-				taskVars,
-				itemVars,
-			);
-			const output = execSync(checkCmd, {
-				encoding: "utf-8",
-				timeout: 15_000,
-				shell: "/bin/bash",
-				cwd: baseDir,
-			}).trim();
-			if (cleanupPattern.test(output)) {
+
+			let eligible = true;
+			if (cleanupConfig.check && cleanupConfig.when) {
+				const cleanupPattern = new RegExp(cleanupConfig.when);
+				const checkCmd = render(
+					cleanupConfig.check,
+					globalVars,
+					taskVars,
+					itemVars,
+				);
+				const output = execSync(checkCmd, {
+					encoding: "utf-8",
+					timeout: 15_000,
+					shell: "/bin/bash",
+					cwd: baseDir,
+				}).trim();
+				eligible = cleanupPattern.test(output);
+			}
+
+			if (eligible) {
 				archiveRun(
 					run.dir,
 					binDir,
