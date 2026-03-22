@@ -1,0 +1,14 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# agent247 runtime
+runs/
+.bin/
+tasks/*/.lock
+
+# secret
+.env.local
+
+# local notes (not version controlled)
+tasks/*/notes.md

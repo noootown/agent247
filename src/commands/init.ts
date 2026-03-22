@@ -1,18 +1,13 @@
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
-const GITIGNORE_TEMPLATE = `# OS
-.DS_Store
-Thumbs.db
-
-# agent247 runtime
-runs/
-.bin/
-tasks/*/.lock
-
-# secret
-.env.local
-`;
+function getGitignoreTemplate(): string {
+	const templatePath = join(
+		import.meta.dirname ?? process.cwd(),
+		"../templates/.gitignore.workspace",
+	);
+	return readFileSync(templatePath, "utf-8");
+}
 
 const VARS_TEMPLATE = `# Bot identity
 bot_name: My Bot
@@ -32,7 +27,7 @@ export function initCommand(targetDir: string): void {
 	mkdirSync(join(dir, "runs"), { recursive: true });
 
 	if (!existsSync(join(dir, ".gitignore"))) {
-		writeFileSync(join(dir, ".gitignore"), GITIGNORE_TEMPLATE);
+		writeFileSync(join(dir, ".gitignore"), getGitignoreTemplate());
 	}
 
 	if (!existsSync(join(dir, "vars.yaml"))) {

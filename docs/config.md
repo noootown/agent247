@@ -100,8 +100,34 @@ bot_name: Review Bot
 
 Prompts and discovery commands use `{{variable_name}}` substitution. Variables are merged with this precedence (highest first):
 
-1. **Item variables** — fields from the discovery output JSON
-2. **Task variables** — from `config.yaml` `vars:`
-3. **Global variables** — from `vars.yaml`
+1. **Reserved variables** — injected by agent247, cannot be overridden (see below)
+2. **Item variables** — fields from the discovery output JSON
+3. **Task variables** — from `config.yaml` `vars:`
+4. **Global variables** — from `vars.yaml`
 
 Unresolved `{{placeholders}}` are left as-is.
+
+### Reserved Variables
+
+These names are reserved and always set by agent247. Do not use them in `vars.yaml` or task `vars:`.
+
+| Variable | Description |
+|----------|-------------|
+| `{{notes}}` | Contents of `tasks/<task-id>/notes.md` if it exists, empty string otherwise. Use for per-task local notes, checklists, or context that changes frequently and should not be version controlled. |
+
+### Per-Task Notes (`tasks/<task-id>/notes.md`)
+
+Each task can have an optional `notes.md` file. It is gitignored (not version controlled) and its contents are injected as `{{notes}}` before the prompt is rendered. The `prompt.md` decides how to use it — as a checklist, scratchpad, extra context, etc.
+
+Example `prompt.md` usage:
+```
+{{#if notes}}
+## Notes
+{{notes}}
+{{/if}}
+```
+
+Or simply reference it inline:
+```
+Additional context: {{notes}}
+```

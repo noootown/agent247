@@ -1,6 +1,37 @@
+import {
+	appendFileSync,
+	existsSync,
+	readFileSync,
+	writeFileSync,
+} from "node:fs";
 import { join, resolve } from "node:path";
 import { listTasks } from "../lib/config.js";
 import { syncLaunchd } from "../lib/launchd.js";
+
+function mergeGitignore(workspacePath: string): void {
+	const templatePath = join(
+		import.meta.dirname ?? process.cwd(),
+		"../templates/.gitignore.workspace",
+	);
+	const template = readFileSync(templatePath, "utf-8");
+	const templateLines = template.split("\n").map((l) => l.trim());
+
+	if (!existsSync(workspacePath)) {
+		writeFileSync(workspacePath, template);
+		return;
+	}
+
+	const existing = readFileSync(workspacePath, "utf-8");
+	const existingSet = new Set(existing.split("\n").map((l) => l.trim()));
+
+	const missing = templateLines.filter(
+		(l) => l && !l.startsWith("#") && !existingSet.has(l),
+	);
+	if (missing.length === 0) return;
+
+	const block = `\n# agent247 managed\n${missing.join("\n")}\n`;
+	appendFileSync(workspacePath, block);
+}
 
 export function syncCommand(baseDir: string): void {
 	const tasks = listTasks(baseDir);
@@ -30,6 +61,7 @@ export function syncCommand(baseDir: string): void {
 		})
 		.join(":");
 
+	mergeGitignore(join(absBaseDir, ".gitignore"));
 	syncLaunchd(enabledTasks, process.execPath, distCli, absBaseDir, envVars);
 
 	if (enabledTasks.length === 0) {
