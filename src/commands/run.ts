@@ -224,6 +224,16 @@ async function executeForItem(
 	// Save item vars for post-run cleanup (e.g., when canceled from TUI)
 	mkdirSync(runDir, { recursive: true });
 	writeFileSync(join(runDir, "vars.json"), JSON.stringify(item, null, 2));
+
+	// Write resolved config.yaml (template vars substituted)
+	const rawConfig = readFileSync(
+		join(baseDir ?? "", "tasks", config.id, "config.yaml"),
+		"utf-8",
+	);
+	writeFileSync(
+		join(runDir, "config.resolved.yaml"),
+		render(rawConfig, globalVars, taskVars, item),
+	);
 	logger.log(`Starting task: ${config.id}`);
 	if (config.discovery)
 		logger.log(`Item: ${item[config.discovery?.item_key ?? ""]}`);

@@ -109,7 +109,7 @@ export function handleKey(
 
 	if (key === "?") return { ...state, mode: "help" };
 
-	// Number keys 1-7: switch run file tab
+	// Number keys 1-8: switch run file tab
 	const tabNum = Number.parseInt(key, 10);
 	if (tabNum >= 1 && tabNum <= RUN_TABS.length && line?.type === "run") {
 		return {

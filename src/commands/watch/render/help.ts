@@ -16,7 +16,7 @@ export function renderHelp(): void {
 		`    Home / End              Scroll detail pane to top / bottom`,
 		"",
 		`  ${BOLD}File Tabs${RESET}  ${DIM}(when viewing a run)${RESET}`,
-		`    1-7                     Switch to file tab`,
+		`    1-8                     Switch to file tab`,
 		`    Tab / Ctrl+X            Next tab`,
 		`    Shift+Tab / Ctrl+Z      Previous tab`,
 		"",

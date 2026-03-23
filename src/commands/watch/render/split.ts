@@ -26,27 +26,29 @@ import {
 import { renderListRow } from "./list.js";
 import { getPrettifier } from "./prettifiers.js";
 
-const TAB_LABELS = [
+const TAB_SHORT = ["rpt", "tsc", "prm", "meta", "log", "cfg", "vars", "resp"];
+const TAB_FULL = [
 	"report",
 	"transcript",
 	"prompt",
 	"meta",
 	"log",
+	"config",
 	"vars",
 	"response",
 ];
 const TAB_ACTIVE_BG = "\x1B[44m\x1B[97m"; // bright white on blue
-const FOOTER_COMMON = `wasd scroll  1-7/tab tabs  ? help`;
+const FOOTER_COMMON = `wasd scroll  1-8/tab tabs  ? help`;
 const FOOTER_SPLIT = `  ${DIM}f full  q quit  ↑↓ navigate  ${FOOTER_COMMON}${RESET}`;
 const FOOTER_FULL = `  ${DIM}f/q/esc back  ${FOOTER_COMMON}${RESET}`;
 
 function renderTabBar(activeTab: number): string {
-	const parts = TAB_LABELS.map((label, i) => {
+	const parts = TAB_SHORT.map((short, i) => {
 		const num = `${i + 1}`;
 		if (i === activeTab) {
-			return `${TAB_ACTIVE_BG}${BOLD} ${num}:${label} ${RESET}`;
+			return `${TAB_ACTIVE_BG}${BOLD} ${num}:${TAB_FULL[i]} ${RESET}`;
 		}
-		return `${DIM} ${num}:${label} ${RESET}`;
+		return `${DIM} ${num}:${short} ${RESET}`;
 	});
 	return parts.join("");
 }

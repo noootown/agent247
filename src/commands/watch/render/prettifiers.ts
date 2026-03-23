@@ -191,12 +191,22 @@ export function defaultPrettifier(
 
 // ── Prettifier registry ──
 
+export function yamlPrettifier(
+	content: string,
+	_run: RunRecord,
+	_width: number,
+): string[] {
+	const highlighted = highlightCode(content, "yaml");
+	return applyTransforms(highlighted.split("\n"), [urls]);
+}
+
 export const prettifiers: Record<string, Prettifier> = {
 	"report.md": markdownPrettifier,
 	"transcript.md": markdownPrettifier,
 	"prompt.rendered.md": markdownPrettifier,
 	"log.txt": logPrettifier,
 	"meta.yaml": metaPrettifier,
+	"config.resolved.yaml": yamlPrettifier,
 	"vars.json": jsonPrettifier,
 	"response.json": jsonPrettifier,
 };

@@ -24,6 +24,7 @@ export const RUN_TABS = [
 	"prompt.rendered.md",
 	"meta.yaml",
 	"log.txt",
+	"config.resolved.yaml",
 	"vars.json",
 	"response.json",
 ] as const;
