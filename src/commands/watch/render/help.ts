@@ -13,7 +13,7 @@ export function renderHelp(): void {
 		`    ← / →                   Collapse / expand task group`,
 		`    Enter                   Toggle group expansion`,
 		`    w/a/s/d                 Scroll detail pane (up/left/down/right)`,
-	`    Home / End              Scroll detail pane to top / bottom`,
+		`    Home / End              Scroll detail pane to top / bottom`,
 		"",
 		`  ${BOLD}File Tabs${RESET}  ${DIM}(when viewing a run)${RESET}`,
 		`    1-7                     Switch to file tab`,

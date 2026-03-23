@@ -48,9 +48,11 @@ export function renderListRow(
 		const plainIcon =
 			line.run.meta.status === "error"
 				? "✗"
-				: line.run.meta.status === "completed"
-					? "●"
-					: "○";
+				: line.run.meta.status === "canceled"
+					? "✕"
+					: line.run.meta.status === "completed"
+						? "●"
+						: "○";
 		const status = line.run.meta.status.padEnd(10);
 		const plain = `    ${plainIcon} ${status} ${timeBase} (${ago})  ${slug}`;
 		return `${SELECT_BG}${plain.substring(0, width).padEnd(width)}${RESET}`;

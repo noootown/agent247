@@ -223,8 +223,8 @@ export function renderSplitVertical(
 ): void {
 	const rows = process.stdout.rows ?? 24;
 	const cols = process.stdout.columns ?? 80;
-	const topRows = Math.floor((rows - 4) * 0.4);
-	const bottomRows = rows - 4 - topRows;
+	const topRows = Math.floor((rows - 5) * 0.4);
+	const bottomRows = rows - 5 - topRows;
 
 	let { cursor, scroll } = state;
 	if (cursor >= 0) {
@@ -276,11 +276,12 @@ export function renderSplitVertical(
 	}
 
 	const cursorLine = lines[state.cursor];
-	const bottomHeader =
-		cursorLine?.type === "run"
-			? renderTabBar(state.activeTab)
-			: `${BOLD}Task Info${RESET}`;
-	process.stdout.write(`${DIM}${"─".repeat(cols)}${RESET} ${bottomHeader}\n`);
+	if (cursorLine?.type === "run") {
+		process.stdout.write(` ${renderTabBar(state.activeTab)}\n`);
+	} else {
+		process.stdout.write(` ${BOLD}Task Info${RESET}\n`);
+	}
+	process.stdout.write(`${DIM}${"─".repeat(cols)}${RESET}\n`);
 
 	for (let i = 0; i < bottomRows; i++) {
 		const reportLine = visibleReport[i] ?? "";

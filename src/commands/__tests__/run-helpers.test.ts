@@ -1,6 +1,6 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 /**
@@ -130,7 +130,11 @@ describe("runDirName", () => {
 
 // Exact copy of loadInjectVars from run.ts
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-function loadInjectVars(taskId: string, baseDir: string): Record<string, string> {
+
+function loadInjectVars(
+	taskId: string,
+	baseDir: string,
+): Record<string, string> {
 	const injectDir = join(baseDir, "tasks", taskId, "inject");
 	if (!existsSync(injectDir)) return {};
 	const vars: Record<string, string> = {};

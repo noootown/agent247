@@ -57,7 +57,9 @@ export function loadTaskConfig(taskId: string, baseDir: string): TaskConfig {
 		timeout: raw.timeout as number,
 		enabled: raw.enabled as boolean,
 		vars: raw.vars as Record<string, string> | undefined,
-		discovery: raw.discovery as { command: string; item_key: string } | undefined,
+		discovery: raw.discovery as
+			| { command: string; item_key: string }
+			| undefined,
 		model: (raw.model as string) ?? "sonnet",
 		prompt_mode: (raw.prompt_mode as string) === "batch" ? "batch" : "per_item",
 		cwd: raw.cwd as string | undefined,
