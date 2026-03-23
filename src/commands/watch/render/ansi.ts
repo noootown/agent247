@@ -35,6 +35,57 @@ export function stripAnsi(str: string): string {
 	return str.replace(ANSI_RE, "").replace(OSC_RE, "");
 }
 
+/** Returns the terminal display width of a single Unicode code point (0, 1, or 2 columns). */
+function charWidth(cp: number): number {
+	// Zero-width: combining chars, variation selectors, ZWJ, ZWS
+	if (
+		(cp >= 0x0300 && cp <= 0x036f) || // Combining Diacritical Marks
+		(cp >= 0x200b && cp <= 0x200d) || // ZWS, ZWNJ, ZWJ
+		cp === 0xfeff || // BOM / ZWNBSP
+		(cp >= 0xfe00 && cp <= 0xfe0f) || // Variation Selectors
+		(cp >= 0x1f3fb && cp <= 0x1f3ff) || // Emoji skin tone modifiers
+		(cp >= 0xe0100 && cp <= 0xe01ef) // Variation Selectors Supplement
+	) {
+		return 0;
+	}
+	if (cp < 0x1100) return 1;
+	if (
+		(cp >= 0x1100 && cp <= 0x115f) || // Hangul Jamo
+		cp === 0x2329 ||
+		cp === 0x232a ||
+		(cp >= 0x2600 && cp <= 0x27bf) || // Misc Symbols + Dingbats (✅ ❌ ⚾ etc.)
+		(cp >= 0x2b50 && cp <= 0x2b55) || // Stars/circles
+		(cp >= 0x2e80 && cp <= 0x303e) || // CJK Radicals
+		(cp >= 0x3040 && cp <= 0x33ff) || // Japanese
+		(cp >= 0x3400 && cp <= 0x4dbf) || // CJK Extension A
+		(cp >= 0x4e00 && cp <= 0xa4c6) || // CJK Unified
+		(cp >= 0xa960 && cp <= 0xa97c) ||
+		(cp >= 0xac00 && cp <= 0xd7a3) || // Hangul
+		(cp >= 0xf900 && cp <= 0xfaff) || // CJK Compatibility
+		(cp >= 0xfe10 && cp <= 0xfe19) ||
+		(cp >= 0xfe30 && cp <= 0xfe6b) ||
+		(cp >= 0xff01 && cp <= 0xff60) || // Fullwidth ASCII
+		(cp >= 0xffe0 && cp <= 0xffe6) ||
+		(cp >= 0x1f004 && cp <= 0x1faff) || // Emoji (most)
+		(cp >= 0x20000 && cp <= 0x2fffd) ||
+		(cp >= 0x30000 && cp <= 0x3fffd)
+	) {
+		return 2;
+	}
+	return 1;
+}
+
+/** Returns the visible terminal column width of a plain (ANSI-stripped) string. */
+export function visibleWidth(str: string): number {
+	let width = 0;
+	for (let i = 0; i < str.length; ) {
+		const cp = str.codePointAt(i) ?? 0;
+		width += charWidth(cp);
+		i += cp > 0xffff ? 2 : 1;
+	}
+	return width;
+}
+
 export function scrollAnsi(text: string, skip: number): string {
 	if (skip <= 0) return text;
 	// biome-ignore lint/suspicious/noControlCharactersInRegex: matching ANSI/OSC sequences
@@ -53,8 +104,9 @@ export function scrollAnsi(text: string, skip: number): string {
 			}
 			i += match[0].length;
 		} else {
-			visCount++;
-			i++;
+			const cp = text.codePointAt(i) ?? 0;
+			visCount += charWidth(cp);
+			i += cp > 0xffff ? 2 : 1;
 		}
 	}
 	return activeAnsi + text.substring(i);
@@ -62,8 +114,8 @@ export function scrollAnsi(text: string, skip: number): string {
 
 export function fitToWidth(text: string, width: number): string {
 	const visible = stripAnsi(text);
-	if (visible.length <= width) {
-		return text + " ".repeat(width - visible.length);
+	if (visibleWidth(visible) <= width) {
+		return text + " ".repeat(width - visibleWidth(visible));
 	}
 	let visCount = 0;
 	let i = 0;
@@ -77,9 +129,12 @@ export function fitToWidth(text: string, width: number): string {
 			result += match[0];
 			i += match[0].length;
 		} else {
-			result += text[i];
-			visCount++;
-			i++;
+			const cp = text.codePointAt(i) ?? 0;
+			const w = charWidth(cp);
+			if (visCount + w > width - 1) break;
+			result += String.fromCodePoint(cp);
+			visCount += w;
+			i += cp > 0xffff ? 2 : 1;
 		}
 	}
 	return `${result}…${RESET}`;

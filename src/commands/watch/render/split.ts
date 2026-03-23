@@ -20,6 +20,7 @@ import {
 	SEPARATOR,
 	scrollAnsi,
 	stripAnsi,
+	visibleWidth,
 	YELLOW,
 } from "./ansi.js";
 import { renderListRow } from "./list.js";
@@ -148,7 +149,7 @@ export function renderSplitHorizontal(
 
 	// Cap reportScrollX to longest visible line
 	const maxLen = reportLines.reduce(
-		(max, l) => Math.max(max, stripAnsi(l).length),
+		(max, l) => Math.max(max, visibleWidth(stripAnsi(l))),
 		0,
 	);
 	const cappedScrollX = Math.min(
@@ -179,7 +180,7 @@ export function renderSplitHorizontal(
 			: ` ${BOLD}Task Info${RESET}`;
 	const leftHeader = ` ${BOLD}${botName}${RESET} — ${state.groups.length} tasks`;
 	const leftHeaderPad = " ".repeat(
-		Math.max(0, leftWidth - stripAnsi(leftHeader).length),
+		Math.max(0, leftWidth - visibleWidth(stripAnsi(leftHeader))),
 	);
 	process.stdout.write(
 		`${leftHeader}${leftHeaderPad}${SEPARATOR}${rightHeader}\n`,
@@ -200,7 +201,7 @@ export function renderSplitHorizontal(
 		} else {
 			left = " ".repeat(leftWidth);
 		}
-		const leftLen = stripAnsi(left).length;
+		const leftLen = visibleWidth(stripAnsi(left));
 		if (leftLen < leftWidth) left += " ".repeat(leftWidth - leftLen);
 
 		const colorRight = ` ${reportLine}`;
@@ -235,7 +236,7 @@ export function renderSplitVertical(
 	const reportLines = getRightPaneLines(state, lines, cols);
 
 	const maxLen = reportLines.reduce(
-		(max, l) => Math.max(max, stripAnsi(l).length),
+		(max, l) => Math.max(max, visibleWidth(stripAnsi(l))),
 		0,
 	);
 	const cappedScrollX = Math.min(
@@ -305,7 +306,7 @@ function renderFullPane(
 	const reportLines = getRightPaneLines(state, lines, cols);
 
 	const maxLen = reportLines.reduce(
-		(max, l) => Math.max(max, stripAnsi(l).length),
+		(max, l) => Math.max(max, visibleWidth(stripAnsi(l))),
 		0,
 	);
 	const cappedScrollX = Math.min(
