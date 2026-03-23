@@ -59,4 +59,25 @@ describe("execHook", () => {
 		execHook("echo ok", "/tmp", logger);
 		expect(logger.calls.filter((c) => c.startsWith("ERROR"))).toHaveLength(0);
 	});
+
+	it("logs stdout lines via logger.log on success", () => {
+		const logger = makeLogger();
+		vi.mocked(execSync).mockReturnValue("line one\nline two\n");
+		execHook("echo hello", "/tmp", logger);
+		expect(logger.calls).toContain("INFO: line one");
+		expect(logger.calls).toContain("INFO: line two");
+	});
+
+	it("logs stderr lines via logger.error on failure", () => {
+		const logger = makeLogger();
+		const err = Object.assign(new Error("command failed"), {
+			stderr: "error output\n",
+			stdout: "",
+		});
+		vi.mocked(execSync).mockImplementation(() => {
+			throw err;
+		});
+		expect(() => execHook("bad-cmd", "/tmp", logger)).toThrow("command failed");
+		expect(logger.calls).toContain("ERROR: error output");
+	});
 });

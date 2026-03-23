@@ -43,7 +43,7 @@ export function archiveRun(
 	itemVars: Record<string, string> = {},
 	cwd?: string,
 ): void {
-	// Render teardown BEFORE move (vars.json still at original path)
+	// Render teardown BEFORE move (data.json still at original path)
 	let renderedTeardown: string | undefined;
 	if (teardownCmd) {
 		renderedTeardown = render(teardownCmd, globalVars, taskVars, itemVars);
@@ -95,10 +95,10 @@ export function cleanupRuns(
 			continue;
 		try {
 			let itemVars: Record<string, string> = {};
-			const itemJsonPath = join(run.dir, "vars.json");
-			if (existsSync(itemJsonPath)) {
+			const dataJsonPath = join(run.dir, "data.json");
+			if (existsSync(dataJsonPath)) {
 				try {
-					itemVars = JSON.parse(readFileSync(itemJsonPath, "utf-8"));
+					itemVars = JSON.parse(readFileSync(dataJsonPath, "utf-8")).vars ?? {};
 				} catch {}
 			}
 			if (run.meta.url) itemVars.url = run.meta.url;

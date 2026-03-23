@@ -1,3 +1,4 @@
+import yaml from "js-yaml";
 import type { RunRecord } from "../../../lib/report.js";
 import {
 	BOLD,
@@ -134,30 +135,102 @@ export function markdownPrettifier(
 	]);
 }
 
-export function metaPrettifier(
-	_content: string,
-	run: RunRecord,
-	_width: number,
+/** "run" tab — meta info + divider + resolved config from data.json */
+export function runPrettifier(
+	content: string,
+	_run: RunRecord,
+	width: number,
 ): string[] {
-	const m = run.meta;
-	const lines = [
+	let data: Record<string, unknown> = {};
+	try {
+		data = JSON.parse(content);
+	} catch {
+		return ["Invalid data.json"];
+	}
+
+	const m = (data.run ?? {}) as Record<string, unknown>;
+	const metaLines = [
 		`${BOLD}Run${RESET}`,
-		`  ID: ${m.id}`,
-		`  Task: ${BOLD}${MAGENTA}${m.task}${RESET}`,
-		`  Status: ${statusIcon(m.status)} ${statusText(m.status)}`,
+		`  ID: ${m.id ?? "—"}`,
+		`  Task: ${BOLD}${MAGENTA}${m.task ?? "—"}${RESET}`,
+		`  Status: ${statusIcon(String(m.status ?? ""))} ${statusText(String(m.status ?? ""))}`,
 		"",
 		`${BOLD}Timing${RESET}`,
-		`  Started: ${formatTime(m.started_at)} ${DIM}(${formatAgo(Date.parse(m.started_at))})${RESET}`,
-		`  Finished: ${formatTime(m.finished_at)} ${DIM}(${formatAgo(Date.parse(m.finished_at))})${RESET}`,
-		`  Duration: ${m.duration_seconds}s`,
+		m.started_at
+			? `  Started: ${formatTime(String(m.started_at))} ${DIM}(${formatAgo(Date.parse(String(m.started_at)))})${RESET}`
+			: null,
+		m.finished_at
+			? `  Finished: ${formatTime(String(m.finished_at))} ${DIM}(${formatAgo(Date.parse(String(m.finished_at)))})${RESET}`
+			: null,
+		m.duration_seconds != null ? `  Duration: ${m.duration_seconds}s` : null,
 		"",
 		`${BOLD}Details${RESET}`,
 		m.url ? `  URL: ${m.url}` : `  URL: ${DIM}—${RESET}`,
 		`  Item key: ${m.item_key ?? `${DIM}—${RESET}`}`,
-		`  Exit code: ${m.exit_code === 0 ? `${GREEN}${m.exit_code}${RESET}` : `${RED}${m.exit_code}${RESET}`}`,
-		`  Schema: v${m.schema_version}`,
+		m.exit_code != null
+			? `  Exit code: ${m.exit_code === 0 ? `${GREEN}${m.exit_code}${RESET}` : `${RED}${m.exit_code}${RESET}`}`
+			: null,
+	].filter((l): l is string => l !== null);
+
+	const divider = `${DIM}${"─".repeat(width)}${RESET}`;
+	const configLines: string[] = [];
+	if (data.config) {
+		const configYaml = yaml.dump(data.config, { lineWidth: -1 });
+		const highlighted = highlightCode(configYaml, "yaml");
+		configLines.push(...highlighted.split("\n"));
+	}
+
+	return [
+		...applyTransforms(metaLines, [urls]),
+		"",
+		divider,
+		"",
+		`${BOLD}Config${RESET}`,
+		"",
+		...applyTransforms(configLines, [urls]),
 	];
-	return applyTransforms(lines, [urls]);
+}
+
+/** "data" tab — vars + discovery + result from data.json */
+export function dataPrettifier(
+	content: string,
+	_run: RunRecord,
+	width: number,
+): string[] {
+	let data: Record<string, unknown> = {};
+	try {
+		data = JSON.parse(content);
+	} catch {
+		return ["Invalid data.json"];
+	}
+
+	const divider = `${DIM}${"─".repeat(width)}${RESET}`;
+	const lines: string[] = [];
+
+	if (data.vars) {
+		lines.push(`${BOLD}Vars${RESET}`, "");
+		const varsJson = JSON.stringify(data.vars, null, 2);
+		const highlighted = highlightCode(varsJson, "json");
+		lines.push(...applyTransforms(highlighted.split("\n"), [urls]));
+		lines.push("", divider, "");
+	}
+
+	if (data.discovery) {
+		lines.push(`${BOLD}Discovery${RESET}`, "");
+		const discoveryJson = JSON.stringify(data.discovery, null, 2);
+		const highlighted = highlightCode(discoveryJson, "json");
+		lines.push(...applyTransforms(highlighted.split("\n"), [urls]));
+		lines.push("", divider, "");
+	}
+
+	if (data.result !== undefined) {
+		lines.push(`${BOLD}Result${RESET}`, "");
+		const resultJson = JSON.stringify(data.result, null, 2);
+		const highlighted = highlightCode(resultJson, "json");
+		lines.push(...applyTransforms(highlighted.split("\n"), [urls]));
+	}
+
+	return lines;
 }
 
 export function jsonPrettifier(
@@ -191,24 +264,13 @@ export function defaultPrettifier(
 
 // ── Prettifier registry ──
 
-export function yamlPrettifier(
-	content: string,
-	_run: RunRecord,
-	_width: number,
-): string[] {
-	const highlighted = highlightCode(content, "yaml");
-	return applyTransforms(highlighted.split("\n"), [urls]);
-}
-
 export const prettifiers: Record<string, Prettifier> = {
 	"report.md": markdownPrettifier,
 	"transcript.md": markdownPrettifier,
 	"prompt.rendered.md": markdownPrettifier,
 	"log.txt": logPrettifier,
-	"meta.yaml": metaPrettifier,
-	"config.resolved.yaml": yamlPrettifier,
-	"vars.json": jsonPrettifier,
-	"response.json": jsonPrettifier,
+	run: runPrettifier,
+	data: dataPrettifier,
 };
 
 export function getPrettifier(fileName: string): Prettifier {

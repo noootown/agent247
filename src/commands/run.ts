@@ -1,26 +1,27 @@
-import {
-	existsSync,
-	mkdirSync,
-	readdirSync,
-	readFileSync,
-	writeFileSync,
-} from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import yaml from "js-yaml";
 import { ulid } from "ulid";
 import { purgeBin } from "../lib/bin.js";
 import { cleanupRuns } from "../lib/cleanup.js";
-import { loadGlobalVars, loadTaskConfig } from "../lib/config.js";
+import {
+	loadEnvLocalRaw,
+	loadGlobalVars,
+	loadTaskConfig,
+} from "../lib/config.js";
 import { filterNewItems } from "../lib/dedup.js";
 import { discoverItems } from "../lib/discovery.js";
 import { execHook } from "../lib/hooks.js";
 import { acquireLock, releaseLock } from "../lib/lock.js";
 import { createLogger } from "../lib/logger.js";
+import { buildSecretMap } from "../lib/redact.js";
 import { listRuns, type RunMeta, writeRun } from "../lib/report.js";
 import {
 	executePrompt,
 	extractTextFromJson,
 	parseClaudeOutput,
 } from "../lib/runner.js";
+import { writeTaskCache } from "../lib/task-cache.js";
 import { render } from "../lib/template.js";
 
 function buildRunMeta(
@@ -78,6 +79,22 @@ function runDirName(id: string): string {
 	return `${ts.slice(0, 8)}-${ts.slice(8)}-${id}`;
 }
 
+/** Load and resolve config.yaml as a plain object for data.json */
+function resolveConfig(
+	config: ReturnType<typeof loadTaskConfig>,
+	globalVars: Record<string, string>,
+	taskVars: Record<string, string>,
+	item: Record<string, string>,
+	baseDir: string,
+): Record<string, unknown> {
+	const rawConfig = readFileSync(
+		join(baseDir, "tasks", config.id, "config.yaml"),
+		"utf-8",
+	);
+	const rendered = render(rawConfig, globalVars, taskVars, item);
+	return (yaml.load(rendered) as Record<string, unknown>) ?? {};
+}
+
 export async function runCommand(
 	taskId: string,
 	baseDir: string,
@@ -93,6 +110,8 @@ export async function runCommand(
 
 	const config = loadTaskConfig(taskId, baseDir);
 	const globalVars = loadGlobalVars(baseDir);
+	const envLocalRaw = loadEnvLocalRaw(baseDir);
+	const secrets = buildSecretMap(envLocalRaw);
 
 	try {
 		let items: Record<string, string>[];
@@ -124,6 +143,7 @@ export async function runCommand(
 						1,
 					),
 					log: logger.getEntries().join("\n"),
+					secrets,
 				});
 				console.error(`Discovery failed for ${taskId}: ${err}`);
 				return;
@@ -132,6 +152,8 @@ export async function runCommand(
 			// No discovery configured — run once with an empty item
 			items = [{}];
 		}
+
+		const allDiscoveredItems = items;
 
 		const newItems = filterNewItems(
 			runsDir,
@@ -142,16 +164,8 @@ export async function runCommand(
 		);
 
 		if (newItems.length === 0) {
-			const runId = ulid();
-			const binDir = join(baseDir, ".bin", taskId, runDirName(runId));
-			const finishedAt = new Date().toISOString();
-			const logger = createLogger(join(binDir, "log.txt"));
-			logger.log(
-				`No new items for ${taskId} (${items.length} discovered, all deduped)`,
-			);
-			writeRun(binDir, {
-				meta: buildRunMeta(runId, taskId, "skipped", startedAt, finishedAt, 0),
-				log: logger.getEntries().join("\n"),
+			writeTaskCache(runsDir, taskId, {
+				last_check: new Date().toISOString(),
 			});
 			return;
 		}
@@ -160,19 +174,45 @@ export async function runCommand(
 			if (config.parallel) {
 				await Promise.all(
 					newItems.map((item) =>
-						executeForItem(config, globalVars, item, runsDir, baseDir),
+						executeForItem(
+							config,
+							globalVars,
+							item,
+							runsDir,
+							baseDir,
+							secrets,
+							allDiscoveredItems,
+						),
 					),
 				);
 			} else {
 				for (const item of newItems) {
-					await executeForItem(config, globalVars, item, runsDir, baseDir);
+					await executeForItem(
+						config,
+						globalVars,
+						item,
+						runsDir,
+						baseDir,
+						secrets,
+						allDiscoveredItems,
+					);
 				}
 			}
 		} else {
-			await executeForBatch(config, globalVars, newItems, runsDir, baseDir);
+			await executeForBatch(
+				config,
+				globalVars,
+				newItems,
+				runsDir,
+				baseDir,
+				secrets,
+				allDiscoveredItems,
+			);
 		}
 	} finally {
-		// Cleanup: always runs, even when skipped — move completed/error runs to .bin
+		writeTaskCache(runsDir, taskId, {
+			last_check: new Date().toISOString(),
+		});
 		if (config.cleanup) {
 			const allRuns = listRuns(runsDir, { task: taskId });
 			cleanupRuns(
@@ -212,7 +252,9 @@ async function executeForItem(
 	globalVars: Record<string, string>,
 	item: Record<string, string>,
 	runsDir: string,
-	baseDir?: string,
+	baseDir: string,
+	secrets: Map<string, string>,
+	allDiscoveredItems: Record<string, string>[],
 ): Promise<void> {
 	const startedAt = new Date().toISOString();
 	const runId = ulid();
@@ -221,19 +263,33 @@ async function executeForItem(
 	const itemKey = item[config.discovery?.item_key ?? ""] ?? null;
 
 	const logger = createLogger(join(runDir, "log.txt"));
-	// Save item vars for post-run cleanup (e.g., when canceled from TUI)
-	mkdirSync(runDir, { recursive: true });
-	writeFileSync(join(runDir, "vars.json"), JSON.stringify(item, null, 2));
+	const mergedVars = { ...globalVars, ...taskVars, ...item };
+	const resolvedConfig = resolveConfig(
+		config,
+		globalVars,
+		taskVars,
+		item,
+		baseDir,
+	);
 
-	// Write resolved config.yaml (template vars substituted)
-	const rawConfig = readFileSync(
-		join(baseDir ?? "", "tasks", config.id, "config.yaml"),
-		"utf-8",
-	);
-	writeFileSync(
-		join(runDir, "config.resolved.yaml"),
-		render(rawConfig, globalVars, taskVars, item),
-	);
+	// Write initial data.json with processing status
+	writeRun(runDir, {
+		meta: buildRunMeta(
+			runId,
+			config.id,
+			"processing",
+			startedAt,
+			startedAt,
+			-1,
+			itemKey,
+			itemKey,
+		),
+		config: resolvedConfig,
+		vars: mergedVars,
+		discovery: allDiscoveredItems,
+		log: "",
+		secrets,
+	});
 	logger.log(`Starting task: ${config.id}`);
 	if (config.discovery)
 		logger.log(`Item: ${item[config.discovery?.item_key ?? ""]}`);
@@ -246,7 +302,6 @@ async function executeForItem(
 			execHook(preRunCmd, baseDir, logger);
 		} catch {
 			const finishedAt = new Date().toISOString();
-			// error already logged by execHook
 			writeRun(runDir, {
 				meta: buildRunMeta(
 					runId,
@@ -258,15 +313,18 @@ async function executeForItem(
 					itemKey,
 					itemKey,
 				),
+				config: resolvedConfig,
+				vars: mergedVars,
+				discovery: allDiscoveredItems,
 				log: logger.getEntries().join("\n"),
+				secrets,
 			});
-			// Still run post_run for cleanup
 			runPostHook(config, globalVars, taskVars, item, logger, baseDir);
 			return;
 		}
 	}
 
-	const reservedVars = loadInjectVars(config.id, baseDir ?? "");
+	const reservedVars = loadInjectVars(config.id, baseDir);
 	const renderedPrompt = render(
 		config.prompt,
 		globalVars,
@@ -278,7 +336,6 @@ async function executeForItem(
 		? render(config.cwd, globalVars, taskVars, item)
 		: undefined;
 
-	writeFileSync(join(runDir, "prompt.rendered.md"), renderedPrompt);
 	writeRun(runDir, {
 		meta: buildRunMeta(
 			runId,
@@ -290,7 +347,12 @@ async function executeForItem(
 			itemKey,
 			itemKey,
 		),
+		config: resolvedConfig,
+		vars: mergedVars,
+		discovery: allDiscoveredItems,
+		prompt: renderedPrompt,
 		log: "",
+		secrets,
 	});
 	logger.log(`Rendered prompt (${renderedPrompt.length} chars)`);
 	if (renderedCwd) logger.log(`Working directory: ${renderedCwd}`);
@@ -311,7 +373,9 @@ async function executeForItem(
 		);
 
 		if (execResult.exitCode !== 0) {
-			logger.error(`stderr: ${execResult.stderr}`);
+			if (execResult.stderr?.trim()) {
+				logger.error(`stderr: ${execResult.stderr}`);
+			}
 			writeRun(runDir, {
 				meta: buildRunMeta(
 					runId,
@@ -323,8 +387,12 @@ async function executeForItem(
 					itemKey,
 					itemKey,
 				),
+				config: resolvedConfig,
+				vars: mergedVars,
+				discovery: allDiscoveredItems,
 				prompt: renderedPrompt,
 				log: logger.getEntries().join("\n"),
+				secrets,
 			});
 			return;
 		}
@@ -334,6 +402,8 @@ async function executeForItem(
 			: execResult.stdout;
 		const parsed = parseClaudeOutput(textOutput);
 		logger.log(`Output: ${textOutput.length} chars, status: ${parsed.status}`);
+
+		const result = execResult.rawJson ? JSON.parse(execResult.rawJson) : null;
 
 		writeRun(runDir, {
 			meta: buildRunMeta(
@@ -346,13 +416,16 @@ async function executeForItem(
 				itemKey,
 				parsed.url ?? itemKey,
 			),
+			config: resolvedConfig,
+			vars: mergedVars,
+			discovery: allDiscoveredItems,
+			result,
 			prompt: renderedPrompt,
-			rawJson: execResult.rawJson ?? undefined,
 			report: parsed.report,
 			log: logger.getEntries().join("\n"),
+			secrets,
 		});
 	} finally {
-		// Post-run hook — always runs
 		runPostHook(config, globalVars, taskVars, item, logger, baseDir);
 	}
 }
@@ -362,7 +435,9 @@ async function executeForBatch(
 	globalVars: Record<string, string>,
 	items: Record<string, string>[],
 	runsDir: string,
-	baseDir?: string,
+	baseDir: string,
+	secrets: Map<string, string>,
+	allDiscoveredItems: Record<string, string>[],
 ): Promise<void> {
 	const startedAt = new Date().toISOString();
 	const runId = ulid();
@@ -375,7 +450,16 @@ async function executeForBatch(
 		.join("\n");
 	const batchVars = { items_json: itemsJson, items_list: itemsList };
 
-	const reservedVars = loadInjectVars(config.id, baseDir ?? "");
+	const mergedVars = { ...globalVars, ...taskVars };
+	const resolvedConfig = resolveConfig(
+		config,
+		globalVars,
+		taskVars,
+		{},
+		baseDir,
+	);
+
+	const reservedVars = loadInjectVars(config.id, baseDir);
 	const renderedPrompt = render(
 		config.prompt,
 		globalVars,
@@ -388,7 +472,6 @@ async function executeForBatch(
 		: undefined;
 
 	const logger = createLogger(join(runDir, "log.txt"));
-	writeFileSync(join(runDir, "prompt.rendered.md"), renderedPrompt);
 	writeRun(runDir, {
 		meta: buildRunMeta(
 			runId,
@@ -398,7 +481,12 @@ async function executeForBatch(
 			startedAt,
 			-1,
 		),
+		config: resolvedConfig,
+		vars: mergedVars,
+		discovery: allDiscoveredItems,
+		prompt: renderedPrompt,
 		log: "",
+		secrets,
 	});
 	logger.log(`Starting batch task: ${config.id} (${items.length} items)`);
 	logger.log(`Rendered prompt (${renderedPrompt.length} chars)`);
@@ -419,7 +507,9 @@ async function executeForBatch(
 	);
 
 	if (execResult.exitCode !== 0) {
-		logger.error(`stderr: ${execResult.stderr}`);
+		if (execResult.stderr?.trim()) {
+			logger.error(`stderr: ${execResult.stderr}`);
+		}
 		writeRun(runDir, {
 			meta: buildRunMeta(
 				runId,
@@ -429,8 +519,12 @@ async function executeForBatch(
 				finishedAt,
 				execResult.exitCode,
 			),
+			config: resolvedConfig,
+			vars: mergedVars,
+			discovery: allDiscoveredItems,
 			prompt: renderedPrompt,
 			log: logger.getEntries().join("\n"),
+			secrets,
 		});
 		return;
 	}
@@ -440,6 +534,8 @@ async function executeForBatch(
 		: execResult.stdout;
 	const parsed = parseClaudeOutput(textOutput);
 	logger.log(`Output: ${textOutput.length} chars, status: ${parsed.status}`);
+
+	const result = execResult.rawJson ? JSON.parse(execResult.rawJson) : null;
 
 	writeRun(runDir, {
 		meta: buildRunMeta(
@@ -452,9 +548,13 @@ async function executeForBatch(
 			null,
 			parsed.url,
 		),
+		config: resolvedConfig,
+		vars: mergedVars,
+		discovery: allDiscoveredItems,
+		result,
 		prompt: renderedPrompt,
-		rawJson: execResult.rawJson ?? undefined,
 		report: parsed.report,
 		log: logger.getEntries().join("\n"),
+		secrets,
 	});
 }

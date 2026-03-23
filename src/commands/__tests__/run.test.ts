@@ -7,6 +7,7 @@ vi.mock("../../lib/cleanup.js", () => ({ cleanupRuns: vi.fn() }));
 vi.mock("../../lib/config.js", () => ({
 	loadTaskConfig: vi.fn(),
 	loadGlobalVars: vi.fn(() => ({})),
+	loadEnvLocalRaw: vi.fn(() => ({})),
 }));
 vi.mock("../../lib/dedup.js", () => ({ filterNewItems: vi.fn() }));
 vi.mock("../../lib/discovery.js", () => ({ discoverItems: vi.fn() }));
@@ -34,6 +35,13 @@ vi.mock("../../lib/runner.js", () => ({
 		url: null,
 		report: "done",
 	})),
+}));
+vi.mock("../../lib/redact.js", () => ({
+	buildSecretMap: vi.fn(() => new Map()),
+	redact: vi.fn((text: string) => text),
+}));
+vi.mock("../../lib/task-cache.js", () => ({
+	writeTaskCache: vi.fn(),
 }));
 vi.mock("../../lib/template.js", () => ({
 	render: vi.fn((...args: string[]) => args[0]),
@@ -106,7 +114,7 @@ describe("runCommand", () => {
 		expect(releaseLock).toHaveBeenCalled();
 	});
 
-	it("writes skipped run when all items are deduped", async () => {
+	it("writes cache when all items are deduped (no run created)", async () => {
 		vi.mocked(loadTaskConfig).mockReturnValue(
 			baseConfig({
 				discovery: { command: "find-items", item_key: "url" },
@@ -115,9 +123,9 @@ describe("runCommand", () => {
 		vi.mocked(discoverItems).mockReturnValue([{ url: "a" }, { url: "b" }]);
 		vi.mocked(filterNewItems).mockReturnValue([]);
 		await runCommand("test-task", "/tmp/base");
-		expect(writeRun).toHaveBeenCalledTimes(1);
-		const call = vi.mocked(writeRun).mock.calls[0];
-		expect(call[1].meta.status).toBe("skipped");
+		expect(writeRun).not.toHaveBeenCalled();
+		const { writeTaskCache } = await import("../../lib/task-cache.js");
+		expect(writeTaskCache).toHaveBeenCalled();
 	});
 
 	it("runs per_item sequential for each new item", async () => {
@@ -137,8 +145,8 @@ describe("runCommand", () => {
 			timedOut: false,
 		});
 		await runCommand("test-task", "/tmp/base");
-		// 2 items × 2 writeRun calls each (processing + final) = 4
-		expect(vi.mocked(writeRun).mock.calls.length).toBe(4);
+		// 2 items × 3 writeRun calls each (initial + prompt + final) = 6
+		expect(vi.mocked(writeRun).mock.calls.length).toBe(6);
 	});
 
 	it("runs per_item parallel when config.parallel is true", async () => {

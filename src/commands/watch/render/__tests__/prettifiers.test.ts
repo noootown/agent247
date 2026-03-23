@@ -5,6 +5,7 @@ import {
 	applyCodeBlockHighlighting,
 	applyTransforms,
 	boldText,
+	dataPrettifier,
 	defaultPrettifier,
 	getPrettifier,
 	headings,
@@ -21,7 +22,7 @@ import {
 	jsonStrings,
 	logPrettifier,
 	markdownPrettifier,
-	metaPrettifier,
+	runPrettifier,
 	stripTimestamps,
 	timestamps,
 	urls,
@@ -358,49 +359,89 @@ describe("logPrettifier", () => {
 	});
 });
 
-describe("metaPrettifier", () => {
+describe("runPrettifier", () => {
+	const dataJson = (
+		meta: Record<string, unknown> = {},
+		config: Record<string, unknown> = {},
+	) =>
+		JSON.stringify({
+			run: {
+				id: "TEST123",
+				task: "test-task",
+				status: "completed",
+				started_at: "2026-03-15T10:00:00Z",
+				finished_at: "2026-03-15T10:01:00Z",
+				duration_seconds: 60,
+				url: "https://example.com/pr/1",
+				item_key: null,
+				exit_code: 0,
+				schema_version: 1,
+				...meta,
+			},
+			config: { name: "test-task", schedule: "*/30 * * * *", ...config },
+		});
+
 	it("includes run ID", () => {
-		const lines = metaPrettifier("", mockRun, 80);
+		const lines = runPrettifier(dataJson(), mockRun, 80);
 		const text = lines.map(stripAnsi).join("\n");
 		expect(text).toContain("TEST123");
 	});
 
 	it("includes task name", () => {
-		const lines = metaPrettifier("", mockRun, 80);
+		const lines = runPrettifier(dataJson(), mockRun, 80);
 		const text = lines.map(stripAnsi).join("\n");
 		expect(text).toContain("test-task");
 	});
 
 	it("includes status", () => {
-		const lines = metaPrettifier("", mockRun, 80);
+		const lines = runPrettifier(dataJson(), mockRun, 80);
 		const text = lines.map(stripAnsi).join("\n");
 		expect(text).toContain("completed");
 	});
 
-	it("includes URL as hyperlink", () => {
-		const lines = metaPrettifier("", mockRun, 80);
+	it("includes URL", () => {
+		const lines = runPrettifier(dataJson(), mockRun, 80);
 		const text = lines.join("\n");
 		expect(text).toContain("https://example.com/pr/1");
 	});
 
 	it("shows dash for missing URL", () => {
-		const noUrlRun = { ...mockRun, meta: { ...mockRun.meta, url: null } };
-		const lines = metaPrettifier("", noUrlRun, 80);
+		const lines = runPrettifier(dataJson({ url: null }), mockRun, 80);
 		const text = lines.map(stripAnsi).join("\n");
 		expect(text).toContain("URL: —");
 	});
 
 	it("shows green exit code for 0", () => {
-		const lines = metaPrettifier("", mockRun, 80);
+		const lines = runPrettifier(dataJson(), mockRun, 80);
 		const exitLine = lines.find((l) => stripAnsi(l).includes("Exit code"));
 		expect(exitLine).toContain("\x1B[32m"); // GREEN
 	});
 
 	it("shows red exit code for non-zero", () => {
-		const failRun = { ...mockRun, meta: { ...mockRun.meta, exit_code: 1 } };
-		const lines = metaPrettifier("", failRun, 80);
+		const lines = runPrettifier(dataJson({ exit_code: 1 }), mockRun, 80);
 		const exitLine = lines.find((l) => stripAnsi(l).includes("Exit code"));
 		expect(exitLine).toContain("\x1B[31m"); // RED
+	});
+
+	it("includes config section", () => {
+		const lines = runPrettifier(dataJson(), mockRun, 80);
+		const text = lines.map(stripAnsi).join("\n");
+		expect(text).toContain("Config");
+	});
+});
+
+describe("dataPrettifier", () => {
+	it("renders vars, discovery, and result sections", () => {
+		const content = JSON.stringify({
+			vars: { key: "value" },
+			discovery: [{ id: "item1" }],
+			result: { output: "test" },
+		});
+		const lines = dataPrettifier(content, mockRun, 80);
+		const text = lines.map(stripAnsi).join("\n");
+		expect(text).toContain("Vars");
+		expect(text).toContain("Discovery");
+		expect(text).toContain("Result");
 	});
 });
 
@@ -418,17 +459,16 @@ describe("getPrettifier", () => {
 		expect(getPrettifier("prompt.rendered.md")).toBe(markdownPrettifier);
 	});
 
-	it("returns jsonPrettifier for .json files", () => {
-		expect(getPrettifier("vars.json")).toBe(jsonPrettifier);
-		expect(getPrettifier("response.json")).toBe(jsonPrettifier);
+	it("returns runPrettifier for run tab", () => {
+		expect(getPrettifier("run")).toBe(runPrettifier);
+	});
+
+	it("returns dataPrettifier for data tab", () => {
+		expect(getPrettifier("data")).toBe(dataPrettifier);
 	});
 
 	it("returns logPrettifier for log.txt", () => {
 		expect(getPrettifier("log.txt")).toBe(logPrettifier);
-	});
-
-	it("returns metaPrettifier for meta.yaml", () => {
-		expect(getPrettifier("meta.yaml")).toBe(metaPrettifier);
 	});
 
 	it("returns defaultPrettifier for unknown files", () => {

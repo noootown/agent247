@@ -109,7 +109,7 @@ export function handleKey(
 
 	if (key === "?") return { ...state, mode: "help" };
 
-	// Number keys 1-8: switch run file tab
+	// Number keys: switch run file tab
 	const tabNum = Number.parseInt(key, 10);
 	if (tabNum >= 1 && tabNum <= RUN_TABS.length && line?.type === "run") {
 		return {
@@ -158,7 +158,7 @@ export function handleKey(
 	if (key === "u") return actionOpenUrl(state, line, ctx);
 	if (key === "r") return actionRun(state, line);
 	if (key === "x") {
-		if (line.type === "group") return actionStop(state, line, ctx);
+		if (line.type === "group") return actionStop(state, line);
 		return actionSoftDelete(state, line, ctx);
 	}
 	if (key === "t") return actionToggle(state, line, ctx);

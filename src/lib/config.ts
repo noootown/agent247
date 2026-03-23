@@ -82,10 +82,12 @@ export function loadTaskConfig(taskId: string, baseDir: string): TaskConfig {
 	};
 }
 
-function loadEnvLocal(baseDir: string): void {
+/** Parse .env.local and return raw key-value pairs (does NOT set process.env). */
+export function loadEnvLocalRaw(baseDir: string): Record<string, string> {
 	const envPath = join(baseDir, ".env.local");
-	if (!existsSync(envPath)) return;
+	if (!existsSync(envPath)) return {};
 	const content = readFileSync(envPath, "utf-8");
+	const entries: Record<string, string> = {};
 	for (const line of content.split("\n")) {
 		const trimmed = line.trim();
 		if (!trimmed || trimmed.startsWith("#")) continue;
@@ -99,6 +101,14 @@ function loadEnvLocal(baseDir: string): void {
 		) {
 			value = value.slice(1, -1);
 		}
+		entries[key] = value;
+	}
+	return entries;
+}
+
+function loadEnvLocal(baseDir: string): void {
+	const entries = loadEnvLocalRaw(baseDir);
+	for (const [key, value] of Object.entries(entries)) {
 		process.env[key] = value;
 	}
 }

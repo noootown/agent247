@@ -1,12 +1,10 @@
 import type { State } from "../state.js";
 import { BOLD, RESET } from "./ansi.js";
 
-export function renderConfirmRun(state: State): void {
+function renderConfirmBox(title: string, msg: string, state: State): void {
 	const rows = process.stdout.rows ?? 24;
 	const cols = process.stdout.columns ?? 80;
 
-	const title = " Confirm ";
-	const msg = `Run task "${state.confirmTask}"?`;
 	const SEL_BTN = "\x1B[30m\x1B[46m";
 	const yesBtn =
 		state.confirmChoice === "yes"
@@ -53,4 +51,12 @@ export function renderConfirmRun(state: State): void {
 	for (let i = 0; i < boxLines.length; i++) {
 		process.stdout.write(`\x1B[${startRow + i};${startCol}H${boxLines[i]}`);
 	}
+}
+
+export function renderConfirmRun(state: State): void {
+	renderConfirmBox(" Confirm ", `Run task "${state.confirmTask}"?`, state);
+}
+
+export function renderConfirmStop(state: State): void {
+	renderConfirmBox(" Confirm ", `Stop task "${state.confirmTask}"?`, state);
 }

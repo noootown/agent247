@@ -1,7 +1,7 @@
 import type { TaskConfig } from "../../lib/config.js";
 import type { RunRecord } from "../../lib/report.js";
 
-export type ViewMode = "split" | "help" | "confirm-run";
+export type ViewMode = "split" | "help" | "confirm-run" | "confirm-stop";
 
 export interface TaskGroup {
 	task: string;
@@ -22,12 +22,19 @@ export const RUN_TABS = [
 	"report.md",
 	"transcript.md",
 	"prompt.rendered.md",
-	"meta.yaml",
+	"run",
 	"log.txt",
-	"config.resolved.yaml",
-	"vars.json",
-	"response.json",
+	"data",
 ] as const;
+
+export const TAB_NAMES = [
+	"report",
+	"transcript",
+	"prompt",
+	"run",
+	"log",
+	"data",
+];
 
 export type RunTab = (typeof RUN_TABS)[number];
 

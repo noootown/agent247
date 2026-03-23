@@ -4,6 +4,7 @@ import type { RunRecord } from "../../../lib/report.js";
 import {
 	RUN_TABS,
 	type State,
+	TAB_NAMES,
 	type TaskGroup,
 	type VisibleLine,
 } from "../state.js";
@@ -26,29 +27,18 @@ import {
 import { renderListRow } from "./list.js";
 import { getPrettifier } from "./prettifiers.js";
 
-const TAB_SHORT = ["rpt", "tsc", "prm", "meta", "log", "cfg", "vars", "resp"];
-const TAB_FULL = [
-	"report",
-	"transcript",
-	"prompt",
-	"meta",
-	"log",
-	"config",
-	"vars",
-	"response",
-];
 const TAB_ACTIVE_BG = "\x1B[44m\x1B[97m"; // bright white on blue
-const FOOTER_COMMON = `wasd scroll  1-8/tab tabs  ? help`;
+const FOOTER_COMMON = `wasd scroll  1-${TAB_NAMES.length}/tab tabs  ? help`;
 const FOOTER_SPLIT = `  ${DIM}f full  q quit  ↑↓ navigate  ${FOOTER_COMMON}${RESET}`;
 const FOOTER_FULL = `  ${DIM}f/q/esc back  ${FOOTER_COMMON}${RESET}`;
 
 function renderTabBar(activeTab: number): string {
-	const parts = TAB_SHORT.map((short, i) => {
+	const parts = TAB_NAMES.map((name, i) => {
 		const num = `${i + 1}`;
 		if (i === activeTab) {
-			return `${TAB_ACTIVE_BG}${BOLD} ${num}:${TAB_FULL[i]} ${RESET}`;
+			return `${TAB_ACTIVE_BG}${BOLD} ${num}:${name} ${RESET}`;
 		}
-		return `${DIM} ${num}:${short} ${RESET}`;
+		return `${DIM} ${num}:${name} ${RESET}`;
 	});
 	return parts.join("");
 }
@@ -58,13 +48,16 @@ export function getReportLines(
 	width = 40,
 	activeTab = 0,
 ): string[] {
-	const fileName = RUN_TABS[activeTab] ?? "report.md";
-	const prettify = getPrettifier(fileName);
+	const tabName = RUN_TABS[activeTab] ?? "report.md";
+	const prettify = getPrettifier(tabName);
 
-	const filePath = join(run.dir, fileName);
+	// Virtual tabs read from data.json; file tabs read their own file
+	const filePath = tabName.includes(".")
+		? join(run.dir, tabName)
+		: join(run.dir, "data.json");
 	const content = existsSync(filePath)
 		? readFileSync(filePath, "utf-8")
-		: `No ${fileName} available.`;
+		: `No ${tabName} available.`;
 
 	return prettify(content, run, width);
 }
@@ -89,7 +82,7 @@ export function getTaskInfoLines(group: TaskGroup, width = 40): string[] {
 		`Status: ${group.running ? `${YELLOW}running${RESET}` : group.enabled ? `${GREEN}enabled${RESET}` : `${DIM}disabled${RESET}`}`,
 		group.schedule ? `Schedule: ${group.schedule}` : null,
 		group.lastCheck
-			? `Last check: ${formatTime(group.lastCheck)} ${DIM}(${formatAgo(Date.parse(group.lastCheck))})${RESET}`
+			? `Last run: ${formatTime(group.lastCheck)} ${DIM}(${formatAgo(Date.parse(group.lastCheck))})${RESET}`
 			: null,
 		"",
 		`${"─".repeat(width)}`,

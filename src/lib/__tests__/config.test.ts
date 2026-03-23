@@ -1,7 +1,12 @@
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { listTasks, loadGlobalVars, loadTaskConfig } from "../config.js";
+import {
+	listTasks,
+	loadEnvLocalRaw,
+	loadGlobalVars,
+	loadTaskConfig,
+} from "../config.js";
 
 const TEST_DIR = join(process.cwd(), "__test_config_tmp__");
 
@@ -145,6 +150,30 @@ describe("loadGlobalVars with .env.local", () => {
 		writeFileSync(join(TEST_DIR, "vars.yaml"), "key: value\n");
 		const vars = loadGlobalVars(TEST_DIR);
 		expect(vars.key).toBe("value");
+	});
+});
+
+describe("loadEnvLocalRaw", () => {
+	it("returns key-value pairs from .env.local", () => {
+		writeFileSync(join(TEST_DIR, ".env.local"), "KEY1=value1\nKEY2=value2\n");
+		const result = loadEnvLocalRaw(TEST_DIR);
+		expect(result.KEY1).toBe("value1");
+		expect(result.KEY2).toBe("value2");
+	});
+
+	it("returns empty object when file does not exist", () => {
+		const result = loadEnvLocalRaw(TEST_DIR);
+		expect(result).toEqual({});
+	});
+
+	it("handles quoted values", () => {
+		writeFileSync(
+			join(TEST_DIR, ".env.local"),
+			"DOUBLE=\"double quoted\"\nSINGLE='single quoted'\n",
+		);
+		const result = loadEnvLocalRaw(TEST_DIR);
+		expect(result.DOUBLE).toBe("double quoted");
+		expect(result.SINGLE).toBe("single quoted");
 	});
 });
 

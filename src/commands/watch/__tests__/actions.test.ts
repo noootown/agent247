@@ -183,31 +183,24 @@ describe("actionRun", () => {
 });
 
 describe("actionStop", () => {
-	it("calls stopTask and reloads when group is running", () => {
-		const reloaded = makeState({ cursor: 99 });
-		const ctx = makeMockCtx({ reload: () => reloaded });
+	it("enters confirm-stop mode when group is running", () => {
 		const next = actionStop(
 			makeState(),
 			makeGroupLine({ task: "my-task", running: true }),
-			ctx,
 		);
-		expect(ctx.stopTask).toHaveBeenCalledWith("my-task");
-		expect(next).toBe(reloaded);
+		expect(next.mode).toBe("confirm-stop");
+		expect(next.confirmTask).toBe("my-task");
+		expect(next.confirmChoice).toBe("yes");
 	});
 
 	it("no-ops when group is not running", () => {
 		const state = makeState();
-		const ctx = makeMockCtx();
-		expect(actionStop(state, makeGroupLine({ running: false }), ctx)).toBe(
-			state,
-		);
-		expect(ctx.stopTask).not.toHaveBeenCalled();
+		expect(actionStop(state, makeGroupLine({ running: false }))).toBe(state);
 	});
 
 	it("no-ops on run lines", () => {
 		const state = makeState();
-		const ctx = makeMockCtx();
-		expect(actionStop(state, makeRunLine("processing"), ctx)).toBe(state);
+		expect(actionStop(state, makeRunLine("processing"))).toBe(state);
 	});
 });
 

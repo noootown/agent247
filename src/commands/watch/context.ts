@@ -1,7 +1,6 @@
 import { execSync, spawn } from "node:child_process";
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import yaml from "js-yaml";
 import { archiveRun } from "../../lib/cleanup.js";
 import { loadTaskConfig } from "../../lib/config.js";
 import { listRuns, updateRunMeta } from "../../lib/report.js";
@@ -22,9 +21,9 @@ export function makeSoftDelete(
 		} catch {}
 		let itemVars: Record<string, string> = {};
 		try {
-			const itemPath = join(runDir, "vars.json");
-			if (existsSync(itemPath)) {
-				itemVars = JSON.parse(readFileSync(itemPath, "utf-8"));
+			const dataPath = join(runDir, "data.json");
+			if (existsSync(dataPath)) {
+				itemVars = JSON.parse(readFileSync(dataPath, "utf-8")).vars ?? {};
 			}
 		} catch {}
 		archiveRun(
@@ -69,9 +68,9 @@ export function makeStopTask(
 				updateRunMeta(run.dir, { status: "canceled" });
 				if (taskConfig?.post_run) {
 					try {
-						const itemPath = join(run.dir, "vars.json");
-						const itemVars = existsSync(itemPath)
-							? JSON.parse(readFileSync(itemPath, "utf-8"))
+						const dataPath = join(run.dir, "data.json");
+						const itemVars = existsSync(dataPath)
+							? (JSON.parse(readFileSync(dataPath, "utf-8")).vars ?? {})
 							: {};
 						const cmd = renderTemplate(
 							taskConfig.post_run,
@@ -100,12 +99,14 @@ export function makeToggleTask(baseDir: string): (taskId: string) => void {
 	return (taskId: string) => {
 		const configPath = join(baseDir, "tasks", taskId, "config.yaml");
 		if (!existsSync(configPath)) return;
-		const raw = yaml.load(readFileSync(configPath, "utf-8")) as Record<
-			string,
-			unknown
-		>;
-		raw.enabled = !raw.enabled;
-		writeFileSync(configPath, yaml.dump(raw));
+		const content = readFileSync(configPath, "utf-8");
+		// Toggle enabled field in-place to preserve comments
+		const toggled = content.replace(
+			/^(enabled:\s*)(true|false)\s*$/m,
+			(_match, prefix, value) =>
+				`${prefix}${value === "true" ? "false" : "true"}`,
+		);
+		writeFileSync(configPath, toggled);
 		try {
 			syncCommand(baseDir);
 		} catch {}

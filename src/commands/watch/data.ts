@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { listTasks } from "../../lib/config.js";
 import { getAgentSchedules, listInstalledAgents } from "../../lib/launchd.js";
 import { listRuns, type RunRecord } from "../../lib/report.js";
+import { readTaskCache } from "../../lib/task-cache.js";
 import type { State, TaskGroup, VisibleLine } from "./state.js";
 
 export function getTaskPid(baseDir: string, taskId: string): number | null {
@@ -26,17 +27,8 @@ export function loadData(
 	baseDir: string,
 	runsDir: string,
 	currentState: State,
-	options?: { all?: boolean },
 ): State {
-	let runs = listRuns(runsDir);
-	const binDir = join(baseDir, ".bin");
-	const binRuns = listRuns(binDir);
-	// Combine runs and bin runs to find the latest check per task
-	const allRuns = [...runs, ...binRuns];
-	// Filter skipped from display (they now live in .bin)
-	if (!options?.all) {
-		runs = runs.filter((r) => r.meta.status !== "skipped");
-	}
+	const runs = listRuns(runsDir);
 	runs.sort((a, b) => b.meta.id.localeCompare(a.meta.id));
 
 	const taskMap = new Map<string, RunRecord[]>();
@@ -45,12 +37,12 @@ export function loadData(
 	const installedAgents = new Set(listInstalledAgents());
 	const schedules = getAgentSchedules();
 
-	// Find the latest run (any status) per task across runs/ and .bin/
+	// Read last check timestamp from per-task cache files
 	const lastCheckMap = new Map<string, string>();
-	for (const run of allRuns) {
-		const existing = lastCheckMap.get(run.meta.task);
-		if (!existing || run.meta.finished_at > existing) {
-			lastCheckMap.set(run.meta.task, run.meta.finished_at);
+	for (const t of taskConfigs) {
+		const cache = readTaskCache(runsDir, t.id);
+		if (cache?.last_check) {
+			lastCheckMap.set(t.id, cache.last_check);
 		}
 	}
 

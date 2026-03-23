@@ -39,14 +39,14 @@ export function actionRun(state: State, line: VisibleLine): State {
 	};
 }
 
-export function actionStop(
-	state: State,
-	line: VisibleLine,
-	ctx: WatchContext,
-): State {
+export function actionStop(state: State, line: VisibleLine): State {
 	if (line.type !== "group" || !line.group.running) return state;
-	ctx.stopTask(line.group.task);
-	return ctx.reload(state);
+	return {
+		...state,
+		mode: "confirm-stop",
+		confirmTask: line.group.task,
+		confirmChoice: "yes",
+	};
 }
 
 export function actionToggle(

@@ -16,7 +16,12 @@ export function handleKey(
 		const taskId = state.confirmTask;
 		const next = { ...state, mode: "split" as const, confirmTask: null };
 		if (state.confirmChoice === "yes" && taskId) {
-			ctx.spawnRun(taskId);
+			if (state.mode === "confirm-run") {
+				ctx.spawnRun(taskId);
+			} else if (state.mode === "confirm-stop") {
+				ctx.stopTask(taskId);
+				return ctx.reload(next);
+			}
 		}
 		return next;
 	}

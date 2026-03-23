@@ -34,7 +34,7 @@ export function watchCommand(
 		runsDir,
 		binDir,
 		botName,
-		reload: (s) => loadData(baseDir, runsDir, s, options),
+		reload: (s) => loadData(baseDir, runsDir, s),
 		softDelete: makeSoftDelete(baseDir, binDir, globalVars),
 		stopTask: makeStopTask(baseDir, runsDir, globalVars),
 		toggleTask: makeToggleTask(baseDir),
@@ -47,6 +47,7 @@ export function watchCommand(
 	const modeHandlers = {
 		split: splitHandleKey,
 		"confirm-run": confirmHandleKey,
+		"confirm-stop": confirmHandleKey,
 		help: helpHandleKey,
 	};
 
@@ -77,8 +78,11 @@ export function watchCommand(
 		const prevMode = state.mode;
 		const lines = getVisibleLines(state);
 		state = modeHandlers[state.mode](str, state, lines, ctx);
-		// Reload data when exiting confirm-run
-		if (prevMode === "confirm-run" && state.mode === "split") {
+		// Reload data when exiting confirm dialogs
+		if (
+			(prevMode === "confirm-run" || prevMode === "confirm-stop") &&
+			state.mode === "split"
+		) {
 			state = ctx.reload(state);
 		}
 		render(state, getVisibleLines(state), botName);
@@ -96,7 +100,7 @@ export function watchCommand(
 		syncCommand(baseDir);
 	} catch {}
 
-	state = loadData(baseDir, runsDir, state, options);
+	state = loadData(baseDir, runsDir, state);
 
 	process.stdout.write("\x1B[?1049h\x1B[?25l");
 	process.stdin.setRawMode(true);

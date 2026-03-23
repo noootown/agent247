@@ -190,12 +190,13 @@ describe("action hotkeys", () => {
 		expect(ctx.openUrl).toHaveBeenCalledWith("https://example.com");
 	});
 
-	it("x on a running group calls stopTask", () => {
+	it("x on a running group enters confirm-stop mode", () => {
 		const group = makeGroup("task-a", true);
 		const lines: VisibleLine[] = [{ type: "group", group, index: 0 }];
 		const ctx = makeMockCtx();
-		handleKey("x", makeState({ cursor: 0 }), lines, ctx);
-		expect(ctx.stopTask).toHaveBeenCalledWith("task-a");
+		const next = handleKey("x", makeState({ cursor: 0 }), lines, ctx);
+		expect(next.mode).toBe("confirm-stop");
+		expect(next.confirmTask).toBe("task-a");
 	});
 
 	it("t on a group calls toggleTask", () => {
