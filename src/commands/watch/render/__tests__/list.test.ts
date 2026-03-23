@@ -136,7 +136,7 @@ describe("renderListRow", () => {
 		const WIDE = 120;
 		const result = renderListRow(line, WIDE, true);
 		const plain = stripAnsi(result);
-		expect(plain).toContain("✗");
+		expect(plain).toContain("x");
 		expect(plain).toContain("error");
 		expect(plain).toContain("PR #99");
 		expect(plain.length).toBe(WIDE);

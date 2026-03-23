@@ -8,11 +8,18 @@ import {
 import { join } from "node:path";
 import yaml from "js-yaml";
 
+export type RunStatus =
+	| "completed"
+	| "error"
+	| "processing"
+	| "canceled"
+	| "skipped";
+
 export interface RunMeta {
 	schema_version: number;
 	id: string;
 	task: string;
-	status: "skipped" | "completed" | "error" | "processing" | "canceled";
+	status: RunStatus;
 	url: string | null;
 	item_key: string | null;
 	started_at: string;

@@ -1,3 +1,6 @@
+// ── Status config (single source of truth) ──
+import type { RunStatus } from "../../../lib/report.js";
+
 export const DIM = "\x1B[2m";
 export const BOLD = "\x1B[1m";
 export const RESET = "\x1B[0m";
@@ -140,39 +143,41 @@ export function fitToWidth(text: string, width: number): string {
 	return `${result}…${RESET}`;
 }
 
+interface StatusConfig {
+	icon: string;
+	color: string;
+}
+
+const STATUS_MAP: Record<RunStatus, StatusConfig> = {
+	error: { icon: "x", color: RED },
+	completed: { icon: "●", color: GREEN },
+	processing: { icon: "◌", color: YELLOW },
+	canceled: { icon: "-", color: DIM },
+	skipped: { icon: "○", color: DIM },
+};
+
+const DEFAULT_STATUS: StatusConfig = { icon: "○", color: "" };
+
+function getStatusConfig(status: string): StatusConfig {
+	return STATUS_MAP[status as RunStatus] ?? DEFAULT_STATUS;
+}
+
+export function statusPlainIcon(status: string): string {
+	return getStatusConfig(status).icon;
+}
+
 export function statusIcon(status: string): string {
-	switch (status) {
-		case "error":
-			return `${RED}✗${RESET}`;
-		case "completed":
-			return `${GREEN}●${RESET}`;
-		case "processing":
-			return `${YELLOW}${SPINNER[spinnerFrame % SPINNER.length]}${RESET}`;
-		case "canceled":
-			return `${DIM}✕${RESET}`;
-		case "skipped":
-			return `${DIM}○${RESET}`;
-		default:
-			return "○";
+	if (status === "processing") {
+		return `${YELLOW}${SPINNER[spinnerFrame % SPINNER.length]}${RESET}`;
 	}
+	const { icon, color } = getStatusConfig(status);
+	return color ? `${color}${icon}${RESET}` : icon;
 }
 
 export function statusText(status: string): string {
 	const padded = status.padEnd(10);
-	switch (status) {
-		case "error":
-			return `${RED}${padded}${RESET}`;
-		case "completed":
-			return `${GREEN}${padded}${RESET}`;
-		case "processing":
-			return `${YELLOW}${padded}${RESET}`;
-		case "canceled":
-			return `${DIM}${padded}${RESET}`;
-		case "skipped":
-			return `${DIM}${padded}${RESET}`;
-		default:
-			return padded;
-	}
+	const { color } = getStatusConfig(status);
+	return color ? `${color}${padded}${RESET}` : padded;
 }
 
 export function formatTime(iso: string): string {

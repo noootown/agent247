@@ -36,6 +36,9 @@ const TAB_LABELS = [
 	"response",
 ];
 const TAB_ACTIVE_BG = "\x1B[44m\x1B[97m"; // bright white on blue
+const FOOTER_COMMON = `wasd scroll  1-7/tab tabs  ? help`;
+const FOOTER_SPLIT = `  ${DIM}f full  q quit  ↑↓ navigate  ${FOOTER_COMMON}${RESET}`;
+const FOOTER_FULL = `  ${DIM}f/q/esc back  ${FOOTER_COMMON}${RESET}`;
 
 function renderTabBar(activeTab: number): string {
 	const parts = TAB_LABELS.map((label, i) => {
@@ -211,9 +214,7 @@ export function renderSplitHorizontal(
 		process.stdout.write(`${left}${SEPARATOR}${right}\n`);
 	}
 
-	process.stdout.write(
-		`  ${DIM}↑↓ navigate  wasd scroll  1-7/tab tabs  f full  ? help  q quit${RESET}`,
-	);
+	process.stdout.write(FOOTER_SPLIT);
 }
 
 export function renderSplitVertical(
@@ -224,7 +225,7 @@ export function renderSplitVertical(
 	const rows = process.stdout.rows ?? 24;
 	const cols = process.stdout.columns ?? 80;
 	const topRows = Math.floor((rows - 5) * 0.4);
-	const bottomRows = rows - 5 - topRows;
+	const bottomRows = rows - 6 - topRows; // -6: header, separator, empty line, tab bar, separator, footer
 
 	let { cursor, scroll } = state;
 	if (cursor >= 0) {
@@ -275,6 +276,7 @@ export function renderSplitVertical(
 		}
 	}
 
+	process.stdout.write("\n");
 	const cursorLine = lines[state.cursor];
 	if (cursorLine?.type === "run") {
 		process.stdout.write(` ${renderTabBar(state.activeTab)}\n`);
@@ -290,9 +292,7 @@ export function renderSplitVertical(
 		process.stdout.write(`${fitToWidth(scrolled, cols)}\n`);
 	}
 
-	process.stdout.write(
-		`  ${DIM}↑↓ navigate  wasd scroll  1-7/tab tabs  f full  ? help  q quit${RESET}`,
-	);
+	process.stdout.write(FOOTER_SPLIT);
 }
 
 function renderFullPane(
@@ -345,9 +345,7 @@ function renderFullPane(
 		process.stdout.write(`${fitToWidth(scrolled, cols)}\n`);
 	}
 
-	process.stdout.write(
-		`  ${DIM}f/q/esc back  wasd scroll  1-7/tab tabs  ? help${RESET}`,
-	);
+	process.stdout.write(FOOTER_FULL);
 }
 
 export function renderSplit(
