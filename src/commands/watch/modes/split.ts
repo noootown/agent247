@@ -1,5 +1,6 @@
 import {
 	actionOpenUrl,
+	actionPrompt,
 	actionRun,
 	actionShell,
 	actionSoftDelete,
@@ -163,6 +164,7 @@ export function handleKey(
 		return actionSoftDelete(state, line, ctx);
 	}
 	if (key === "e") return actionShell(state, line);
+	if (key === "p") return actionPrompt(state, line);
 	if (key === "t") return actionToggle(state, line, ctx);
 
 	return state;

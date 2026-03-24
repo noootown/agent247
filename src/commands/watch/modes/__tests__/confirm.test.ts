@@ -15,7 +15,7 @@ function makeState(overrides: Partial<State> = {}): State {
 		reportScrollX: 0,
 		confirmTask: "my-task",
 		confirmChoice: "yes",
-		shellCwd: null,
+		suspend: null,
 		...overrides,
 	};
 }

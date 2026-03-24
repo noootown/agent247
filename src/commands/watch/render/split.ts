@@ -30,7 +30,7 @@ import { getPrettifier } from "./prettifiers.js";
 
 const TAB_ACTIVE_BG = "\x1B[44m\x1B[97m"; // bright white on blue
 const FOOTER_COMMON = `wasd scroll  1-${TAB_NAMES.length}/tab tabs  ? help`;
-const FOOTER_SPLIT = `  ${DIM}f full  q quit  ↑↓ navigate  ${FOOTER_COMMON}${RESET}`;
+const FOOTER_SPLIT = `  ${DIM}f full  p prompt  q quit  ↑↓ navigate  ${FOOTER_COMMON}${RESET}`;
 const FOOTER_FULL = `  ${DIM}f/q/esc back  ${FOOTER_COMMON}${RESET}`;
 
 function renderTabBar(activeTab: number): string {

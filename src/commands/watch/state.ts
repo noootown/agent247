@@ -51,7 +51,7 @@ export interface State {
 	reportScrollX: number;
 	confirmTask: string | null;
 	confirmChoice: "yes" | "no";
-	shellCwd: string | null;
+	suspend: { mode: "shell" | "prompt"; cwd: string } | null;
 }
 
 export interface WatchContext {
@@ -80,6 +80,6 @@ export function initialState(): State {
 		reportScrollX: 0,
 		confirmTask: null,
 		confirmChoice: "yes",
-		shellCwd: null,
+		suspend: null,
 	};
 }

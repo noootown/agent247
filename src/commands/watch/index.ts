@@ -82,10 +82,10 @@ export function watchCommand(baseDir: string): void {
 		) {
 			state = ctx.reload(state);
 		}
-		// Shell mode: suspend TUI, spawn interactive shell, restore on exit
-		if (state.shellCwd) {
-			const cwd = state.shellCwd;
-			state = { ...state, shellCwd: null };
+		// Suspend mode: spawn shell or claude, restore TUI on exit
+		if (state.suspend) {
+			const { mode: suspendMode, cwd } = state.suspend;
+			state = { ...state, suspend: null };
 			// Save terminal state
 			let savedStty = "";
 			try {
@@ -95,23 +95,35 @@ export function watchCommand(baseDir: string): void {
 			process.stdin.removeListener("data", handleInput);
 			process.stdin.setRawMode(false);
 			process.stdout.write("\x1B[?25h\x1B[?1049l");
-			process.stdout.write(
-				`\nShell at ${cwd}\nPress ctrl+d to return to TUI\n\n`,
-			);
-			// Spawn interactive shell with env marker for dotfile customization
-			const shell = process.env.SHELL ?? "/bin/zsh";
-			spawnSync(shell, ["-i"], {
-				stdio: "inherit",
-				cwd,
-				env: { ...process.env, AGENT247_SHELL: cwd },
-			});
+
+			if (suspendMode === "shell") {
+				process.stdout.write(
+					`\nShell at ${cwd}\nPress ctrl+d to return to TUI\n\n`,
+				);
+				const shell = process.env.SHELL ?? "/bin/zsh";
+				spawnSync(shell, ["-i"], {
+					stdio: "inherit",
+					cwd,
+					env: { ...process.env, AGENT247_SHELL: cwd },
+				});
+			} else {
+				process.stdout.write(
+					`\nClaude at ${cwd}\nPress ctrl+d to return to TUI\n\n`,
+				);
+				spawnSync("claude", [], {
+					stdio: "inherit",
+					cwd,
+					env: { ...process.env, AGENT247_SHELL: cwd },
+				});
+			}
+
 			// Restore terminal state
 			if (savedStty) {
 				try {
 					execSync(`stty ${savedStty}`);
 				} catch {}
 			}
-			// Restore TUI — reset cursor key mode (DECCKM) in case shell changed it
+			// Restore TUI — reset cursor key mode (DECCKM) in case shell/claude changed it
 			process.stdout.write("\x1B[?1l\x1B[?1049h\x1B[?25l");
 			process.stdin.setRawMode(true);
 			process.stdin.resume();

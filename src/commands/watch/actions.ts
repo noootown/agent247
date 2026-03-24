@@ -52,23 +52,33 @@ export function actionStop(state: State, line: VisibleLine): State {
 	};
 }
 
-export function actionShell(state: State, line: VisibleLine): State {
-	if (line.type !== "run") return state;
+function getRunCwd(line: VisibleLine): string | null {
+	if (line.type !== "run") return null;
 	const status = line.run.meta.status;
 	if (status !== "completed" && status !== "error" && status !== "canceled")
-		return state;
-
-	// Read cwd from the run's data.json config section
+		return null;
 	const dataPath = join(line.run.dir, FILE.DATA);
-	if (!existsSync(dataPath)) return state;
+	if (!existsSync(dataPath)) return null;
 	try {
 		const data = JSON.parse(readFileSync(dataPath, "utf-8"));
 		const cwd = data.config?.cwd;
-		if (!cwd || !existsSync(cwd)) return state;
-		return { ...state, shellCwd: cwd };
+		if (!cwd || !existsSync(cwd)) return null;
+		return cwd;
 	} catch {
-		return state;
+		return null;
 	}
+}
+
+export function actionShell(state: State, line: VisibleLine): State {
+	const cwd = getRunCwd(line);
+	if (!cwd) return state;
+	return { ...state, suspend: { mode: "shell", cwd } };
+}
+
+export function actionPrompt(state: State, line: VisibleLine): State {
+	const cwd = getRunCwd(line);
+	if (!cwd) return state;
+	return { ...state, suspend: { mode: "prompt", cwd } };
 }
 
 export function actionToggle(

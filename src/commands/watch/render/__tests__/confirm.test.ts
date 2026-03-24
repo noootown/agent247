@@ -23,7 +23,7 @@ describe("renderConfirmRun", () => {
 			mode: "confirm-run",
 			confirmTask: "my-task",
 			confirmChoice: "yes",
-			shellCwd: null,
+			suspend: null,
 		};
 	});
 
