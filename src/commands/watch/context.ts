@@ -3,6 +3,7 @@ import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { archiveRun } from "../../lib/cleanup.js";
 import { loadTaskConfig } from "../../lib/config.js";
+import { FILE } from "../../lib/constants.js";
 import { listRuns, updateRunMeta } from "../../lib/report.js";
 import { render as renderTemplate } from "../../lib/template.js";
 import { syncCommand } from "../sync.js";
@@ -21,7 +22,7 @@ export function makeSoftDelete(
 		} catch {}
 		let itemVars: Record<string, string> = {};
 		try {
-			const dataPath = join(runDir, "data.json");
+			const dataPath = join(runDir, FILE.DATA);
 			if (existsSync(dataPath)) {
 				itemVars = JSON.parse(readFileSync(dataPath, "utf-8")).vars ?? {};
 			}
@@ -68,7 +69,7 @@ export function makeStopTask(
 				updateRunMeta(run.dir, { status: "canceled" });
 				if (taskConfig?.post_run) {
 					try {
-						const dataPath = join(run.dir, "data.json");
+						const dataPath = join(run.dir, FILE.DATA);
 						const itemVars = existsSync(dataPath)
 							? (JSON.parse(readFileSync(dataPath, "utf-8")).vars ?? {})
 							: {};
@@ -97,7 +98,7 @@ export function makeStopTask(
 
 export function makeToggleTask(baseDir: string): (taskId: string) => void {
 	return (taskId: string) => {
-		const configPath = join(baseDir, "tasks", taskId, "config.yaml");
+		const configPath = join(baseDir, "tasks", taskId, FILE.CONFIG);
 		if (!existsSync(configPath)) return;
 		const content = readFileSync(configPath, "utf-8");
 		// Toggle enabled field in-place to preserve comments

@@ -1,6 +1,7 @@
 import {
 	actionOpenUrl,
 	actionRun,
+	actionShell,
 	actionSoftDelete,
 	actionStop,
 	actionToggle,
@@ -161,6 +162,7 @@ export function handleKey(
 		if (line.type === "group") return actionStop(state, line);
 		return actionSoftDelete(state, line, ctx);
 	}
+	if (key === "e") return actionShell(state, line);
 	if (key === "t") return actionToggle(state, line, ctx);
 
 	return state;

@@ -50,22 +50,22 @@ describe("writeRun", () => {
 		expect(data.result.output).toBe("test");
 	});
 
-	it("writes only data.json and log for skipped runs", () => {
+	it("writes only data.json and log for minimal runs", () => {
 		const runDir = join(RUNS_DIR, "test-task", "01TEST002");
 		writeRun(runDir, {
 			meta: {
 				schema_version: 1,
 				id: "01TEST002",
 				task: "test-task",
-				status: "skipped",
+				status: "error",
 				url: null,
 				item_key: null,
 				started_at: "2026-03-15T10:00:00Z",
 				finished_at: "2026-03-15T10:00:01Z",
 				duration_seconds: 1,
-				exit_code: 0,
+				exit_code: 1,
 			},
-			log: "[INFO] no items",
+			log: "[ERROR] failed",
 		});
 		expect(existsSync(join(runDir, "data.json"))).toBe(true);
 		expect(existsSync(join(runDir, "log.txt"))).toBe(true);
@@ -156,18 +156,18 @@ describe("listRuns", () => {
 	});
 
 	it("filters by status", () => {
-		writeRun(join(RUNS_DIR, "t", "01SKIP1"), {
+		writeRun(join(RUNS_DIR, "t", "01ERR1"), {
 			meta: {
 				schema_version: 1,
-				id: "01SKIP1",
+				id: "01ERR1",
 				task: "t",
-				status: "skipped",
+				status: "error",
 				url: null,
 				item_key: null,
 				started_at: "2026-03-15T10:00:00Z",
 				finished_at: "2026-03-15T10:00:01Z",
 				duration_seconds: 1,
-				exit_code: 0,
+				exit_code: 1,
 			},
 			log: "log",
 		});

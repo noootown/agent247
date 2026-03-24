@@ -1,11 +1,10 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { FILE } from "./constants.js";
 
 interface TaskCache {
 	last_check: string;
 }
-
-const CACHE_FILE = ".cache.json";
 
 export function writeTaskCache(
 	runsDir: string,
@@ -14,14 +13,14 @@ export function writeTaskCache(
 ): void {
 	const dir = join(runsDir, taskId);
 	mkdirSync(dir, { recursive: true });
-	writeFileSync(join(dir, CACHE_FILE), JSON.stringify(data, null, 2));
+	writeFileSync(join(dir, FILE.CACHE), JSON.stringify(data, null, 2));
 }
 
 export function readTaskCache(
 	runsDir: string,
 	taskId: string,
 ): TaskCache | null {
-	const cachePath = join(runsDir, taskId, CACHE_FILE);
+	const cachePath = join(runsDir, taskId, FILE.CACHE);
 	if (!existsSync(cachePath)) return null;
 	try {
 		return JSON.parse(readFileSync(cachePath, "utf-8"));

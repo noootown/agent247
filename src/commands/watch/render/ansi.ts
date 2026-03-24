@@ -153,7 +153,6 @@ const STATUS_MAP: Record<RunStatus, StatusConfig> = {
 	completed: { icon: "●", color: GREEN },
 	processing: { icon: "◌", color: YELLOW },
 	canceled: { icon: "-", color: DIM },
-	skipped: { icon: "○", color: DIM },
 };
 
 const DEFAULT_STATUS: StatusConfig = { icon: "○", color: "" };

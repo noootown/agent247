@@ -30,6 +30,7 @@ export function renderHelp(): void {
 		`    x                       Stop task / delete run`,
 		`    t                       Toggle task enabled/disabled`,
 		`    u                       Open run URL in browser`,
+		`    e                       Open shell at run's cwd`,
 		"",
 		`  ${BOLD}General${RESET}`,
 		`    ?                       Toggle this help`,

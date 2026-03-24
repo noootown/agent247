@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { FILE } from "../../../lib/constants.js";
 import type { RunRecord } from "../../../lib/report.js";
 import {
 	RUN_TABS,
@@ -48,13 +49,13 @@ export function getReportLines(
 	width = 40,
 	activeTab = 0,
 ): string[] {
-	const tabName = RUN_TABS[activeTab] ?? "report.md";
+	const tabName = RUN_TABS[activeTab] ?? FILE.REPORT;
 	const prettify = getPrettifier(tabName);
 
 	// Virtual tabs read from data.json; file tabs read their own file
 	const filePath = tabName.includes(".")
 		? join(run.dir, tabName)
-		: join(run.dir, "data.json");
+		: join(run.dir, FILE.DATA);
 	const content = existsSync(filePath)
 		? readFileSync(filePath, "utf-8")
 		: `No ${tabName} available.`;

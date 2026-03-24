@@ -9,6 +9,7 @@ import {
 	loadGlobalVars,
 	loadTaskConfig,
 } from "../lib/config.js";
+import { FILE } from "../lib/constants.js";
 import { filterNewItems } from "../lib/dedup.js";
 import { discoverItems } from "../lib/discovery.js";
 import { execHook } from "../lib/hooks.js";
@@ -88,7 +89,7 @@ function resolveConfig(
 	baseDir: string,
 ): Record<string, unknown> {
 	const rawConfig = readFileSync(
-		join(baseDir, "tasks", config.id, "config.yaml"),
+		join(baseDir, "tasks", config.id, FILE.CONFIG),
 		"utf-8",
 	);
 	const rendered = render(rawConfig, globalVars, taskVars, item);
@@ -131,7 +132,7 @@ export async function runCommand(
 			} catch (err) {
 				const runId = ulid();
 				const runDir = join(runsDir, taskId, runDirName(runId));
-				const logger = createLogger(join(runDir, "log.txt"));
+				const logger = createLogger(join(runDir, FILE.LOG));
 				logger.error(`Discovery failed: ${err}`);
 				writeRun(runDir, {
 					meta: buildRunMeta(
@@ -262,7 +263,7 @@ async function executeForItem(
 	const taskVars = config.vars ?? {};
 	const itemKey = item[config.discovery?.item_key ?? ""] ?? null;
 
-	const logger = createLogger(join(runDir, "log.txt"));
+	const logger = createLogger(join(runDir, FILE.LOG));
 	const mergedVars = { ...globalVars, ...taskVars, ...item };
 	const resolvedConfig = resolveConfig(
 		config,
@@ -364,7 +365,7 @@ async function executeForItem(
 			"claude",
 			config.model,
 			renderedCwd,
-			join(runDir, "transcript.md"),
+			join(runDir, FILE.TRANSCRIPT),
 		);
 		const finishedAt = new Date().toISOString();
 
@@ -471,7 +472,7 @@ async function executeForBatch(
 		? render(config.cwd, globalVars, taskVars)
 		: undefined;
 
-	const logger = createLogger(join(runDir, "log.txt"));
+	const logger = createLogger(join(runDir, FILE.LOG));
 	writeRun(runDir, {
 		meta: buildRunMeta(
 			runId,
@@ -498,7 +499,7 @@ async function executeForBatch(
 		"claude",
 		config.model,
 		renderedCwd,
-		join(runDir, "transcript.md"),
+		join(runDir, FILE.TRANSCRIPT),
 	);
 	const finishedAt = new Date().toISOString();
 

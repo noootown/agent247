@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { execSync, spawn, spawnSync } from "node:child_process";
 import { join } from "node:path";
 import { cleanupRunsAsync } from "../../lib/cleanup.js";
 import { loadGlobalVars } from "../../lib/config.js";
@@ -17,10 +17,7 @@ import { tickSpinner } from "./render/ansi.js";
 import { render } from "./render/index.js";
 import { initialState, type State, type WatchContext } from "./state.js";
 
-export function watchCommand(
-	baseDir: string,
-	options?: { all?: boolean },
-): void {
+export function watchCommand(baseDir: string): void {
 	const runsDir = join(baseDir, "runs");
 	const binDir = join(baseDir, ".bin");
 
@@ -84,6 +81,44 @@ export function watchCommand(
 			state.mode === "split"
 		) {
 			state = ctx.reload(state);
+		}
+		// Shell mode: suspend TUI, spawn interactive shell, restore on exit
+		if (state.shellCwd) {
+			const cwd = state.shellCwd;
+			state = { ...state, shellCwd: null };
+			// Save terminal state
+			let savedStty = "";
+			try {
+				savedStty = execSync("stty -g", { encoding: "utf-8" }).trim();
+			} catch {}
+			// Suspend TUI
+			process.stdin.removeListener("data", handleInput);
+			process.stdin.setRawMode(false);
+			process.stdout.write("\x1B[?25h\x1B[?1049l");
+			process.stdout.write(
+				`\nShell at ${cwd}\nPress ctrl+d to return to TUI\n\n`,
+			);
+			// Spawn interactive shell with env marker for dotfile customization
+			const shell = process.env.SHELL ?? "/bin/zsh";
+			spawnSync(shell, ["-i"], {
+				stdio: "inherit",
+				cwd,
+				env: { ...process.env, AGENT247_SHELL: cwd },
+			});
+			// Restore terminal state
+			if (savedStty) {
+				try {
+					execSync(`stty ${savedStty}`);
+				} catch {}
+			}
+			// Restore TUI — reset cursor key mode (DECCKM) in case shell changed it
+			process.stdout.write("\x1B[?1l\x1B[?1049h\x1B[?25l");
+			process.stdin.setRawMode(true);
+			process.stdin.resume();
+			process.stdin.on("data", handleInput);
+			state = ctx.reload(state);
+			render(state, getVisibleLines(state), botName);
+			return;
 		}
 		render(state, getVisibleLines(state), botName);
 	}

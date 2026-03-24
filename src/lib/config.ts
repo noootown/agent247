@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import yaml from "js-yaml";
+import { FILE } from "./constants.js";
 
 export interface TaskConfig {
 	id: string;
@@ -31,8 +32,8 @@ export interface TaskConfig {
 
 export function loadTaskConfig(taskId: string, baseDir: string): TaskConfig {
 	const taskDir = join(baseDir, "tasks", taskId);
-	const configPath = join(taskDir, "config.yaml");
-	const promptPath = join(taskDir, "prompt.md");
+	const configPath = join(taskDir, FILE.CONFIG);
+	const promptPath = join(taskDir, FILE.PROMPT_SRC);
 
 	const raw = yaml.load(readFileSync(configPath, "utf-8")) as Record<
 		string,
@@ -149,7 +150,7 @@ export function listTasks(
 	if (!existsSync(tasksDir)) return [];
 	return readdirSync(tasksDir, { withFileTypes: true })
 		.filter((d) => d.isDirectory())
-		.filter((d) => existsSync(join(tasksDir, d.name, "config.yaml")))
+		.filter((d) => existsSync(join(tasksDir, d.name, FILE.CONFIG)))
 		.map((d) => ({
 			id: d.name,
 			config: loadTaskConfig(d.name, baseDir),

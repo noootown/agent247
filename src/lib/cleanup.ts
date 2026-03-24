@@ -2,6 +2,7 @@ import { execSync, fork } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, renameSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { FILE } from "./constants.js";
 import type { RunRecord } from "./report.js";
 import { render } from "./template.js";
 
@@ -95,7 +96,7 @@ export function cleanupRuns(
 			continue;
 		try {
 			let itemVars: Record<string, string> = {};
-			const dataJsonPath = join(run.dir, "data.json");
+			const dataJsonPath = join(run.dir, FILE.DATA);
 			if (existsSync(dataJsonPath)) {
 				try {
 					itemVars = JSON.parse(readFileSync(dataJsonPath, "utf-8")).vars ?? {};

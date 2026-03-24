@@ -1,3 +1,6 @@
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { FILE } from "../../lib/constants.js";
 import type { State, VisibleLine, WatchContext } from "./state.js";
 
 export function actionSoftDelete(
@@ -47,6 +50,25 @@ export function actionStop(state: State, line: VisibleLine): State {
 		confirmTask: line.group.task,
 		confirmChoice: "yes",
 	};
+}
+
+export function actionShell(state: State, line: VisibleLine): State {
+	if (line.type !== "run") return state;
+	const status = line.run.meta.status;
+	if (status !== "completed" && status !== "error" && status !== "canceled")
+		return state;
+
+	// Read cwd from the run's data.json config section
+	const dataPath = join(line.run.dir, FILE.DATA);
+	if (!existsSync(dataPath)) return state;
+	try {
+		const data = JSON.parse(readFileSync(dataPath, "utf-8"));
+		const cwd = data.config?.cwd;
+		if (!cwd || !existsSync(cwd)) return state;
+		return { ...state, shellCwd: cwd };
+	} catch {
+		return state;
+	}
 }
 
 export function actionToggle(

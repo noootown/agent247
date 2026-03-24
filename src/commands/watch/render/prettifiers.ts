@@ -1,4 +1,5 @@
 import yaml from "js-yaml";
+import { FILE } from "../../../lib/constants.js";
 import type { RunRecord } from "../../../lib/report.js";
 import {
 	BOLD,
@@ -265,10 +266,10 @@ export function defaultPrettifier(
 // ── Prettifier registry ──
 
 export const prettifiers: Record<string, Prettifier> = {
-	"report.md": markdownPrettifier,
-	"transcript.md": markdownPrettifier,
-	"prompt.rendered.md": markdownPrettifier,
-	"log.txt": logPrettifier,
+	[FILE.REPORT]: markdownPrettifier,
+	[FILE.TRANSCRIPT]: markdownPrettifier,
+	[FILE.PROMPT]: markdownPrettifier,
+	[FILE.LOG]: logPrettifier,
 	run: runPrettifier,
 	data: dataPrettifier,
 };

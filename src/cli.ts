@@ -59,9 +59,6 @@ program
 program
 	.command("watch")
 	.description("Interactive run dashboard")
-	.option("-a, --all", "Include skipped runs")
-	.action((options) =>
-		watchCommand(resolveBaseDir(program.opts().dir), options),
-	);
+	.action(() => watchCommand(resolveBaseDir(program.opts().dir)));
 
 program.parse();

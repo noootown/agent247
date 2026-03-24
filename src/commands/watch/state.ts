@@ -1,4 +1,5 @@
 import type { TaskConfig } from "../../lib/config.js";
+import { FILE } from "../../lib/constants.js";
 import type { RunRecord } from "../../lib/report.js";
 
 export type ViewMode = "split" | "help" | "confirm-run" | "confirm-stop";
@@ -19,11 +20,11 @@ export type VisibleLine =
 	| { type: "run"; run: RunRecord; group: TaskGroup; index: number };
 
 export const RUN_TABS = [
-	"report.md",
-	"transcript.md",
-	"prompt.rendered.md",
+	FILE.REPORT,
+	FILE.TRANSCRIPT,
+	FILE.PROMPT,
 	"run",
-	"log.txt",
+	FILE.LOG,
 	"data",
 ] as const;
 
@@ -50,6 +51,7 @@ export interface State {
 	reportScrollX: number;
 	confirmTask: string | null;
 	confirmChoice: "yes" | "no";
+	shellCwd: string | null;
 }
 
 export interface WatchContext {
@@ -78,5 +80,6 @@ export function initialState(): State {
 		reportScrollX: 0,
 		confirmTask: null,
 		confirmChoice: "yes",
+		shellCwd: null,
 	};
 }

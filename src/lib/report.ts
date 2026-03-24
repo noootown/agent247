@@ -6,14 +6,10 @@ import {
 	writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
+import { FILE } from "./constants.js";
 import { redact } from "./redact.js";
 
-export type RunStatus =
-	| "completed"
-	| "error"
-	| "processing"
-	| "canceled"
-	| "skipped";
+export type RunStatus = "completed" | "error" | "processing" | "canceled";
 
 export interface RunMeta {
 	schema_version: number;
@@ -58,36 +54,33 @@ export function writeRun(runDir: string, data: RunData): void {
 	if (data.vars) dataJson.vars = data.vars;
 	if (data.discovery) dataJson.discovery = data.discovery;
 	if (data.result !== undefined) dataJson.result = data.result;
-	writeFileSync(
-		join(runDir, "data.json"),
-		r(JSON.stringify(dataJson, null, 2)),
-	);
+	writeFileSync(join(runDir, FILE.DATA), r(JSON.stringify(dataJson, null, 2)));
 
 	// Write text files
-	writeFileSync(join(runDir, "log.txt"), r(data.log));
+	writeFileSync(join(runDir, FILE.LOG), r(data.log));
 	if (data.prompt !== undefined) {
-		writeFileSync(join(runDir, "prompt.rendered.md"), r(data.prompt));
+		writeFileSync(join(runDir, FILE.PROMPT), r(data.prompt));
 	}
 	if (data.report !== undefined) {
-		writeFileSync(join(runDir, "report.md"), r(data.report));
+		writeFileSync(join(runDir, FILE.REPORT), r(data.report));
 	}
 	if (data.transcript) {
-		writeFileSync(join(runDir, "transcript.md"), r(data.transcript));
+		writeFileSync(join(runDir, FILE.TRANSCRIPT), r(data.transcript));
 	}
 }
 
 export function updateRunMeta(runDir: string, updates: Partial<RunMeta>): void {
-	const dataPath = join(runDir, "data.json");
+	const dataPath = join(runDir, FILE.DATA);
 	const data = JSON.parse(readFileSync(dataPath, "utf-8"));
 	data.run = { ...data.run, ...updates };
 	writeFileSync(dataPath, JSON.stringify(data, null, 2));
 }
 
 export function readRun(runDir: string): RunRecord {
-	const dataPath = join(runDir, "data.json");
+	const dataPath = join(runDir, FILE.DATA);
 	const data = JSON.parse(readFileSync(dataPath, "utf-8"));
 	const meta = data.run as RunMeta;
-	const reportPath = join(runDir, "report.md");
+	const reportPath = join(runDir, FILE.REPORT);
 	const report = existsSync(reportPath)
 		? readFileSync(reportPath, "utf-8")
 		: undefined;
@@ -108,7 +101,7 @@ export function listRuns(runsDir: string, filter?: RunFilter): RunRecord[] {
 	for (const taskDir of taskDirs) {
 		const taskPath = join(runsDir, taskDir.name);
 		const runEntries = readdirSync(taskPath, { withFileTypes: true }).filter(
-			(d) => d.isDirectory() && existsSync(join(taskPath, d.name, "data.json")),
+			(d) => d.isDirectory() && existsSync(join(taskPath, d.name, FILE.DATA)),
 		);
 		for (const runEntry of runEntries) {
 			allRunDirs.push(join(taskPath, runEntry.name));
