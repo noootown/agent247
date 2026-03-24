@@ -16,13 +16,20 @@ export interface ParsedOutput {
 	report: string;
 }
 
-const URL_REGEX = /^https?:\/\/\S+$/;
+const URL_REGEX = /https?:\/\/\S+/;
 
 export function parseClaudeOutput(output: string): ParsedOutput {
 	const trimmed = output.trim();
+	// Scan the first 5 lines for a URL — agents don't always put it on line 1
 	const lines = trimmed.split("\n");
-	const firstLine = lines[0]?.trim() ?? "";
-	const url = URL_REGEX.test(firstLine) ? firstLine : null;
+	let url: string | null = null;
+	for (const line of lines.slice(0, 5)) {
+		const match = line.match(URL_REGEX);
+		if (match) {
+			url = match[0];
+			break;
+		}
+	}
 	return { status: "completed", url, report: trimmed };
 }
 

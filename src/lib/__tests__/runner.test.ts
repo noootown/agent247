@@ -39,8 +39,22 @@ describe("parseClaudeOutput", () => {
 		expect(result.report).toBe("");
 	});
 
-	it("does not extract URL if first line has extra text", () => {
+	it("extracts URL even if line has surrounding text", () => {
 		const result = parseClaudeOutput("Visit https://example.com for info");
+		expect(result.url).toBe("https://example.com");
+	});
+
+	it("extracts URL from later lines if first line has no URL", () => {
+		const result = parseClaudeOutput(
+			"All phases complete.\n\n**PR**: https://github.com/org/repo/pull/42\n\nSummary",
+		);
+		expect(result.url).toBe("https://github.com/org/repo/pull/42");
+	});
+
+	it("does not scan beyond first 5 lines", () => {
+		const result = parseClaudeOutput(
+			"line1\nline2\nline3\nline4\nline5\nhttps://example.com",
+		);
 		expect(result.url).toBeNull();
 	});
 

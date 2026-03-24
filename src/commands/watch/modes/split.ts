@@ -20,7 +20,6 @@ function withSplitRun(state: State, lines: VisibleLine[]): State {
 	return {
 		...state,
 		splitRun,
-		activeTab: 0,
 		reportScroll: 0,
 		reportScrollX: 0,
 	};

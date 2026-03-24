@@ -423,7 +423,7 @@ async function executeForItem(
 				finishedAt,
 				execResult.exitCode,
 				itemKey,
-				parsed.url ?? itemKey,
+				parsed.url ?? (itemKey?.startsWith("http") ? itemKey : null),
 			),
 			config: resolvedConfig,
 			vars: mergedVars,
