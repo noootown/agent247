@@ -73,11 +73,19 @@ function loadInjectVars(
 
 function runDirName(id: string): string {
 	const now = new Date();
-	const ts = now
-		.toISOString()
-		.replace(/[-:T]/g, "")
-		.replace(/\.\d+Z$/, "");
-	return `${ts.slice(0, 8)}-${ts.slice(8)}-${id}`;
+	const pad = (n: number, w = 2) => String(n).padStart(w, "0");
+	const year = now.getFullYear();
+	const month = pad(now.getMonth() + 1);
+	const day = pad(now.getDate());
+	const hour = pad(now.getHours());
+	const min = pad(now.getMinutes());
+	const sec = pad(now.getSeconds());
+	const offsetMins = -now.getTimezoneOffset();
+	const sign = offsetMins >= 0 ? "+" : "-";
+	const absH = pad(Math.floor(Math.abs(offsetMins) / 60));
+	const absM = pad(Math.abs(offsetMins) % 60);
+	const offset = `${sign}${absH}${absM}`;
+	return `${year}${month}${day}-${hour}${min}${sec}${offset}-${id}`;
 }
 
 /** Load and resolve config.yaml as a plain object for data.json */
