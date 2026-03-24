@@ -1,3 +1,4 @@
+import { execSync } from "node:child_process";
 import {
 	appendFileSync,
 	existsSync,
@@ -34,6 +35,12 @@ function mergeGitignore(workspacePath: string): void {
 }
 
 export function syncCommand(baseDir: string): void {
+	const projectRoot = resolve(import.meta.dirname ?? process.cwd(), "../..");
+
+	// Rebuild dist/ so launchd always runs the latest code
+	console.log("Building dist/...");
+	execSync("pnpm build", { cwd: projectRoot, stdio: "inherit" });
+
 	const tasks = listTasks(baseDir);
 	const enabledTasks = tasks
 		.filter((t) => t.config.enabled)
@@ -43,7 +50,6 @@ export function syncCommand(baseDir: string): void {
 			schedule: t.config.schedule,
 		}));
 
-	const projectRoot = resolve(import.meta.dirname ?? process.cwd(), "../..");
 	const distCli = join(projectRoot, "dist", "cli.js");
 	const absBaseDir = resolve(baseDir);
 
