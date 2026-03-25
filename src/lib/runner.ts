@@ -102,7 +102,7 @@ export function executePrompt(
 		const child: ChildProcess = spawn(command, args, {
 			env: process.env,
 			cwd,
-			stdio: ["pipe", "pipe", "pipe"],
+			stdio: ["ignore", "pipe", "pipe"],
 			detached: true,
 		});
 
