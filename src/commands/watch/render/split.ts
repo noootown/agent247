@@ -138,11 +138,13 @@ export function renderSplitHorizontal(
 	const contentRows = rows - 3;
 
 	let { cursor, scroll } = state;
-	if (cursor >= 0) {
-		if (cursor < scroll) scroll = cursor;
-		if (cursor >= scroll + contentRows) scroll = cursor - contentRows + 1;
-	}
 	if (lines.length > 0 && cursor >= lines.length) cursor = lines.length - 1;
+	if (cursor >= 0) {
+		// Center the cursor vertically, but don't scroll past the end
+		const ideal = cursor - Math.floor(contentRows / 2);
+		const maxScroll = Math.max(0, lines.length - contentRows);
+		scroll = Math.max(0, Math.min(ideal, maxScroll));
+	}
 
 	const reportLines = getRightPaneLines(state, lines, rightWidth);
 
@@ -224,11 +226,12 @@ export function renderSplitVertical(
 	const bottomRows = rows - 6 - topRows; // -6: header, separator, empty line, tab bar, separator, footer
 
 	let { cursor, scroll } = state;
-	if (cursor >= 0) {
-		if (cursor < scroll) scroll = cursor;
-		if (cursor >= scroll + topRows) scroll = cursor - topRows + 1;
-	}
 	if (lines.length > 0 && cursor >= lines.length) cursor = lines.length - 1;
+	if (cursor >= 0) {
+		const ideal = cursor - Math.floor(topRows / 2);
+		const maxScroll = Math.max(0, lines.length - topRows);
+		scroll = Math.max(0, Math.min(ideal, maxScroll));
+	}
 
 	const reportLines = getRightPaneLines(state, lines, cols);
 
