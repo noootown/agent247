@@ -52,6 +52,7 @@ export interface State {
 	confirmTask: string | null;
 	confirmChoice: "yes" | "no";
 	suspend: { mode: "shell" | "prompt"; cwd: string } | null;
+	layoutMode: "vertical" | "horizontal";
 }
 
 export interface WatchContext {
@@ -81,5 +82,6 @@ export function initialState(): State {
 		confirmTask: null,
 		confirmChoice: "yes",
 		suspend: null,
+		layoutMode: "horizontal",
 	};
 }

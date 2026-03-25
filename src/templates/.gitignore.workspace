@@ -5,6 +5,7 @@ Thumbs.db
 # agent247 runtime
 runs/
 .bin/
+.preferences.json
 tasks/*/.lock
 
 # secret

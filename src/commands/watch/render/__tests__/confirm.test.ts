@@ -24,6 +24,7 @@ describe("renderConfirmRun", () => {
 			confirmTask: "my-task",
 			confirmChoice: "yes",
 			suspend: null,
+			layoutMode: "horizontal",
 		};
 	});
 

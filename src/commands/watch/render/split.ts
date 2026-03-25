@@ -353,9 +353,7 @@ export function renderSplit(
 		renderFullPane(state, lines, botName);
 		return;
 	}
-	const rows = process.stdout.rows ?? 24;
-	const cols = process.stdout.columns ?? 80;
-	if (cols / rows < 2.5) {
+	if (state.layoutMode === "vertical") {
 		renderSplitVertical(state, lines, botName);
 	} else {
 		renderSplitHorizontal(state, lines, botName);

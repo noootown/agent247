@@ -21,6 +21,7 @@ function makeState(overrides: Partial<State> = {}): State {
 		confirmTask: null,
 		confirmChoice: "yes",
 		suspend: null,
+		layoutMode: "horizontal",
 		...overrides,
 	};
 }

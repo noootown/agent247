@@ -1,4 +1,5 @@
 import { execSync, spawn, spawnSync } from "node:child_process";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { cleanupRunsAsync } from "../../lib/cleanup.js";
 import { loadGlobalVars } from "../../lib/config.js";
@@ -25,6 +26,15 @@ export function watchCommand(baseDir: string): void {
 	const botName = globalVars.bot_name ?? "agent247";
 
 	let state: State = initialState();
+
+	// Load persisted preferences
+	const prefsPath = join(baseDir, ".preferences.json");
+	try {
+		const prefs = JSON.parse(readFileSync(prefsPath, "utf-8"));
+		if (prefs.layoutMode === "vertical" || prefs.layoutMode === "horizontal") {
+			state.layoutMode = prefs.layoutMode;
+		}
+	} catch {}
 
 	const ctx: WatchContext = {
 		baseDir,
@@ -73,8 +83,19 @@ export function watchCommand(baseDir: string): void {
 			process.exit(0);
 		}
 		const prevMode = state.mode;
+		const prevLayout = state.layoutMode;
 		const lines = getVisibleLines(state);
 		state = modeHandlers[state.mode](str, state, lines, ctx);
+		// Persist layout preference when it changes
+		if (state.layoutMode !== prevLayout) {
+			try {
+				const prefs = existsSync(prefsPath)
+					? JSON.parse(readFileSync(prefsPath, "utf-8"))
+					: {};
+				prefs.layoutMode = state.layoutMode;
+				writeFileSync(prefsPath, JSON.stringify(prefs, null, 2));
+			} catch {}
+		}
 		// Reload data when exiting confirm dialogs
 		if (
 			(prevMode === "confirm-run" || prevMode === "confirm-stop") &&

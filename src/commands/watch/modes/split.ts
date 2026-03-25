@@ -156,6 +156,14 @@ export function handleKey(
 	// f: toggle full-width right pane
 	if (key === "f") return { ...state, fullPane: !state.fullPane };
 
+	// m: toggle layout mode
+	if (key === "m") {
+		return {
+			...state,
+			layoutMode: state.layoutMode === "vertical" ? "horizontal" : "vertical",
+		};
+	}
+
 	if (key === "w")
 		return { ...state, reportScroll: Math.max(0, state.reportScroll - 1) };
 	if (key === "s") return { ...state, reportScroll: state.reportScroll + 1 };
