@@ -34,12 +34,15 @@ function mergeGitignore(workspacePath: string): void {
 	appendFileSync(workspacePath, block);
 }
 
-export function syncCommand(baseDir: string): void {
+export function syncCommand(baseDir: string, quiet = false): void {
 	const projectRoot = resolve(import.meta.dirname ?? process.cwd(), "../..");
 
 	// Rebuild dist/ so launchd always runs the latest code
-	console.log("Building dist/...");
-	execSync("pnpm build", { cwd: projectRoot, stdio: "inherit" });
+	if (!quiet) console.log("Building dist/...");
+	execSync("pnpm build", {
+		cwd: projectRoot,
+		stdio: quiet ? "pipe" : "inherit",
+	});
 
 	const tasks = listTasks(baseDir);
 	const enabledTasks = tasks

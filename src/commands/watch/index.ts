@@ -142,9 +142,9 @@ export function watchCommand(baseDir: string): void {
 		process.stdout.write("\x1B[?25h\x1B[?1049l");
 	}
 
-	// Sync crontab on startup
+	// Sync crontab on startup (quiet to avoid leaking build output into TUI)
 	try {
-		syncCommand(baseDir);
+		syncCommand(baseDir, true);
 	} catch {}
 
 	state = loadData(baseDir, runsDir, state);

@@ -109,7 +109,7 @@ export function makeToggleTask(baseDir: string): (taskId: string) => void {
 		);
 		writeFileSync(configPath, toggled);
 		try {
-			syncCommand(baseDir);
+			syncCommand(baseDir, true);
 		} catch {}
 	};
 }

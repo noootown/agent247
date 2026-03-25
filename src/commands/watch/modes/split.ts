@@ -86,6 +86,21 @@ export function handleKey(
 				: state.cursor + 1;
 		return withSplitRun({ ...state, cursor }, lines);
 	}
+	// v: jump to next task group
+	if (key === "v") {
+		for (let i = state.cursor + 1; i < lines.length; i++) {
+			if (lines[i].type === "group") {
+				return withSplitRun({ ...state, cursor: i }, lines);
+			}
+		}
+		// Wrap around
+		for (let i = 0; i < state.cursor; i++) {
+			if (lines[i].type === "group") {
+				return withSplitRun({ ...state, cursor: i }, lines);
+			}
+		}
+		return state;
+	}
 	if (key === "\x1B[C") {
 		if (line?.type === "group") {
 			line.group.expanded = true;
