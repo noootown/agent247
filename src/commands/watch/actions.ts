@@ -54,9 +54,6 @@ export function actionStop(state: State, line: VisibleLine): State {
 
 function getRunCwd(line: VisibleLine): string | null {
 	if (line.type !== "run") return null;
-	const status = line.run.meta.status;
-	if (status !== "completed" && status !== "error" && status !== "canceled")
-		return null;
 	const dataPath = join(line.run.dir, FILE.DATA);
 	if (!existsSync(dataPath)) return null;
 	try {
