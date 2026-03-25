@@ -55,6 +55,7 @@ export function watchCommand(baseDir: string): void {
 		split: splitHandleKey,
 		"confirm-run": confirmHandleKey,
 		"confirm-stop": confirmHandleKey,
+		"confirm-delete": confirmHandleKey,
 		help: helpHandleKey,
 	};
 
@@ -98,7 +99,9 @@ export function watchCommand(baseDir: string): void {
 		}
 		// Reload data when exiting confirm dialogs
 		if (
-			(prevMode === "confirm-run" || prevMode === "confirm-stop") &&
+			(prevMode === "confirm-run" ||
+				prevMode === "confirm-stop" ||
+				prevMode === "confirm-delete") &&
 			state.mode === "split"
 		) {
 			state = ctx.reload(state);

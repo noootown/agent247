@@ -25,6 +25,7 @@ describe("renderConfirmRun", () => {
 			confirmChoice: "yes",
 			suspend: null,
 			layoutMode: "horizontal",
+			selected: new Set(),
 		};
 	});
 

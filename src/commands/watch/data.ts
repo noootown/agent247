@@ -75,7 +75,7 @@ export function loadData(
 				prompt: "",
 			},
 			runs: taskRuns,
-			expanded: isFirstLoad ? taskRuns.length > 0 : prevExpanded.has(task),
+			expanded: isFirstLoad ? false : prevExpanded.has(task),
 			running:
 				isTaskRunning(baseDir, task) ||
 				taskRuns.some((r) => r.meta.status === "processing"),

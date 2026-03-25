@@ -77,14 +77,32 @@ export function handleKey(
 
 	if (key === "\x1B[A") {
 		const cursor = state.cursor <= 0 ? lines.length - 1 : state.cursor - 1;
-		return withSplitRun({ ...state, cursor }, lines);
+		return withSplitRun({ ...state, cursor, selected: new Set() }, lines);
 	}
 	if (key === "\x1B[B") {
 		const cursor =
 			state.cursor < 0 || state.cursor >= lines.length - 1
 				? 0
 				: state.cursor + 1;
-		return withSplitRun({ ...state, cursor }, lines);
+		return withSplitRun({ ...state, cursor, selected: new Set() }, lines);
+	}
+	// Shift+Up/Down: move cursor and toggle selection
+	if (key === "\x1B[1;2A") {
+		const selected = new Set(state.selected);
+		selected.add(state.cursor);
+		const cursor = state.cursor <= 0 ? lines.length - 1 : state.cursor - 1;
+		selected.add(cursor);
+		return withSplitRun({ ...state, cursor, selected }, lines);
+	}
+	if (key === "\x1B[1;2B") {
+		const selected = new Set(state.selected);
+		selected.add(state.cursor);
+		const cursor =
+			state.cursor < 0 || state.cursor >= lines.length - 1
+				? 0
+				: state.cursor + 1;
+		selected.add(cursor);
+		return withSplitRun({ ...state, cursor, selected }, lines);
 	}
 	// v: jump to next task group
 	if (key === "v") {
@@ -178,12 +196,32 @@ export function handleKey(
 		};
 	if (key === "d") return { ...state, reportScrollX: state.reportScrollX + 4 };
 
+	// z: toggle all groups collapsed/expanded
+	if (key === "z") {
+		const allExpanded = state.groups.every((g) => g.expanded);
+		for (const g of state.groups) g.expanded = !allExpanded;
+		return { ...state };
+	}
+
 	if (!line) return state;
 	if (key === "u") return actionOpenUrl(state, line, ctx);
 	if (key === "r") return actionRun(state, line);
 	if (key === "x") {
 		if (line.type === "group") return actionStop(state, line);
-		return actionSoftDelete(state, line, ctx);
+		if (line.type === "run" && line.run.meta.status !== "processing") {
+			// If multi-selected, confirm delete for all; otherwise just the current
+			const toDelete =
+				state.selected.size > 0
+					? new Set(state.selected)
+					: new Set([state.cursor]);
+			return {
+				...state,
+				mode: "confirm-delete" as const,
+				confirmChoice: "yes",
+				selected: toDelete,
+			};
+		}
+		return state;
 	}
 	if (key === "e") return actionShell(state, line);
 	if (key === "p") return actionPrompt(state, line);

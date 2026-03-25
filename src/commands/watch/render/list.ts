@@ -19,10 +19,13 @@ import {
 	YELLOW,
 } from "./ansi.js";
 
+const MULTI_SELECT_BG = "\x1B[48;5;236m"; // dark grey background
+
 export function renderListRow(
 	line: VisibleLine,
 	width: number,
 	selected: boolean,
+	multiSelected = false,
 ): string {
 	if (line.type === "group") {
 		const arrow = line.group.expanded ? "▼" : "▶";
@@ -50,6 +53,13 @@ export function renderListRow(
 		const status = line.run.meta.status.padEnd(10);
 		const plain = `    ${plainIcon} ${status} ${timeBase} (${ago})  ${slug}`;
 		return `${SELECT_BG}${plain.substring(0, width).padEnd(width)}${RESET}`;
+	}
+
+	if (multiSelected) {
+		const plainIcon = statusPlainIcon(line.run.meta.status);
+		const status = line.run.meta.status.padEnd(10);
+		const plain = `  ● ${plainIcon} ${status} ${timeBase} (${ago})  ${slug}`;
+		return `${MULTI_SELECT_BG}${plain.substring(0, width).padEnd(width)}${RESET}`;
 	}
 
 	const icon = statusIcon(line.run.meta.status);

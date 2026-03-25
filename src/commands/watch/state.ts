@@ -2,7 +2,12 @@ import type { TaskConfig } from "../../lib/config.js";
 import { FILE } from "../../lib/constants.js";
 import type { RunRecord } from "../../lib/report.js";
 
-export type ViewMode = "split" | "help" | "confirm-run" | "confirm-stop";
+export type ViewMode =
+	| "split"
+	| "help"
+	| "confirm-run"
+	| "confirm-stop"
+	| "confirm-delete";
 
 export interface TaskGroup {
 	task: string;
@@ -53,6 +58,7 @@ export interface State {
 	confirmChoice: "yes" | "no";
 	suspend: { mode: "shell" | "prompt"; cwd: string } | null;
 	layoutMode: "vertical" | "horizontal";
+	selected: Set<number>;
 }
 
 export interface WatchContext {
@@ -83,5 +89,6 @@ export function initialState(): State {
 		confirmChoice: "yes",
 		suspend: null,
 		layoutMode: "horizontal",
+		selected: new Set(),
 	};
 }

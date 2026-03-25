@@ -28,6 +28,23 @@ import {
 import { renderListRow } from "./list.js";
 import { getPrettifier } from "./prettifiers.js";
 
+/**
+ * Auto-scroll to bottom when viewing a processing run and already at the bottom.
+ * This creates a "stream follow" effect for live runs.
+ */
+function autoFollowScroll(
+	state: State,
+	totalLines: number,
+	visibleRows: number,
+): void {
+	if (state.splitRun?.meta.status !== "processing") return;
+	const maxScroll = Math.max(0, totalLines - visibleRows);
+	// If user is within 2 lines of the bottom (or past it), snap to bottom
+	if (state.reportScroll >= maxScroll - 2) {
+		state.reportScroll = Number.MAX_SAFE_INTEGER;
+	}
+}
+
 const TAB_ACTIVE_BG = "\x1B[44m\x1B[97m"; // bright white on blue
 const FOOTER_COMMON = `wasd scroll  1-${TAB_NAMES.length}/tab tabs  ? help`;
 const FOOTER_SPLIT = `  ${DIM}f full  p prompt  q quit  ↑↓ navigate  ${FOOTER_COMMON}${RESET}`;
@@ -158,7 +175,7 @@ export function renderSplitHorizontal(
 		Math.max(0, maxLen - rightWidth + 1),
 	);
 
-	// Cap scroll values to prevent unbounded growth
+	autoFollowScroll(state, reportLines.length, contentRows);
 	const maxReportScroll = Math.max(0, reportLines.length - contentRows);
 	const reportScroll = Math.min(
 		Math.max(0, state.reportScroll),
@@ -198,7 +215,8 @@ export function renderSplitHorizontal(
 		let left: string;
 		if (listLine) {
 			const selected = listLine.index === cursor;
-			left = renderListRow(listLine, leftWidth, selected);
+			const multi = state.selected.has(listLine.index);
+			left = renderListRow(listLine, leftWidth, selected, multi);
 		} else {
 			left = " ".repeat(leftWidth);
 		}
@@ -244,7 +262,7 @@ export function renderSplitVertical(
 		Math.max(0, maxLen - cols + 1),
 	);
 
-	// Cap scroll values to prevent unbounded growth
+	autoFollowScroll(state, reportLines.length, bottomRows);
 	const maxReportScroll = Math.max(0, reportLines.length - bottomRows);
 	const reportScroll = Math.min(
 		Math.max(0, state.reportScroll),
@@ -269,7 +287,10 @@ export function renderSplitVertical(
 		const listLine = visibleList[i];
 		if (listLine) {
 			const selected = listLine.index === cursor;
-			process.stdout.write(`${renderListRow(listLine, cols, selected)}\n`);
+			const multi = state.selected.has(listLine.index);
+			process.stdout.write(
+				`${renderListRow(listLine, cols, selected, multi)}\n`,
+			);
 		} else {
 			process.stdout.write("\n");
 		}
@@ -314,6 +335,7 @@ function renderFullPane(
 		Math.max(0, maxLen - cols + 1),
 	);
 
+	autoFollowScroll(state, reportLines.length, contentRows);
 	const maxReportScroll = Math.max(0, reportLines.length - contentRows);
 	const reportScroll = Math.min(
 		Math.max(0, state.reportScroll),

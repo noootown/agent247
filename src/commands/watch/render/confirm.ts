@@ -1,4 +1,4 @@
-import type { State } from "../state.js";
+import type { State, VisibleLine } from "../state.js";
 import { BOLD, RESET } from "./ansi.js";
 
 function renderConfirmBox(title: string, msg: string, state: State): void {
@@ -59,4 +59,12 @@ export function renderConfirmRun(state: State): void {
 
 export function renderConfirmStop(state: State): void {
 	renderConfirmBox(" Confirm ", `Stop task "${state.confirmTask}"?`, state);
+}
+
+export function renderConfirmDelete(state: State, lines: VisibleLine[]): void {
+	const count = [...state.selected].filter(
+		(i) => lines[i]?.type === "run",
+	).length;
+	const msg = count === 1 ? "Delete this run?" : `Delete ${count} runs?`;
+	renderConfirmBox(" Confirm ", msg, state);
 }

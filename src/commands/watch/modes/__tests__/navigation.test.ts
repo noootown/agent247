@@ -22,6 +22,7 @@ function makeState(overrides: Partial<State> = {}): State {
 		confirmChoice: "yes",
 		suspend: null,
 		layoutMode: "horizontal",
+		selected: new Set(),
 		...overrides,
 	};
 }
@@ -208,17 +209,18 @@ describe("action hotkeys", () => {
 		expect(ctx.toggleTask).toHaveBeenCalledWith("task-a");
 	});
 
-	it("x on a non-processing run calls softDelete", () => {
+	it("x on a non-processing run shows confirm-delete", () => {
 		const lines = [makeRunLine(0, "completed")];
 		const ctx = makeMockCtx();
-		handleKey("x", makeState({ cursor: 0 }), lines, ctx);
-		expect(ctx.softDelete).toHaveBeenCalled();
+		const next = handleKey("x", makeState({ cursor: 0 }), lines, ctx);
+		expect(next.mode).toBe("confirm-delete");
+		expect(next.selected.has(0)).toBe(true);
 	});
 
 	it("x no-ops on processing runs", () => {
 		const lines = [makeRunLine(0, "processing")];
 		const ctx = makeMockCtx();
-		handleKey("x", makeState({ cursor: 0 }), lines, ctx);
-		expect(ctx.softDelete).not.toHaveBeenCalled();
+		const next = handleKey("x", makeState({ cursor: 0 }), lines, ctx);
+		expect(next.mode).toBe("split");
 	});
 });

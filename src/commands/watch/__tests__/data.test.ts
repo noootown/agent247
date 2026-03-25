@@ -62,6 +62,7 @@ function makeState(overrides: Partial<State> = {}): State {
 		confirmChoice: "yes",
 		suspend: null,
 		layoutMode: "horizontal",
+		selected: new Set(),
 		...overrides,
 	};
 }

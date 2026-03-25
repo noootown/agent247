@@ -33,6 +33,7 @@ export function renderHelp(): void {
 		`    e                       Open shell at run's cwd`,
 		`    p                       Open Claude at run's cwd`,
 		`    v                       Jump to next task group`,
+		`    z                       Toggle all groups collapsed/expanded`,
 		`    m                       Toggle layout (vertical/horizontal)`,
 		"",
 		`  ${BOLD}General${RESET}`,
