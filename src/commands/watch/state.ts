@@ -59,6 +59,7 @@ export interface State {
 	suspend: { mode: "shell" | "prompt"; cwd: string } | null;
 	layoutMode: "vertical" | "horizontal";
 	selected: Set<number>;
+	followBottom: boolean;
 }
 
 export interface WatchContext {
@@ -90,5 +91,6 @@ export function initialState(): State {
 		suspend: null,
 		layoutMode: "horizontal",
 		selected: new Set(),
+		followBottom: true,
 	};
 }

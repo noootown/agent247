@@ -29,20 +29,24 @@ import { renderListRow } from "./list.js";
 import { getPrettifier } from "./prettifiers.js";
 
 /**
- * Auto-scroll to bottom when viewing a processing run and already at the bottom.
- * This creates a "stream follow" effect for live runs.
+ * Auto-scroll to bottom when viewing a processing run and followBottom is true.
+ * After capping scroll, update followBottom based on whether we're at the bottom.
  */
-function autoFollowScroll(
+function autoFollowScroll(state: State): void {
+	if (state.splitRun?.meta.status !== "processing") return;
+	if (state.followBottom) {
+		state.reportScroll = Number.MAX_SAFE_INTEGER;
+	}
+}
+
+function updateFollowBottom(
 	state: State,
+	cappedScroll: number,
 	totalLines: number,
 	visibleRows: number,
 ): void {
-	if (state.splitRun?.meta.status !== "processing") return;
 	const maxScroll = Math.max(0, totalLines - visibleRows);
-	// If user is within 2 lines of the bottom (or past it), snap to bottom
-	if (state.reportScroll >= maxScroll - 2) {
-		state.reportScroll = Number.MAX_SAFE_INTEGER;
-	}
+	state.followBottom = cappedScroll >= maxScroll;
 }
 
 const TAB_ACTIVE_BG = "\x1B[44m\x1B[97m"; // bright white on blue
@@ -175,7 +179,7 @@ export function renderSplitHorizontal(
 		Math.max(0, maxLen - rightWidth + 1),
 	);
 
-	autoFollowScroll(state, reportLines.length, contentRows);
+	autoFollowScroll(state);
 	const maxReportScroll = Math.max(0, reportLines.length - contentRows);
 	const reportScroll = Math.min(
 		Math.max(0, state.reportScroll),
@@ -183,6 +187,7 @@ export function renderSplitHorizontal(
 	);
 	state.reportScroll = reportScroll;
 	state.reportScrollX = cappedScrollX;
+	updateFollowBottom(state, reportScroll, reportLines.length, contentRows);
 
 	const visibleReport = reportLines.slice(
 		reportScroll,
@@ -262,7 +267,7 @@ export function renderSplitVertical(
 		Math.max(0, maxLen - cols + 1),
 	);
 
-	autoFollowScroll(state, reportLines.length, bottomRows);
+	autoFollowScroll(state);
 	const maxReportScroll = Math.max(0, reportLines.length - bottomRows);
 	const reportScroll = Math.min(
 		Math.max(0, state.reportScroll),
@@ -270,6 +275,7 @@ export function renderSplitVertical(
 	);
 	state.reportScroll = reportScroll;
 	state.reportScrollX = cappedScrollX;
+	updateFollowBottom(state, reportScroll, reportLines.length, bottomRows);
 
 	const visibleReport = reportLines.slice(
 		reportScroll,
@@ -335,7 +341,7 @@ function renderFullPane(
 		Math.max(0, maxLen - cols + 1),
 	);
 
-	autoFollowScroll(state, reportLines.length, contentRows);
+	autoFollowScroll(state);
 	const maxReportScroll = Math.max(0, reportLines.length - contentRows);
 	const reportScroll = Math.min(
 		Math.max(0, state.reportScroll),
@@ -343,6 +349,7 @@ function renderFullPane(
 	);
 	state.reportScroll = reportScroll;
 	state.reportScrollX = cappedScrollX;
+	updateFollowBottom(state, reportScroll, reportLines.length, contentRows);
 
 	const visibleReport = reportLines.slice(
 		reportScroll,

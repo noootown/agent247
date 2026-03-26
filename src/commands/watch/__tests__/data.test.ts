@@ -63,6 +63,7 @@ function makeState(overrides: Partial<State> = {}): State {
 		suspend: null,
 		layoutMode: "horizontal",
 		selected: new Set(),
+		followBottom: true,
 		...overrides,
 	};
 }

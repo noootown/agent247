@@ -26,6 +26,7 @@ describe("renderConfirmRun", () => {
 			suspend: null,
 			layoutMode: "horizontal",
 			selected: new Set(),
+			followBottom: true,
 		};
 	});
 
