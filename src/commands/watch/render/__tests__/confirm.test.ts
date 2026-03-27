@@ -27,6 +27,7 @@ describe("renderConfirmRun", () => {
 			layoutMode: "horizontal",
 			selected: new Set(),
 			followBottom: true,
+			flash: null,
 		};
 	});
 

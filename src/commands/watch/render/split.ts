@@ -54,6 +54,14 @@ const FOOTER_COMMON = `wasd scroll  1-${TAB_NAMES.length}/tab tabs  ? help`;
 const FOOTER_SPLIT = `  ${DIM}f full  p prompt  q quit  ↑↓ navigate  ${FOOTER_COMMON}${RESET}`;
 const FOOTER_FULL = `  ${DIM}f/q/esc back  ${FOOTER_COMMON}${RESET}`;
 
+function writeFooter(footer: string, flash: string | null): void {
+	if (flash) {
+		process.stdout.write(`  ${RED}${flash}${RESET}`);
+	} else {
+		process.stdout.write(footer);
+	}
+}
+
 function renderTabBar(activeTab: number): string {
 	const parts = TAB_NAMES.map((name, i) => {
 		const num = `${i + 1}`;
@@ -235,7 +243,7 @@ export function renderSplitHorizontal(
 		process.stdout.write(`${left}${SEPARATOR}${right}\n`);
 	}
 
-	process.stdout.write(FOOTER_SPLIT);
+	writeFooter(FOOTER_SPLIT, state.flash);
 }
 
 export function renderSplitVertical(
@@ -318,7 +326,7 @@ export function renderSplitVertical(
 		process.stdout.write(`${fitToWidth(scrolled, cols)}\n`);
 	}
 
-	process.stdout.write(FOOTER_SPLIT);
+	writeFooter(FOOTER_SPLIT, state.flash);
 }
 
 function renderFullPane(
@@ -373,7 +381,7 @@ function renderFullPane(
 		process.stdout.write(`${fitToWidth(scrolled, cols)}\n`);
 	}
 
-	process.stdout.write(FOOTER_FULL);
+	writeFooter(FOOTER_FULL, state.flash);
 }
 
 export function renderSplit(

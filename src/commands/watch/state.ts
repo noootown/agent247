@@ -60,6 +60,7 @@ export interface State {
 	layoutMode: "vertical" | "horizontal";
 	selected: Set<number>;
 	followBottom: boolean;
+	flash: string | null;
 }
 
 export interface WatchContext {
@@ -92,5 +93,6 @@ export function initialState(): State {
 		layoutMode: "horizontal",
 		selected: new Set(),
 		followBottom: true,
+		flash: null,
 	};
 }

@@ -64,6 +64,7 @@ function makeState(overrides: Partial<State> = {}): State {
 		layoutMode: "horizontal",
 		selected: new Set(),
 		followBottom: true,
+		flash: null,
 		...overrides,
 	};
 }

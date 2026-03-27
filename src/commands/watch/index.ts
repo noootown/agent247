@@ -60,6 +60,7 @@ export function watchCommand(baseDir: string): void {
 	};
 
 	function handleInput(key: Buffer): void {
+		if (state.flash) state = { ...state, flash: null };
 		const str = key.toString();
 		// In full pane mode, q/Esc exits full mode instead of quitting
 		if (

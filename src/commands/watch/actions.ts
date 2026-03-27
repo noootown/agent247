@@ -1,3 +1,4 @@
+import { spawn } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { FILE } from "../../lib/constants.js";
@@ -76,6 +77,21 @@ export function actionPrompt(state: State, line: VisibleLine): State {
 	const cwd = getRunCwd(line);
 	if (!cwd) return state;
 	return { ...state, suspend: { mode: "prompt", cwd } };
+}
+
+export function actionTmuxPane(
+	state: State,
+	line: VisibleLine,
+	direction: "v" | "h",
+): State {
+	if (!process.env.TMUX) {
+		return { ...state, flash: "Not in a tmux session" };
+	}
+	const cwd = getRunCwd(line);
+	if (!cwd) return state;
+	const flag = direction === "v" ? "-v" : "-h";
+	spawn("tmux", ["split-window", flag, "-c", cwd], { stdio: "ignore" });
+	return state;
 }
 
 export function actionToggle(

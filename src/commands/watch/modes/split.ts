@@ -3,8 +3,8 @@ import {
 	actionPrompt,
 	actionRun,
 	actionShell,
-	actionSoftDelete,
 	actionStop,
+	actionTmuxPane,
 	actionToggle,
 } from "../actions.js";
 import {
@@ -104,8 +104,8 @@ export function handleKey(
 		selected.add(cursor);
 		return withSplitRun({ ...state, cursor, selected }, lines);
 	}
-	// v: jump to next task group
-	if (key === "v") {
+	// j: jump to next task group
+	if (key === "j") {
 		for (let i = state.cursor + 1; i < lines.length; i++) {
 			if (lines[i].type === "group") {
 				return withSplitRun({ ...state, cursor: i }, lines);
@@ -229,6 +229,8 @@ export function handleKey(
 	}
 	if (key === "e") return actionShell(state, line);
 	if (key === "p") return actionPrompt(state, line);
+	if (key === "v") return actionTmuxPane(state, line, "v");
+	if (key === "h") return actionTmuxPane(state, line, "h");
 	if (key === "t") return actionToggle(state, line, ctx);
 
 	return state;
