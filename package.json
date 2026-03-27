@@ -7,7 +7,7 @@
 		"agent247": "./dist/cli.js"
 	},
 	"scripts": {
-		"build": "tsc && mkdir -p dist/templates && cp src/templates/.gitignore.workspace dist/templates/.gitignore.workspace",
+		"build": "tsc && mkdir -p dist/templates && cp src/templates/.gitignore.workspace dist/templates/.gitignore.workspace && git rev-parse --short HEAD > dist/version.txt",
 		"dev": "tsx src/cli.ts",
 		"lint": "biome check --write .",
 		"lint:ci": "biome check .",

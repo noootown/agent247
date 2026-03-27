@@ -1,5 +1,18 @@
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { TAB_NAMES } from "../state.js";
 import { BOLD, DIM, RESET } from "./ansi.js";
+
+function getVersion(): string {
+	const versionPath = join(
+		import.meta.dirname ?? __dirname,
+		"../../../version.txt",
+	);
+	if (existsSync(versionPath)) {
+		return readFileSync(versionPath, "utf-8").trim();
+	}
+	return "dev";
+}
 
 export function renderHelp(): void {
 	const rows = process.stdout.rows ?? 24;
@@ -49,5 +62,7 @@ export function renderHelp(): void {
 	for (let i = usedRows; i < rows - 1; i++) {
 		process.stdout.write("\n");
 	}
-	process.stdout.write(`  ${DIM}esc/q/? back${RESET}`);
+	process.stdout.write(
+		`  ${DIM}esc/q/? back${RESET}    ${DIM}${getVersion()}${RESET}`,
+	);
 }
