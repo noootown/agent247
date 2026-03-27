@@ -19,6 +19,7 @@ export interface TaskConfig {
 	cwd?: string;
 	bypass_dedup?: boolean;
 	parallel?: boolean;
+	requires_network?: boolean;
 	pre_run?: string;
 	post_run?: string;
 	cleanup?: {
@@ -66,6 +67,7 @@ export function loadTaskConfig(taskId: string, baseDir: string): TaskConfig {
 		cwd: raw.cwd as string | undefined,
 		bypass_dedup: (raw.bypass_dedup as boolean) ?? false,
 		parallel: (raw.parallel as boolean) ?? false,
+		requires_network: (raw.requires_network as boolean) ?? false,
 		pre_run: raw.pre_run as string | undefined,
 		post_run: raw.post_run as string | undefined,
 		cleanup: raw.cleanup

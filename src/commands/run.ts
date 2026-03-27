@@ -15,6 +15,7 @@ import { discoverItems } from "../lib/discovery.js";
 import { execHook } from "../lib/hooks.js";
 import { acquireLock, releaseLock } from "../lib/lock.js";
 import { createLogger } from "../lib/logger.js";
+import { isOnline } from "../lib/network.js";
 import { buildSecretMap } from "../lib/redact.js";
 import { listRuns, type RunMeta, writeRun } from "../lib/report.js";
 import {
@@ -118,6 +119,13 @@ export async function runCommand(
 	}
 
 	const config = loadTaskConfig(taskId, baseDir);
+
+	if (config.requires_network && !(await isOnline())) {
+		console.log(`Network unavailable, skipping task ${taskId}.`);
+		releaseLock(taskId, baseDir);
+		return;
+	}
+
 	const globalVars = loadGlobalVars(baseDir);
 	const envLocalRaw = loadEnvLocalRaw(baseDir);
 	const secrets = buildSecretMap(envLocalRaw);
