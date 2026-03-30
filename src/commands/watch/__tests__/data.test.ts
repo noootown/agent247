@@ -65,6 +65,7 @@ function makeState(overrides: Partial<State> = {}): State {
 		selected: new Set(),
 		followBottom: true,
 		flash: null,
+		helpScroll: 0,
 		...overrides,
 	};
 }

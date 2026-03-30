@@ -141,7 +141,7 @@ export function handleKey(
 		return state;
 	}
 
-	if (key === "?") return { ...state, mode: "help" };
+	if (key === "?") return { ...state, mode: "help", helpScroll: 0 };
 
 	// Number keys: switch run file tab
 	const tabNum = Number.parseInt(key, 10);

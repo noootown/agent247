@@ -14,57 +14,70 @@ function getVersion(): string {
 	return "dev";
 }
 
-export function renderHelp(): void {
+const helpLines = [
+	"",
+	`  ${BOLD}Keybindings${RESET}`,
+	"",
+	`  ${BOLD}Navigation (Task List)${RESET}`,
+	`    ↑ / ↓                   Move selection up / down`,
+	`    Shift+↑ / Shift+↓       Multi-select up / down`,
+	`    ← / →                   Collapse / expand task group`,
+	`    Enter                   Toggle group expansion`,
+	`    j                       Jump to next task group`,
+	`    z                       Toggle all groups collapsed/expanded`,
+	"",
+	`  ${BOLD}Navigation (Detail Pane)${RESET}`,
+	`    w/a/s/d                 Scroll (up/left/down/right)`,
+	`    Home / End              Scroll to top / bottom`,
+	`    1-${TAB_NAMES.length}                     Switch file tab`,
+	`    Tab / Ctrl+X            Next tab`,
+	`    Shift+Tab / Ctrl+Z      Previous tab`,
+	`    f                       Toggle full-width pane`,
+	"",
+	`  ${BOLD}Actions (Task)${RESET}`,
+	`    r                       Run selected task`,
+	`    x                       Stop running task`,
+	`    t                       Toggle task enabled/disabled`,
+	"",
+	`  ${BOLD}Actions (Run)${RESET}`,
+	`    x                       Delete run`,
+	`    u                       Open run URL in browser`,
+	`    e                       Open shell at run's cwd`,
+	`    p                       Open Claude at run's cwd`,
+	`    v                       Open tmux pane below at run's cwd`,
+	`    h                       Open tmux pane right at run's cwd`,
+	"",
+	`  ${BOLD}General${RESET}`,
+	`    m                       Toggle layout (vertical/horizontal)`,
+	`    ?                       Toggle this help`,
+	`    q / Esc / Ctrl+C        Quit (exits full-width pane first)`,
+	"",
+];
+
+export function helpMaxScroll(): number {
+	const rows = process.stdout.rows ?? 24;
+	return Math.max(0, helpLines.length - (rows - 1));
+}
+
+export function renderHelp(scroll: number): void {
 	const rows = process.stdout.rows ?? 24;
 	process.stdout.write("\x1B[2J\x1B[H");
 
-	const helpLines = [
-		"",
-		`  ${BOLD}Keybindings${RESET}`,
-		"",
-		`  ${BOLD}Navigation${RESET}`,
-		`    ↑ / ↓                   Move selection up / down`,
-		`    ← / →                   Collapse / expand task group`,
-		`    Enter                   Toggle group expansion`,
-		`    w/a/s/d                 Scroll detail pane (up/left/down/right)`,
-		`    Home / End              Scroll detail pane to top / bottom`,
-		"",
-		`  ${BOLD}File Tabs${RESET}  ${DIM}(when viewing a run)${RESET}`,
-		`    1-${TAB_NAMES.length}                     Switch to file tab`,
-		`    Tab / Ctrl+X            Next tab`,
-		`    Shift+Tab / Ctrl+Z      Previous tab`,
-		"",
-		`  ${BOLD}View${RESET}`,
-		`    f                       Toggle full-width pane`,
-		`    q / Esc                 Exit full mode (or quit if not in full mode)`,
-		"",
-		`  ${BOLD}Actions${RESET}`,
-		`    r                       Run selected task`,
-		`    x                       Stop task / delete run`,
-		`    t                       Toggle task enabled/disabled`,
-		`    u                       Open run URL in browser`,
-		`    e                       Open shell at run's cwd`,
-		`    p                       Open Claude at run's cwd`,
-		`    v                       Open tmux pane below at run's cwd`,
-		`    h                       Open tmux pane right at run's cwd`,
-		`    j                       Jump to next task group`,
-		`    z                       Toggle all groups collapsed/expanded`,
-		`    m                       Toggle layout (vertical/horizontal)`,
-		"",
-		`  ${BOLD}General${RESET}`,
-		`    ?                       Toggle this help`,
-		`    q / Esc                 Quit`,
-		"",
-	];
+	// Available rows for content (1 row reserved for footer)
+	const contentRows = rows - 1;
+	const maxScroll = Math.max(0, helpLines.length - contentRows);
+	const clampedScroll = Math.min(scroll, maxScroll);
+	const visible = helpLines.slice(clampedScroll, clampedScroll + contentRows);
 
-	for (const line of helpLines) {
+	for (const line of visible) {
 		process.stdout.write(`${line}\n`);
 	}
-	const usedRows = helpLines.length;
-	for (let i = usedRows; i < rows - 1; i++) {
+	for (let i = visible.length; i < contentRows; i++) {
 		process.stdout.write("\n");
 	}
+
+	const scrollHint = maxScroll > 0 ? `  ${DIM}↑/↓ scroll${RESET}    ` : "  ";
 	process.stdout.write(
-		`  ${DIM}esc/q/? back${RESET}    ${DIM}${getVersion()}${RESET}`,
+		`${scrollHint}${DIM}esc/q/? back${RESET}    ${DIM}${getVersion()}${RESET}`,
 	);
 }

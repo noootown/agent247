@@ -24,6 +24,6 @@ export function render(
 	} else if (state.mode === "split") {
 		renderSplit(state, lines, botName);
 	} else {
-		renderHelp();
+		renderHelp(state.helpScroll);
 	}
 }

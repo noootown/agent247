@@ -17,7 +17,7 @@ describe("renderHelp", () => {
 	});
 
 	it("shows the Keybindings heading", () => {
-		renderHelp();
+		renderHelp(0);
 
 		const output = writeSpy.mock.calls
 			.map((c: unknown[]) => String(c[0]))
@@ -25,17 +25,18 @@ describe("renderHelp", () => {
 		expect(output).toContain("Keybindings");
 	});
 
-	it("shows Navigation section", () => {
-		renderHelp();
+	it("shows Navigation sections", () => {
+		renderHelp(0);
 
 		const output = writeSpy.mock.calls
 			.map((c: unknown[]) => String(c[0]))
 			.join("");
-		expect(output).toContain("Navigation");
+		expect(output).toContain("Navigation (Task List)");
+		expect(output).toContain("Navigation (Detail Pane)");
 	});
 
 	it("shows key actions", () => {
-		renderHelp();
+		renderHelp(0);
 
 		const output = writeSpy.mock.calls
 			.map((c: unknown[]) => String(c[0]))
@@ -45,21 +46,32 @@ describe("renderHelp", () => {
 		expect(output).toContain("Toggle this help");
 	});
 
-	it("shows File Tabs section", () => {
-		renderHelp();
-
-		const output = writeSpy.mock.calls
-			.map((c: unknown[]) => String(c[0]))
-			.join("");
-		expect(output).toContain("File Tabs");
-	});
-
 	it("shows Actions section", () => {
-		renderHelp();
+		renderHelp(0);
 
 		const output = writeSpy.mock.calls
 			.map((c: unknown[]) => String(c[0]))
 			.join("");
 		expect(output).toContain("Actions");
+	});
+
+	it("scrolls content when scroll offset is provided", () => {
+		Object.defineProperty(process.stdout, "rows", {
+			value: 10,
+			configurable: true,
+		});
+
+		renderHelp(0);
+		const outputTop = writeSpy.mock.calls
+			.map((c: unknown[]) => String(c[0]))
+			.join("");
+
+		writeSpy.mockClear();
+		renderHelp(5);
+		const outputScrolled = writeSpy.mock.calls
+			.map((c: unknown[]) => String(c[0]))
+			.join("");
+
+		expect(outputTop).not.toEqual(outputScrolled);
 	});
 });

@@ -61,6 +61,7 @@ export interface State {
 	selected: Set<number>;
 	followBottom: boolean;
 	flash: string | null;
+	helpScroll: number;
 }
 
 export interface WatchContext {
@@ -94,5 +95,6 @@ export function initialState(): State {
 		selected: new Set(),
 		followBottom: true,
 		flash: null,
+		helpScroll: 0,
 	};
 }
