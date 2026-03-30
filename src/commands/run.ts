@@ -422,6 +422,15 @@ async function executeForItem(
 
 		const result = execResult.rawJson ? JSON.parse(execResult.rawJson) : null;
 
+		// Deterministic URL from template, fallback to parsed output, then item_key
+		const renderedUrlTemplate = config.url_template
+			? render(config.url_template, globalVars, taskVars, item)
+			: null;
+		const resolvedUrl =
+			renderedUrlTemplate ??
+			parsed.url ??
+			(itemKey?.startsWith("http") ? itemKey : null);
+
 		writeRun(runDir, {
 			meta: buildRunMeta(
 				runId,
@@ -431,7 +440,7 @@ async function executeForItem(
 				finishedAt,
 				execResult.exitCode,
 				itemKey,
-				parsed.url ?? (itemKey?.startsWith("http") ? itemKey : null),
+				resolvedUrl,
 			),
 			config: resolvedConfig,
 			vars: mergedVars,

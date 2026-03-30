@@ -22,6 +22,7 @@ export interface TaskConfig {
 	requires_network?: boolean;
 	pre_run?: string;
 	post_run?: string;
+	url_template?: string;
 	cleanup?: {
 		check?: string;
 		when?: string;
@@ -70,6 +71,7 @@ export function loadTaskConfig(taskId: string, baseDir: string): TaskConfig {
 		requires_network: (raw.requires_network as boolean) ?? false,
 		pre_run: raw.pre_run as string | undefined,
 		post_run: raw.post_run as string | undefined,
+		url_template: raw.url_template as string | undefined,
 		cleanup: raw.cleanup
 			? (() => {
 					const c = raw.cleanup as Record<string, unknown>;
