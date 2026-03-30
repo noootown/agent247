@@ -242,8 +242,8 @@ export function handleKey(
 	}
 	if (key === "e") return actionShell(state, line);
 	if (key === "p") return actionPrompt(state, line);
-	if (key === "v") return actionTmuxPane(state, line, "v");
-	if (key === "h") return actionTmuxPane(state, line, "h");
+	if (key === "v") return actionTmuxPane(state, line, "h");
+	if (key === "h") return actionTmuxPane(state, line, "v");
 	if (key === "t") return actionToggle(state, line, ctx);
 
 	return state;
