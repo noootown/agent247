@@ -7,12 +7,24 @@ import {
 	actionTmuxPane,
 	actionToggle,
 } from "../actions.js";
+import { applyScroll, ScrollDirection } from "../scroll.js";
 import {
 	RUN_TABS,
 	type State,
 	type VisibleLine,
 	type WatchContext,
 } from "../state.js";
+
+const SPLIT_SCROLL_KEYS: Record<string, ScrollDirection> = {
+	w: ScrollDirection.UP,
+	s: ScrollDirection.DOWN,
+	a: ScrollDirection.LEFT,
+	d: ScrollDirection.RIGHT,
+	"\x1B[H": ScrollDirection.HOME,
+	"\x1B[1~": ScrollDirection.HOME,
+	"\x1B[F": ScrollDirection.END,
+	"\x1B[4~": ScrollDirection.END,
+};
 
 function withSplitRun(state: State, lines: VisibleLine[]): State {
 	const line = lines[state.cursor];
@@ -36,17 +48,16 @@ export function handleKey(
 	// In full pane mode, only allow pane-relevant keys
 	if (state.fullPane) {
 		if (key === "f") return { ...state, fullPane: false };
-		if (key === "w")
-			return { ...state, reportScroll: Math.max(0, state.reportScroll - 1) };
-		if (key === "s") return { ...state, reportScroll: state.reportScroll + 1 };
-		if (key === "\x1B[H" || key === "\x1B[1~")
-			return { ...state, reportScroll: 0 };
-		if (key === "\x1B[F" || key === "\x1B[4~")
-			return { ...state, reportScroll: Number.MAX_SAFE_INTEGER };
-		if (key === "a")
-			return { ...state, reportScrollX: Math.max(0, state.reportScrollX - 4) };
-		if (key === "d")
-			return { ...state, reportScrollX: state.reportScrollX + 4 };
+		const fullDir = SPLIT_SCROLL_KEYS[key];
+		if (fullDir !== undefined) {
+			const { scrollY, scrollX } = applyScroll(
+				fullDir,
+				state.reportScroll,
+				state.reportScrollX,
+				Number.MAX_SAFE_INTEGER,
+			);
+			return { ...state, reportScroll: scrollY, reportScrollX: scrollX };
+		}
 		const tabNum = Number.parseInt(key, 10);
 		if (tabNum >= 1 && tabNum <= RUN_TABS.length) {
 			return {
@@ -182,23 +193,25 @@ export function handleKey(
 		};
 	}
 
-	if (key === "w")
+	const dir = SPLIT_SCROLL_KEYS[key];
+	if (dir !== undefined) {
+		const { scrollY, scrollX } = applyScroll(
+			dir,
+			state.reportScroll,
+			state.reportScrollX,
+			Number.MAX_SAFE_INTEGER,
+		);
+		const followBottom =
+			dir === ScrollDirection.UP || dir === ScrollDirection.HOME
+				? false
+				: state.followBottom;
 		return {
 			...state,
-			reportScroll: Math.max(0, state.reportScroll - 1),
-			followBottom: false,
+			reportScroll: scrollY,
+			reportScrollX: scrollX,
+			followBottom,
 		};
-	if (key === "s") return { ...state, reportScroll: state.reportScroll + 1 };
-	if (key === "\x1B[H" || key === "\x1B[1~")
-		return { ...state, reportScroll: 0, followBottom: false };
-	if (key === "\x1B[F" || key === "\x1B[4~")
-		return { ...state, reportScroll: Number.MAX_SAFE_INTEGER };
-	if (key === "a")
-		return {
-			...state,
-			reportScrollX: Math.max(0, state.reportScrollX - 4),
-		};
-	if (key === "d") return { ...state, reportScrollX: state.reportScrollX + 4 };
+	}
 
 	// z: toggle all groups collapsed/expanded
 	if (key === "z") {
