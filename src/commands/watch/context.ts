@@ -146,3 +146,25 @@ export function makeSpawnRun(baseDir: string): (taskId: string) => void {
 		child.on("error", () => {});
 	};
 }
+
+export function makeSpawnRerun(
+	baseDir: string,
+): (taskId: string, itemKey: string) => void {
+	return (taskId: string, itemKey: string) => {
+		const cliEntry = process.argv.find(
+			(a) => a.endsWith("cli.ts") || a.endsWith("cli.js"),
+		);
+		const child = cliEntry
+			? spawn("npx", ["tsx", cliEntry, "run", taskId, "--rerun", itemKey], {
+					env: { ...process.env, AGENT247_BASE_DIR: baseDir },
+					stdio: "ignore",
+					shell: true,
+				})
+			: spawn("agent247", ["run", taskId, "--rerun", itemKey], {
+					env: { ...process.env, AGENT247_BASE_DIR: baseDir },
+					stdio: "ignore",
+					shell: true,
+				});
+		child.on("error", () => {});
+	};
+}

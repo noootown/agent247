@@ -59,6 +59,7 @@ function makeState(overrides: Partial<State> = {}): State {
 		reportScroll: 0,
 		reportScrollX: 0,
 		confirmTask: null,
+		confirmItemKey: null,
 		confirmChoice: "yes",
 		suspend: null,
 		layoutMode: "horizontal",

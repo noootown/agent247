@@ -216,6 +216,54 @@ describe("runCommand", () => {
 		expect(discoverItems).not.toHaveBeenCalled();
 		expect(executePrompt).toHaveBeenCalledTimes(1);
 	});
+
+	it("filters discovery items to matching item_key when rerunItemKey is provided", async () => {
+		vi.mocked(loadTaskConfig).mockReturnValue(
+			baseConfig({
+				discovery: { command: "find-items", item_key: "identifier" },
+			}),
+		);
+		vi.mocked(discoverItems).mockReturnValue([
+			{ identifier: "JUS-100", title: "First" },
+			{ identifier: "JUS-200", title: "Second" },
+			{ identifier: "JUS-300", title: "Third" },
+		]);
+		vi.mocked(filterNewItems).mockImplementation((_, __, items) => items);
+		vi.mocked(executePrompt).mockResolvedValue({
+			exitCode: 0,
+			stdout: "done",
+			stderr: "",
+			rawJson: '{"result":"done"}',
+			transcript: "",
+			timedOut: false,
+		});
+		await runCommand("test-task", "/tmp/base", "JUS-200");
+		expect(executePrompt).toHaveBeenCalledTimes(1);
+	});
+
+	it("skips dedup when rerunItemKey is provided", async () => {
+		vi.mocked(loadTaskConfig).mockReturnValue(
+			baseConfig({
+				discovery: { command: "find-items", item_key: "identifier" },
+				bypass_dedup: false,
+			}),
+		);
+		vi.mocked(discoverItems).mockReturnValue([
+			{ identifier: "JUS-200", title: "Second" },
+		]);
+		vi.mocked(filterNewItems).mockReturnValue([]);
+		vi.mocked(executePrompt).mockResolvedValue({
+			exitCode: 0,
+			stdout: "done",
+			stderr: "",
+			rawJson: '{"result":"done"}',
+			transcript: "",
+			timedOut: false,
+		});
+		await runCommand("test-task", "/tmp/base", "JUS-200");
+		expect(filterNewItems).not.toHaveBeenCalled();
+		expect(executePrompt).toHaveBeenCalledTimes(1);
+	});
 });
 
 describe("executeForItem (via runCommand)", () => {

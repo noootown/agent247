@@ -40,6 +40,7 @@ const helpLines = [
 	`    t                       Toggle task enabled/disabled`,
 	"",
 	`  ${BOLD}Actions (Run)${RESET}`,
+	`    r                       Rerun item`,
 	`    x                       Delete run`,
 	`    u                       Open run URL in browser`,
 	`    e                       Open shell at run's cwd`,

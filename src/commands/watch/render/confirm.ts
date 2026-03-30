@@ -57,6 +57,14 @@ export function renderConfirmRun(state: State): void {
 	renderConfirmBox(" Confirm ", `Run task "${state.confirmTask}"?`, state);
 }
 
+export function renderConfirmRerun(state: State): void {
+	renderConfirmBox(
+		" Confirm ",
+		`Rerun this on task "${state.confirmTask}"?`,
+		state,
+	);
+}
+
 export function renderConfirmStop(state: State): void {
 	renderConfirmBox(" Confirm ", `Stop task "${state.confirmTask}"?`, state);
 }

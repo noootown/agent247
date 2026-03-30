@@ -108,6 +108,7 @@ function resolveConfig(
 export async function runCommand(
 	taskId: string,
 	baseDir: string,
+	rerunItemKey?: string,
 ): Promise<void> {
 	purgeBin(baseDir);
 	const runsDir = join(baseDir, "runs");
@@ -172,13 +173,34 @@ export async function runCommand(
 
 		const allDiscoveredItems = items;
 
-		const newItems = filterNewItems(
-			runsDir,
-			taskId,
-			items,
-			config.discovery?.item_key ?? "",
-			{ bypassDedup: config.discovery ? config.bypass_dedup : true },
-		);
+		let newItems: Record<string, string>[];
+		if (rerunItemKey) {
+			// Rerun mode: filter to matching item, skip dedup
+			const itemKeyField = config.discovery?.item_key ?? "";
+			newItems = items.filter((item) => item[itemKeyField] === rerunItemKey);
+			if (newItems.length === 0) {
+				// Fallback: load stored vars from most recent run with this item_key
+				const previousRuns = listRuns(runsDir, { task: taskId })
+					.filter((r) => r.meta.item_key === rerunItemKey)
+					.sort((a, b) => b.meta.id.localeCompare(a.meta.id));
+				if (previousRuns.length > 0) {
+					const dataPath = join(previousRuns[0].dir, FILE.DATA);
+					if (existsSync(dataPath)) {
+						const data = JSON.parse(readFileSync(dataPath, "utf-8"));
+						const storedVars = data.vars ?? {};
+						newItems = [storedVars];
+					}
+				}
+			}
+		} else {
+			newItems = filterNewItems(
+				runsDir,
+				taskId,
+				items,
+				config.discovery?.item_key ?? "",
+				{ bypassDedup: config.discovery ? config.bypass_dedup : true },
+			);
+		}
 
 		if (newItems.length === 0) {
 			writeTaskCache(runsDir, taskId, {

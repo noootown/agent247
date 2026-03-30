@@ -6,6 +6,7 @@ import { loadGlobalVars } from "../../lib/config.js";
 import { syncCommand } from "../sync.js";
 import {
 	makeSoftDelete,
+	makeSpawnRerun,
 	makeSpawnRun,
 	makeStopTask,
 	makeToggleTask,
@@ -46,6 +47,7 @@ export function watchCommand(baseDir: string): void {
 		stopTask: makeStopTask(baseDir, runsDir, globalVars),
 		toggleTask: makeToggleTask(baseDir),
 		spawnRun: makeSpawnRun(baseDir),
+		spawnRerun: makeSpawnRerun(baseDir),
 		openUrl: (url) => {
 			spawn("open", [url], { stdio: "ignore" });
 		},
@@ -54,6 +56,7 @@ export function watchCommand(baseDir: string): void {
 	const modeHandlers = {
 		split: splitHandleKey,
 		"confirm-run": confirmHandleKey,
+		"confirm-rerun": confirmHandleKey,
 		"confirm-stop": confirmHandleKey,
 		"confirm-delete": confirmHandleKey,
 		help: helpHandleKey,
@@ -101,6 +104,7 @@ export function watchCommand(baseDir: string): void {
 		// Reload data when exiting confirm dialogs
 		if (
 			(prevMode === "confirm-run" ||
+				prevMode === "confirm-rerun" ||
 				prevMode === "confirm-stop" ||
 				prevMode === "confirm-delete") &&
 			state.mode === "split"

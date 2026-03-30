@@ -43,6 +43,17 @@ export function actionRun(state: State, line: VisibleLine): State {
 	};
 }
 
+export function actionRerun(state: State, line: VisibleLine): State {
+	if (line.type !== "run" || !line.run.meta.item_key) return state;
+	return {
+		...state,
+		mode: "confirm-rerun",
+		confirmTask: line.run.meta.task,
+		confirmItemKey: line.run.meta.item_key,
+		confirmChoice: "yes",
+	};
+}
+
 export function actionStop(state: State, line: VisibleLine): State {
 	if (line.type !== "group" || !line.group.running) return state;
 	return {

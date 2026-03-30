@@ -1,6 +1,7 @@
 import {
 	actionOpenUrl,
 	actionPrompt,
+	actionRerun,
 	actionRun,
 	actionShell,
 	actionStop,
@@ -222,7 +223,10 @@ export function handleKey(
 
 	if (!line) return state;
 	if (key === "u") return actionOpenUrl(state, line, ctx);
-	if (key === "r") return actionRun(state, line);
+	if (key === "r") {
+		if (line.type === "run") return actionRerun(state, line);
+		return actionRun(state, line);
+	}
 	if (key === "x") {
 		if (line.type === "group") return actionStop(state, line);
 		if (line.type === "run" && line.run.meta.status !== "processing") {

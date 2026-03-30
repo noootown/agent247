@@ -32,10 +32,18 @@ export function handleKey(
 			return { ...state, mode: "split" as const, selected: new Set<number>() };
 		}
 		const taskId = state.confirmTask;
-		const next = { ...state, mode: "split" as const, confirmTask: null };
+		const next = {
+			...state,
+			mode: "split" as const,
+			confirmTask: null,
+			confirmItemKey: null,
+		};
 		if (state.confirmChoice === "yes" && taskId) {
 			if (state.mode === "confirm-run") {
 				ctx.spawnRun(taskId);
+			} else if (state.mode === "confirm-rerun") {
+				const itemKey = state.confirmItemKey;
+				if (itemKey) ctx.spawnRerun(taskId, itemKey);
 			} else if (state.mode === "confirm-stop") {
 				ctx.stopTask(taskId);
 				return ctx.reload(next);
@@ -48,6 +56,7 @@ export function handleKey(
 			...state,
 			mode: "split" as const,
 			confirmTask: null,
+			confirmItemKey: null,
 			selected: new Set<number>(),
 		};
 	}

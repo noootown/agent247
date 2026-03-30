@@ -14,6 +14,7 @@ function makeState(overrides: Partial<State> = {}): State {
 		reportScroll: 0,
 		reportScrollX: 0,
 		confirmTask: "my-task",
+		confirmItemKey: null,
 		confirmChoice: "yes",
 		suspend: null,
 		layoutMode: "horizontal",
@@ -36,6 +37,7 @@ function makeMockCtx(overrides: Partial<WatchContext> = {}): WatchContext {
 		stopTask: vi.fn(),
 		toggleTask: vi.fn(),
 		spawnRun: vi.fn(),
+		spawnRerun: vi.fn(),
 		openUrl: vi.fn(),
 		...overrides,
 	};

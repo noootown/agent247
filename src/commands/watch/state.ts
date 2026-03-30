@@ -6,6 +6,7 @@ export type ViewMode =
 	| "split"
 	| "help"
 	| "confirm-run"
+	| "confirm-rerun"
 	| "confirm-stop"
 	| "confirm-delete";
 
@@ -55,6 +56,7 @@ export interface State {
 	reportScroll: number;
 	reportScrollX: number;
 	confirmTask: string | null;
+	confirmItemKey: string | null;
 	confirmChoice: "yes" | "no";
 	suspend: { mode: "shell" | "prompt"; cwd: string } | null;
 	layoutMode: "vertical" | "horizontal";
@@ -74,6 +76,7 @@ export interface WatchContext {
 	stopTask: (taskId: string) => void;
 	toggleTask: (taskId: string) => void;
 	spawnRun: (taskId: string) => void;
+	spawnRerun: (taskId: string, itemKey: string) => void;
 	openUrl: (url: string) => void;
 }
 
@@ -89,6 +92,7 @@ export function initialState(): State {
 		reportScroll: 0,
 		reportScrollX: 0,
 		confirmTask: null,
+		confirmItemKey: null,
 		confirmChoice: "yes",
 		suspend: null,
 		layoutMode: "horizontal",

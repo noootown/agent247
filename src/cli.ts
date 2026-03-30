@@ -40,8 +40,9 @@ program
 program
 	.command("run <task-id>")
 	.description("Execute a single task")
-	.action((taskId: string) =>
-		runCommand(taskId, resolveBaseDir(program.opts().dir)),
+	.option("--rerun <item-key>", "Rerun a specific item (bypasses dedup)")
+	.action((taskId: string, opts: { rerun?: string }) =>
+		runCommand(taskId, resolveBaseDir(program.opts().dir), opts.rerun),
 	);
 
 program
