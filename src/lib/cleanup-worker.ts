@@ -24,6 +24,7 @@ for (const t of allTaskConfigs) {
 			binDir,
 			t.id,
 			baseDir,
+			runsDir,
 		);
 	}
 }

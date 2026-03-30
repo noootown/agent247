@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { FILE } from "./constants.js";
 import type { RunRecord } from "./report.js";
+import { listRuns } from "./report.js";
 import { render } from "./template.js";
 
 export function parseRetain(retain?: string): number {
@@ -80,6 +81,7 @@ export function cleanupRuns(
 	binDir: string,
 	taskId: string,
 	baseDir?: string,
+	runsDir?: string,
 ): number {
 	const retainMs = parseRetain(cleanupConfig.retain);
 	const now = Date.now();
@@ -124,11 +126,23 @@ export function cleanupRuns(
 			}
 
 			if (eligible) {
+				// Skip teardown if another run shares the same item_key
+				// Serial execution required — parallel cleanup would need a lock here
+				let teardownCmd = cleanupConfig.teardown;
+				if (teardownCmd && run.meta.item_key && runsDir) {
+					const otherRuns = listRuns(runsDir).filter(
+						(r) => r.meta.item_key === run.meta.item_key && r.dir !== run.dir,
+					);
+					if (otherRuns.length > 0) {
+						teardownCmd = undefined;
+					}
+				}
+
 				archiveRun(
 					run.dir,
 					binDir,
 					taskId,
-					cleanupConfig.teardown,
+					teardownCmd,
 					globalVars,
 					taskVars,
 					itemVars,

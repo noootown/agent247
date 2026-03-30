@@ -42,7 +42,7 @@ export function watchCommand(baseDir: string): void {
 		binDir,
 		botName,
 		reload: (s) => loadData(baseDir, runsDir, s),
-		softDelete: makeSoftDelete(baseDir, binDir, globalVars),
+		softDelete: makeSoftDelete(baseDir, runsDir, binDir, globalVars),
 		stopTask: makeStopTask(baseDir, runsDir, globalVars),
 		toggleTask: makeToggleTask(baseDir),
 		spawnRun: makeSpawnRun(baseDir),

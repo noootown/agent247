@@ -16,27 +16,22 @@ function makeRun(
 ): RunRecord {
 	const runDir = join(RUNS_DIR, id);
 	mkdirSync(runDir, { recursive: true });
-	if (itemVars) {
-		writeFileSync(
-			join(runDir, "data.json"),
-			JSON.stringify({ vars: itemVars }),
-		);
-	}
-	return {
-		meta: {
-			schema_version: 1,
-			id,
-			task: "test-task",
-			status: status as RunRecord["meta"]["status"],
-			url: null,
-			item_key: itemKey,
-			started_at: "2026-01-01T00:00:00Z",
-			finished_at: "2026-01-01T00:00:01Z",
-			duration_seconds: 1,
-			exit_code: 0,
-		},
-		dir: runDir,
+	const meta = {
+		schema_version: 1,
+		id,
+		task: "test-task",
+		status: status as RunRecord["meta"]["status"],
+		url: null,
+		item_key: itemKey || null,
+		started_at: "2026-01-01T00:00:00Z",
+		finished_at: "2026-01-01T00:00:01Z",
+		duration_seconds: 1,
+		exit_code: 0,
 	};
+	const dataJson: Record<string, unknown> = { run: meta };
+	if (itemVars) dataJson.vars = itemVars;
+	writeFileSync(join(runDir, "data.json"), JSON.stringify(dataJson));
+	return { meta, dir: runDir };
 }
 
 beforeEach(() => {
@@ -182,5 +177,85 @@ describe("cleanupRuns with teardown", () => {
 			"test-task",
 		);
 		expect(existsSync(markerFile)).toBe(false);
+	});
+});
+
+describe("cleanupRuns skips teardown for shared item_key", () => {
+	it("skips teardown when another run in runsDir shares the same item_key", () => {
+		const markerFile = join(TEST_DIR, "teardown-shared");
+		const run1 = makeRun("run-a", "completed", "shared-key");
+		const run2 = makeRun("run-b", "completed", "shared-key");
+
+		cleanupRuns(
+			[run1],
+			{ check: "echo YES", when: "YES", teardown: `touch ${markerFile}` },
+			{},
+			{},
+			BIN_DIR,
+			"test-task",
+			undefined,
+			join(TEST_DIR, "runs"),
+		);
+
+		expect(existsSync(join(BIN_DIR, "test-task", "run-a"))).toBe(true);
+		expect(existsSync(markerFile)).toBe(false);
+	});
+
+	it("runs teardown when it is the last run with that item_key", () => {
+		const markerFile = join(TEST_DIR, "teardown-last");
+		const run1 = makeRun("run-c", "completed", "unique-key");
+
+		cleanupRuns(
+			[run1],
+			{ check: "echo YES", when: "YES", teardown: `touch ${markerFile}` },
+			{},
+			{},
+			BIN_DIR,
+			"test-task",
+			undefined,
+			join(TEST_DIR, "runs"),
+		);
+
+		expect(existsSync(join(BIN_DIR, "test-task", "run-c"))).toBe(true);
+		expect(existsSync(markerFile)).toBe(true);
+	});
+
+	it("serial cleanup of multiple runs with same item_key runs teardown only for last", () => {
+		const markerFile = join(TEST_DIR, "teardown-serial");
+		const run1 = makeRun("run-d", "completed", "serial-key");
+		const run2 = makeRun("run-e", "completed", "serial-key");
+
+		cleanupRuns(
+			[run1, run2],
+			{ check: "echo YES", when: "YES", teardown: `touch ${markerFile}` },
+			{},
+			{},
+			BIN_DIR,
+			"test-task",
+			undefined,
+			join(TEST_DIR, "runs"),
+		);
+
+		expect(existsSync(join(BIN_DIR, "test-task", "run-d"))).toBe(true);
+		expect(existsSync(join(BIN_DIR, "test-task", "run-e"))).toBe(true);
+		expect(existsSync(markerFile)).toBe(true);
+	});
+
+	it("runs teardown normally when item_key is null", () => {
+		const markerFile = join(TEST_DIR, "teardown-null-key");
+		const run1 = makeRun("run-f", "completed", "");
+
+		cleanupRuns(
+			[run1],
+			{ check: "echo YES", when: "YES", teardown: `touch ${markerFile}` },
+			{},
+			{},
+			BIN_DIR,
+			"test-task",
+			undefined,
+			join(TEST_DIR, "runs"),
+		);
+
+		expect(existsSync(markerFile)).toBe(true);
 	});
 });

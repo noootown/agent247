@@ -10,6 +10,7 @@ import { syncCommand } from "../sync.js";
 
 export function makeSoftDelete(
 	baseDir: string,
+	runsDir: string,
 	binDir: string,
 	globalVars: Record<string, string>,
 ): (runDir: string) => void {
@@ -21,17 +22,29 @@ export function makeSoftDelete(
 			taskConfig = loadTaskConfig(task, baseDir);
 		} catch {}
 		let itemVars: Record<string, string> = {};
+		let itemKey: string | null = null;
 		try {
 			const dataPath = join(runDir, FILE.DATA);
 			if (existsSync(dataPath)) {
-				itemVars = JSON.parse(readFileSync(dataPath, "utf-8")).vars ?? {};
+				const data = JSON.parse(readFileSync(dataPath, "utf-8"));
+				itemVars = data.vars ?? {};
+				itemKey = data.run?.item_key ?? null;
 			}
 		} catch {}
+		let teardownCmd = taskConfig?.cleanup?.teardown;
+		if (teardownCmd && itemKey) {
+			const otherRuns = listRuns(runsDir).filter(
+				(r) => r.meta.item_key === itemKey && r.dir !== runDir,
+			);
+			if (otherRuns.length > 0) {
+				teardownCmd = undefined;
+			}
+		}
 		archiveRun(
 			runDir,
 			binDir,
 			task,
-			taskConfig?.cleanup?.teardown,
+			teardownCmd,
 			globalVars,
 			taskConfig?.vars ?? {},
 			itemVars,
