@@ -181,10 +181,19 @@ describe("cleanupRuns with teardown", () => {
 });
 
 describe("cleanupRuns skips teardown for shared item_key", () => {
-	it("skips teardown when another run in runsDir shares the same item_key", () => {
+	it("skips teardown when another run in runsDir shares the same item_key and has teardown", () => {
 		const markerFile = join(TEST_DIR, "teardown-shared");
 		const run1 = makeRun("run-a", "completed", "shared-key");
-		const run2 = makeRun("run-b", "completed", "shared-key");
+		const _run2 = makeRun("run-b", "completed", "shared-key");
+
+		// Create a task config with teardown so loadTaskConfig can find it
+		const taskDir = join(TEST_DIR, "tasks", "test-task");
+		mkdirSync(taskDir, { recursive: true });
+		writeFileSync(
+			join(taskDir, "config.yaml"),
+			'name: Test\nschedule: "* * * * *"\ntimeout: 60\nenabled: true\ncleanup:\n  teardown: "echo cleanup"\n',
+		);
+		writeFileSync(join(taskDir, "prompt.md"), "prompt");
 
 		cleanupRuns(
 			[run1],
@@ -193,7 +202,7 @@ describe("cleanupRuns skips teardown for shared item_key", () => {
 			{},
 			BIN_DIR,
 			"test-task",
-			undefined,
+			TEST_DIR,
 			join(TEST_DIR, "runs"),
 		);
 

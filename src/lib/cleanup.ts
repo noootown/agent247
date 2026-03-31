@@ -2,6 +2,7 @@ import { execSync, fork } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, renameSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { loadTaskConfig } from "./config.js";
 import { FILE } from "./constants.js";
 import type { RunRecord } from "./report.js";
 import { listRuns } from "./report.js";
@@ -129,11 +130,20 @@ export function cleanupRuns(
 				// Skip teardown if another run shares the same item_key
 				// Serial execution required — parallel cleanup would need a lock here
 				let teardownCmd = cleanupConfig.teardown;
-				if (teardownCmd && run.meta.item_key && runsDir) {
+				if (teardownCmd && run.meta.item_key && runsDir && baseDir) {
 					const otherRuns = listRuns(runsDir).filter(
 						(r) => r.meta.item_key === run.meta.item_key && r.dir !== run.dir,
 					);
-					if (otherRuns.length > 0) {
+					// Only skip teardown if another run's task also has a teardown configured
+					const hasOtherTeardown = otherRuns.some((r) => {
+						try {
+							const cfg = loadTaskConfig(r.meta.task, baseDir);
+							return !!cfg.cleanup?.teardown;
+						} catch {
+							return false;
+						}
+					});
+					if (hasOtherTeardown) {
 						teardownCmd = undefined;
 					}
 				}
