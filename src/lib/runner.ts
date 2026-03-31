@@ -43,6 +43,11 @@ function formatEventToMarkdown(event: Record<string, unknown>): string | null {
 
 		const parts: string[] = [];
 		for (const block of content) {
+			if (block.type === "thinking" && block.thinking) {
+				parts.push("### Thinking");
+				parts.push(String(block.thinking));
+				parts.push("");
+			}
 			if (block.type === "text" && block.text) {
 				parts.push(String(block.text));
 				parts.push("");
