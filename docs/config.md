@@ -24,7 +24,6 @@ schedule: "*/30 * * * *"          # Cron expression
 timeout: 300                      # Seconds before Claude process is killed
 enabled: true                     # Set false to skip in sync/run
 model: "sonnet"                   # Claude model (default: "sonnet")
-prompt_mode: "per_item"           # "per_item" (default) or "batch"
 
 # ── Execution pipeline (in order) ──
 # 1. Discovery — find items to process
@@ -71,10 +70,6 @@ vars:
 **`pre_run`** — Shell command executed before each Claude invocation, after dedup. Runs synchronously with a 60-second timeout. Has access to all template variables (global + task + item). If it fails, the run is marked as error and `post_run` still executes. Use for environment setup (e.g., creating git worktrees).
 
 **`cwd`** — Working directory for the Claude process. Supports template variables, so it can be set per-item (e.g., `{{worktree_path}}`). When set, Claude runs inside this directory and can read/edit files, run commands, and pick up `CLAUDE.md` project instructions.
-
-**`prompt_mode`** — Controls how Claude is invoked:
-- `per_item`: Claude is called once per discovered item. The item's fields are available as template variables.
-- `batch`: Claude is called once with all items. Use `{{items_json}}` (JSON array) or `{{items_list}}` (bullet list) in your prompt.
 
 **`post_run`** — Shell command executed after each Claude invocation. Always runs regardless of success, error, or timeout (like a `finally` block). Has access to all template variables. Failures are logged but don't affect run status. Use for post-run actions like notifications — not for resource cleanup (use `cleanup.teardown` instead).
 

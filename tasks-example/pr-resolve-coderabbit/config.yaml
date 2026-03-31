@@ -4,7 +4,6 @@ schedule: "*/30 * * * *"
 timeout: 600
 enabled: true
 model: sonnet
-prompt_mode: per_item
 
 # ── Execution pipeline ──
 # 1. Discovery
