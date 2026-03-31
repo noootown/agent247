@@ -41,8 +41,14 @@ program
 	.command("run <task-id>")
 	.description("Execute a single task")
 	.option("--rerun <item-key>", "Rerun a specific item (bypasses dedup)")
-	.action((taskId: string, opts: { rerun?: string }) =>
-		runCommand(taskId, resolveBaseDir(program.opts().dir), opts.rerun),
+	.option("--cron", "Invoked by cron (adds random jitter)")
+	.action((taskId: string, opts: { rerun?: string; cron?: boolean }) =>
+		runCommand(
+			taskId,
+			resolveBaseDir(program.opts().dir),
+			opts.rerun,
+			opts.cron,
+		),
 	);
 
 program

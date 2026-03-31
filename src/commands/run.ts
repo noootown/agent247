@@ -109,7 +109,12 @@ export async function runCommand(
 	taskId: string,
 	baseDir: string,
 	rerunItemKey?: string,
+	cron?: boolean,
 ): Promise<void> {
+	if (cron) {
+		const jitter = Math.floor(Math.random() * 10000);
+		await new Promise((resolve) => setTimeout(resolve, jitter));
+	}
 	purgeBin(baseDir);
 	const runsDir = join(baseDir, "runs");
 	const startedAt = new Date().toISOString();

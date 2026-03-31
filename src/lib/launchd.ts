@@ -270,7 +270,15 @@ export function syncLaunchd(
 		const intervals = cronToCalendarIntervals(task.schedule);
 		const plist = buildPlist({
 			label: label(task.id),
-			programArguments: [nodePath, cliPath, "--dir", baseDir, "run", task.id],
+			programArguments: [
+				nodePath,
+				cliPath,
+				"--dir",
+				baseDir,
+				"run",
+				task.id,
+				"--cron",
+			],
 			calendarIntervals: intervals,
 			environmentVariables: envVars,
 			logPath,
