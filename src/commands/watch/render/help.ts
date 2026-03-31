@@ -43,6 +43,7 @@ const helpLines = [
 	`    r                       Rerun item`,
 	`    m                       Mark/unmark for review`,
 	`    x                       Delete run`,
+	`    o                       Open current tab file in VS Code`,
 	`    u                       Open run URL in browser`,
 	`    e                       Open shell at run's cwd`,
 	`    p                       Open Claude at run's cwd`,

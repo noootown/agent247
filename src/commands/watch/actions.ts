@@ -3,7 +3,12 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { FILE } from "../../lib/constants.js";
 import { updateRunMeta } from "../../lib/report.js";
-import type { State, VisibleLine, WatchContext } from "./state.js";
+import {
+	RUN_TABS,
+	type State,
+	type VisibleLine,
+	type WatchContext,
+} from "./state.js";
 
 export function actionSoftDelete(
 	state: State,
@@ -114,6 +119,23 @@ export function actionToggle(
 	if (line.type !== "group") return state;
 	ctx.toggleTask(line.group.task);
 	return ctx.reload(state);
+}
+
+export function actionOpenFile(
+	state: State,
+	line: VisibleLine,
+	activeTab: number,
+): State {
+	if (line.type !== "run") return state;
+	const tabName = RUN_TABS[activeTab] ?? FILE.REPORT;
+	const filePath = tabName.includes(".")
+		? join(line.run.dir, tabName)
+		: join(line.run.dir, FILE.DATA);
+	if (!existsSync(filePath)) {
+		return { ...state, flash: "File not found" };
+	}
+	spawn("code", [filePath], { stdio: "ignore" });
+	return state;
 }
 
 export function actionMark(
