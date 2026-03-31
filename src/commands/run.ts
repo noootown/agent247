@@ -211,18 +211,31 @@ export async function runCommand(
 
 		if (config.prompt_mode === "per_item") {
 			if (config.parallel) {
+				// Group items by parallel_group_by field (defaults to item_key = all parallel)
+				const groupByField =
+					config.parallel_group_by ?? config.discovery?.item_key ?? "";
+				const groups = new Map<string, Record<string, string>[]>();
+				for (const item of newItems) {
+					const key = item[groupByField] ?? "";
+					const group = groups.get(key) ?? [];
+					group.push(item);
+					groups.set(key, group);
+				}
+				// Run groups in parallel, items within each group sequentially
 				await Promise.all(
-					newItems.map((item) =>
-						executeForItem(
-							config,
-							globalVars,
-							item,
-							runsDir,
-							baseDir,
-							secrets,
-							allDiscoveredItems,
-						),
-					),
+					[...groups.values()].map(async (groupItems) => {
+						for (const item of groupItems) {
+							await executeForItem(
+								config,
+								globalVars,
+								item,
+								runsDir,
+								baseDir,
+								secrets,
+								allDiscoveredItems,
+							);
+						}
+					}),
 				);
 			} else {
 				for (const item of newItems) {

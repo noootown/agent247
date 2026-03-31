@@ -120,7 +120,7 @@ export function getTaskInfoLines(group: TaskGroup, width = 40): string[] {
 		`${BOLD}Config${RESET}`,
 		`  Model: ${config.model}`,
 		`  Timeout: ${config.timeout}s`,
-		`  Mode: ${config.prompt_mode}${config.parallel ? ` ${DIM}(parallel)${RESET}` : ""}`,
+		`  Mode: ${config.prompt_mode}${config.parallel ? ` ${DIM}(parallel${config.parallel_group_by ? `, group by ${config.parallel_group_by}` : ""})${RESET}` : ""}`,
 		config.requires_network ? `  Network: required` : null,
 		config.url_template ? `  URL: ${DIM}${config.url_template}${RESET}` : null,
 		config.cwd ? `  CWD: ${DIM}${config.cwd}${RESET}` : null,
