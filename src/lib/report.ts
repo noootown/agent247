@@ -22,6 +22,7 @@ export interface RunMeta {
 	finished_at: string;
 	duration_seconds: number;
 	exit_code: number;
+	marked?: boolean;
 }
 
 export interface RunData {

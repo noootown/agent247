@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { FILE } from "../../lib/constants.js";
+import { updateRunMeta } from "../../lib/report.js";
 import type { State, VisibleLine, WatchContext } from "./state.js";
 
 export function actionSoftDelete(
@@ -112,5 +113,16 @@ export function actionToggle(
 ): State {
 	if (line.type !== "group") return state;
 	ctx.toggleTask(line.group.task);
+	return ctx.reload(state);
+}
+
+export function actionMark(
+	state: State,
+	line: VisibleLine,
+	ctx: WatchContext,
+): State {
+	if (line.type !== "run") return state;
+	const newMarked = !line.run.meta.marked;
+	updateRunMeta(line.run.dir, { marked: newMarked });
 	return ctx.reload(state);
 }

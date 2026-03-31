@@ -1,4 +1,5 @@
 import {
+	actionMark,
 	actionOpenUrl,
 	actionPrompt,
 	actionRerun,
@@ -186,8 +187,8 @@ export function handleKey(
 	// f: toggle full-width right pane
 	if (key === "f") return { ...state, fullPane: !state.fullPane };
 
-	// m: toggle layout mode
-	if (key === "m") {
+	// l: toggle layout mode
+	if (key === "l") {
 		return {
 			...state,
 			layoutMode: state.layoutMode === "vertical" ? "horizontal" : "vertical",
@@ -249,6 +250,7 @@ export function handleKey(
 	if (key === "v") return actionTmuxPane(state, line, "h");
 	if (key === "h") return actionTmuxPane(state, line, "v");
 	if (key === "t") return actionToggle(state, line, ctx);
+	if (key === "m") return actionMark(state, line, ctx);
 
 	return state;
 }

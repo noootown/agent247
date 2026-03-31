@@ -48,17 +48,19 @@ export function renderListRow(
 	const hasUrl = rawUrl?.startsWith("http");
 	const slug = hasUrl && rawUrl ? formatUrlSlug(rawUrl) : "—";
 
+	const mark = line.run.meta.marked ? "* " : "  ";
+
 	if (selected) {
 		const plainIcon = statusPlainIcon(line.run.meta.status);
 		const status = line.run.meta.status.padEnd(10);
-		const plain = `    ${plainIcon} ${status} ${timeBase} (${ago})  ${slug}`;
+		const plain = `  ${mark}${plainIcon} ${status} ${timeBase} (${ago})  ${slug}`;
 		return `${SELECT_BG}${plain.substring(0, width).padEnd(width)}${RESET}`;
 	}
 
 	if (multiSelected) {
 		const plainIcon = statusPlainIcon(line.run.meta.status);
 		const status = line.run.meta.status.padEnd(10);
-		const plain = `  ● ${plainIcon} ${status} ${timeBase} (${ago})  ${slug}`;
+		const plain = `  ${mark}${plainIcon} ${status} ${timeBase} (${ago})  ${slug}`;
 		return `${MULTI_SELECT_BG}${plain.substring(0, width).padEnd(width)}${RESET}`;
 	}
 
@@ -69,5 +71,6 @@ export function renderListRow(
 		? `${BLUE}${hyperlink(rawUrl ?? "", slug)}${RESET}`
 		: `${DIM}—${RESET}`;
 	const time = `${timeBase} ${DIM}(${ago})${RESET}`;
-	return fitToWidth(`    ${icon} ${status} ${time}  ${link}`, width);
+	const markIcon = line.run.meta.marked ? `${YELLOW}*${RESET} ` : "  ";
+	return fitToWidth(`  ${markIcon}${icon} ${status} ${time}  ${link}`, width);
 }
