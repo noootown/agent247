@@ -7,7 +7,7 @@ export function discoverItems(
 ): Record<string, string>[] {
 	const output = execSync(command, {
 		encoding: "utf-8",
-		timeout: 30_000,
+		timeout: 60_000,
 		shell: "/bin/bash",
 		env: { ...process.env, ...env },
 		cwd,
