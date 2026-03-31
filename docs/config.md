@@ -24,6 +24,7 @@ schedule: "*/30 * * * *"          # Cron expression
 timeout: 300                      # Seconds before Claude process is killed
 enabled: true                     # Set false to skip in sync/run
 model: "sonnet"                   # Claude model (default: "sonnet")
+url_template: "{{url}}"            # Deterministic URL for dashboard (supports templates)
 
 # ── Execution pipeline (in order) ──
 # 1. Discovery — find items to process
@@ -34,6 +35,7 @@ discovery:
 # 2. Dedup — skip items already processed
 bypass_dedup: false               # When true, dedup is bypassed — discovery is the sole filter
 parallel: false                   # When true, run discovered items concurrently
+parallel_group_by: "pr_number"     # Group items by field for parallel execution
 
 # 3. Pre-run hook — environment setup (per item, after dedup)
 pre_run: "wt switch {{headRefName}} --no-cd --yes -C {{platform_repo_path}}"
@@ -66,6 +68,10 @@ vars:
 **`bypass_dedup`** — When `true`, deduplication is completely bypassed. Every item returned by discovery is processed regardless of previous runs. Use this for tasks where the discovery command itself filters to only items that currently need work (e.g., PRs with failing CI — discovery only returns PRs that are currently broken).
 
 **`parallel`** — When `true`, discovered items are processed concurrently via `Promise.all`. Requires each item to have its own isolated environment (e.g., separate git worktrees via `pre_run`). Defaults to `false` (sequential).
+
+**`parallel_group_by`** — When `parallel: true`, items are grouped by this field. Items within the same group run sequentially; different groups run in parallel. Defaults to `discovery.item_key` (every item is its own group = fully parallel). Use for tasks where items sharing a resource must not run concurrently (e.g., PR comments grouped by PR number).
+
+**`url_template`** — Template string for the run's dashboard URL. Rendered with global + task + item variables. Takes priority over URL parsing from Claude output. Use for deterministic URLs (e.g., `https://github.com/{{platform_repo}}/pull/{{pr_number}}`).
 
 **`pre_run`** — Shell command executed before each Claude invocation, after dedup. Runs synchronously with a 60-second timeout. Has access to all template variables (global + task + item). If it fails, the run is marked as error and `post_run` still executes. Use for environment setup (e.g., creating git worktrees).
 

@@ -11,14 +11,16 @@ All commands accept a `--dir <path>` flag to specify the workspace directory. Wi
 
 Create a new workspace at the given path. Generates the directory structure with `tasks/`, `runs/`, `.gitignore`, and a `vars.yaml` template.
 
-## `agent247 run <task-id>`
+## `agent247 run <task-id> [--rerun <item-key>]`
 
 Execute a single task. This is the core command — it runs the full pipeline:
+
+When `--rerun <item-key>` is provided, discovery runs normally but results are filtered to only the matching item. Dedup is bypassed. If the item is no longer in discovery results, falls back to stored variables from the most recent run with that item key.
 
 1. Acquire lock (skip if task already running)
 2. Run discovery command to find items
 3. Deduplicate against previous runs (skipped when `bypass_dedup: true`)
-4. For each item (parallel if `parallel: true`):
+4. For each item (parallel if `parallel: true`, grouped by `parallel_group_by`):
    a. Execute `pre_run` hook (if configured)
    b. Render prompt and invoke Claude (async, streams to `transcript.md`)
    c. Persist results to `runs/<task-id>/YYYYMMDD-HHMMSS-<ulid>/`
@@ -42,18 +44,38 @@ Interactive terminal dashboard (split view). Left pane shows tasks and runs, rig
 
 ### Keybindings
 
-**Navigation:**
+**Navigation (Task List):**
 - `↑`/`↓` — Move selection
+- `Shift+↑`/`Shift+↓` — Multi-select
 - `←`/`→` — Collapse/expand task group
 - `Enter` — Toggle group expansion
-- `w`/`a`/`s`/`d` — Scroll detail pane
+- `j` — Jump to next task group
+- `z` — Toggle all groups collapsed/expanded
 
-**Actions:**
+**Navigation (Detail Pane):**
+- `w`/`a`/`s`/`d` — Scroll (up/left/down/right)
+- `Home`/`End` — Scroll to top/bottom
+- `1`-`6` — Switch file tab
+- `Tab` — Next tab
+- `Shift+Tab` — Previous tab
+- `f` — Toggle full-width pane
+
+**Actions (Task):**
 - `r` — Run selected task (with confirmation)
-- `x` — Stop task (on group) / delete run (on run)
+- `x` — Stop running task
 - `t` — Toggle task enabled/disabled (syncs to launchd)
+
+**Actions (Run):**
+- `r` — Rerun item (with confirmation)
+- `m` — Mark/unmark for review
+- `x` — Delete run
 - `u` — Open run URL in browser
+- `e` — Open shell at run's cwd
+- `p` — Open Claude at run's cwd
+- `v` — Open tmux pane right at run's cwd
+- `h` — Open tmux pane below at run's cwd
 
 **General:**
+- `l` — Toggle layout (vertical/horizontal)
 - `?` — Help
 - `q`/`Esc` — Quit

@@ -29,32 +29,28 @@ If `pre_run` is configured, the shell command is executed synchronously before C
 Claude CLI is invoked asynchronously via `claude -p <prompt> --output-format stream-json --verbose --model <model>`. Events stream in real-time and are written to `transcript.md` as they arrive. The process has a configurable timeout and can be cancelled mid-run.
 
 Output is parsed for:
-- A URL on the first line — stored as the run's URL
+- The run URL — determined by `url_template` (if configured), falling back to the first URL found in Claude's output
 - The remaining text — stored as the markdown report
 
-When `parallel: true`, multiple items run concurrently (each in its own worktree if pre_run creates one).
+When `parallel: true`, items are grouped by `parallel_group_by` (defaults to `item_key`) and groups run concurrently. Items within the same group run sequentially. Each item typically has its own worktree via `pre_run`.
 
 ### 6. Run Persistence
 Each execution creates a timestamped directory under `runs/<task-id>/`:
 
 ```
-runs/<task-id>/YYYYMMDD-HHMMSS-<ulid>/
-├── meta.yaml            # Status, timestamps, item key, etc.
-├── vars.json            # Template variables (global + task + item) for this run
+runs/<task-id>/YYYYMMDD-HHMMSS±OFFSET-<ulid>/
+├── data.json            # All structured data (run meta, config, vars, discovery, result)
 ├── log.txt              # Timestamped execution log
 ├── prompt.rendered.md   # Final prompt sent to Claude
-├── transcript.md        # Real-time Claude event log (tool calls, reasoning)
-├── response.json        # Raw Claude JSON result
+├── transcript.md        # Real-time Claude event log (thinking, text, tool calls)
 └── report.md            # Parsed markdown report
 ```
-
-Skipped runs (no new items) are written to `.bin/<task-id>/` instead, keeping `runs/` clean.
 
 ### 7. Post-run Hook (per item)
 If `post_run` is configured, the shell command is executed synchronously after Claude finishes. Always runs regardless of success, error, or timeout (like a `finally` block). Used for cleanup (e.g., removing git worktrees via `wt remove`). Failures are logged but don't affect run status.
 
 ### 8. Cleanup
-After all items are processed (always runs, even when skipped), if the task has `cleanup` configured, the system checks all completed/error/canceled runs. For each, it runs `cleanup.command` with the item's context and matches against `cleanup.when`. Runs older than `cleanup.retain` that match are moved to `.bin/`.
+After all items are processed (always runs, even when skipped), if the task has `cleanup` configured, the system checks all completed/error/canceled runs. For each, it runs `cleanup.check` with the item's context and matches against `cleanup.when`. Runs older than `cleanup.retain` that match are moved to `.bin/`.
 
 ### 9. Lock Release
 
@@ -82,29 +78,38 @@ Old agents are automatically unloaded and removed when tasks are disabled or del
 
 ```
 src/
-├── cli.ts              # Commander setup, base dir resolution
+├── cli.ts              # Commander setup, base dir resolution, --rerun flag
 ├── commands/
-│   ├── run.ts          # Core execution pipeline
+│   ├── run.ts          # Core execution pipeline (discovery → dedup → execute)
 │   ├── sync.ts         # launchd sync
 │   ├── init.ts         # Workspace scaffolding
 │   ├── purge.ts        # Run cleanup by age
-│   └── watch/          # Interactive TUI dashboard (split view only)
+│   └── watch/          # Interactive TUI dashboard
 │       ├── index.ts    # Entry point — wires state, input, render loop
 │       ├── state.ts    # State types, WatchContext, initialState()
 │       ├── data.ts     # loadData(), getVisibleLines()
-│       ├── actions.ts  # Key handlers (delete, open URL, run, stop, toggle)
+│       ├── actions.ts  # Key handlers (delete, open URL, run, rerun, mark, stop, toggle)
+│       ├── context.ts  # Spawn run/rerun, soft delete, stop, toggle
+│       ├── scroll.ts   # Scroll state management
 │       ├── modes/      # Per-mode key handlers (split, confirm, help)
-│       └── render/     # Display (split, help, confirm, ANSI utilities)
+│       └── render/     # Display (split, list, help, confirm, ANSI utilities)
 └── lib/
     ├── config.ts       # YAML config loading (TaskConfig interface)
     ├── discovery.ts    # Shell command → JSON items
     ├── dedup.ts        # Filter already-processed items
     ├── runner.ts       # Async Claude CLI invocation + stream-json parsing
-    ├── report.ts       # Run persistence (read/write/list)
+    ├── report.ts       # Run persistence (read/write/list, RunMeta with marked flag)
+    ├── template.ts     # {{variable}} substitution
+    ├── url.ts          # URL slug formatting for dashboard display
+    ├── redact.ts       # Secret redaction for logs and data
+    ├── cleanup.ts      # Run cleanup logic (check + retain + teardown)
+    ├── cleanup-worker.ts # Background cleanup worker
+    ├── network.ts      # Network connectivity check
+    ├── task-cache.ts   # Task cache (last_check timestamp)
+    ├── hooks.ts        # Pre/post-run hook execution
     ├── launchd.ts      # macOS launchd plist management + schedule reading
     ├── lock.ts         # PID-based locking
     ├── logger.ts       # File + in-memory logger
-    ├── template.ts     # {{variable}} substitution
     ├── bin.ts          # .bin purge (auto-delete after 5 days)
-    └── crontab.ts      # Legacy crontab migration
+    └── constants.ts    # File name constants
 ```
