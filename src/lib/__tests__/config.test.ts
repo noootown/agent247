@@ -22,7 +22,7 @@ describe("loadTaskConfig", () => {
 	it("parses a valid task config", () => {
 		writeFileSync(
 			join(TEST_DIR, "tasks", "test-task", "config.yaml"),
-			`name: Test Task\nschedule: "*/30 * * * *"\ntimeout: 300\nenabled: true\ndiscovery:\n  command: "echo '[]'"\n  item_key: url\nprompt_mode: per_item\n`,
+			`name: Test Task\nschedule: "*/30 * * * *"\ntimeout: 300\nenabled: true\ndiscovery:\n  command: "echo '[]'"\n  item_key: url\n`,
 		);
 		writeFileSync(
 			join(TEST_DIR, "tasks", "test-task", "prompt.md"),
@@ -35,7 +35,6 @@ describe("loadTaskConfig", () => {
 		expect(config.enabled).toBe(true);
 		expect(config.discovery?.command).toBe("echo '[]'");
 		expect(config.discovery?.item_key).toBe("url");
-		expect(config.prompt_mode).toBe("per_item");
 		expect(config.prompt).toBe("Test prompt {{url}}");
 	});
 });
@@ -181,7 +180,7 @@ describe("listTasks", () => {
 	it("lists task directories", () => {
 		writeFileSync(
 			join(TEST_DIR, "tasks", "test-task", "config.yaml"),
-			"name: Test\nschedule: '* * * * *'\ntimeout: 60\nenabled: true\ndiscovery:\n  command: echo\n  item_key: id\nprompt_mode: per_item\n",
+			"name: Test\nschedule: '* * * * *'\ntimeout: 60\nenabled: true\ndiscovery:\n  command: echo\n  item_key: id\n",
 		);
 		writeFileSync(join(TEST_DIR, "tasks", "test-task", "prompt.md"), "prompt");
 		const tasks = listTasks(TEST_DIR);

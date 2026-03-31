@@ -42,7 +42,6 @@ function makeGroup(task = "task-a", running = false): TaskGroup {
 			enabled: true,
 			discovery: { command: "echo '[]'", item_key: "url" },
 			model: "sonnet",
-			prompt_mode: "per_item" as const,
 			prompt: "",
 		},
 		runs: [],

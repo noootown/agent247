@@ -76,7 +76,6 @@ function baseConfig(overrides?: Partial<TaskConfig>): TaskConfig {
 		enabled: true,
 		prompt: "Do something {{item}}",
 		model: "sonnet",
-		prompt_mode: "per_item",
 		parallel: false,
 		bypass_dedup: false,
 		...overrides,
@@ -158,27 +157,6 @@ describe("runCommand", () => {
 		);
 		vi.mocked(discoverItems).mockReturnValue([{ url: "a" }]);
 		vi.mocked(filterNewItems).mockReturnValue([{ url: "a" }]);
-		vi.mocked(executePrompt).mockResolvedValue({
-			exitCode: 0,
-			stdout: "done",
-			stderr: "",
-			rawJson: null,
-			transcript: "",
-			timedOut: false,
-		});
-		await runCommand("test-task", "/tmp/base");
-		expect(executePrompt).toHaveBeenCalledTimes(1);
-	});
-
-	it("runs batch mode with all items at once", async () => {
-		vi.mocked(loadTaskConfig).mockReturnValue(
-			baseConfig({
-				prompt_mode: "batch",
-				discovery: { command: "find", item_key: "url" },
-			}),
-		);
-		vi.mocked(discoverItems).mockReturnValue([{ url: "a" }, { url: "b" }]);
-		vi.mocked(filterNewItems).mockReturnValue([{ url: "a" }, { url: "b" }]);
 		vi.mocked(executePrompt).mockResolvedValue({
 			exitCode: 0,
 			stdout: "done",

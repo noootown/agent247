@@ -209,57 +209,45 @@ export async function runCommand(
 			return;
 		}
 
-		if (config.prompt_mode === "per_item") {
-			if (config.parallel) {
-				// Group items by parallel_group_by field (defaults to item_key = all parallel)
-				const groupByField =
-					config.parallel_group_by ?? config.discovery?.item_key ?? "";
-				const groups = new Map<string, Record<string, string>[]>();
-				for (const item of newItems) {
-					const key = item[groupByField] ?? "";
-					const group = groups.get(key) ?? [];
-					group.push(item);
-					groups.set(key, group);
-				}
-				// Run groups in parallel, items within each group sequentially
-				await Promise.all(
-					[...groups.values()].map(async (groupItems) => {
-						for (const item of groupItems) {
-							await executeForItem(
-								config,
-								globalVars,
-								item,
-								runsDir,
-								baseDir,
-								secrets,
-								allDiscoveredItems,
-							);
-						}
-					}),
-				);
-			} else {
-				for (const item of newItems) {
-					await executeForItem(
-						config,
-						globalVars,
-						item,
-						runsDir,
-						baseDir,
-						secrets,
-						allDiscoveredItems,
-					);
-				}
+		if (config.parallel) {
+			// Group items by parallel_group_by field (defaults to item_key = all parallel)
+			const groupByField =
+				config.parallel_group_by ?? config.discovery?.item_key ?? "";
+			const groups = new Map<string, Record<string, string>[]>();
+			for (const item of newItems) {
+				const key = item[groupByField] ?? "";
+				const group = groups.get(key) ?? [];
+				group.push(item);
+				groups.set(key, group);
 			}
-		} else {
-			await executeForBatch(
-				config,
-				globalVars,
-				newItems,
-				runsDir,
-				baseDir,
-				secrets,
-				allDiscoveredItems,
+			// Run groups in parallel, items within each group sequentially
+			await Promise.all(
+				[...groups.values()].map(async (groupItems) => {
+					for (const item of groupItems) {
+						await executeForItem(
+							config,
+							globalVars,
+							item,
+							runsDir,
+							baseDir,
+							secrets,
+							allDiscoveredItems,
+						);
+					}
+				}),
 			);
+		} else {
+			for (const item of newItems) {
+				await executeForItem(
+					config,
+					globalVars,
+					item,
+					runsDir,
+					baseDir,
+					secrets,
+					allDiscoveredItems,
+				);
+			}
 		}
 	} finally {
 		writeTaskCache(runsDir, taskId, {
@@ -489,133 +477,4 @@ async function executeForItem(
 	} finally {
 		runPostHook(config, globalVars, taskVars, item, logger, baseDir);
 	}
-}
-
-async function executeForBatch(
-	config: ReturnType<typeof loadTaskConfig>,
-	globalVars: Record<string, string>,
-	items: Record<string, string>[],
-	runsDir: string,
-	baseDir: string,
-	secrets: Map<string, string>,
-	allDiscoveredItems: Record<string, string>[],
-): Promise<void> {
-	const startedAt = new Date().toISOString();
-	const runId = ulid();
-	const runDir = join(runsDir, config.id, runDirName(runId));
-	const taskVars = config.vars ?? {};
-
-	const itemsJson = JSON.stringify(items);
-	const itemsList = items
-		.map((i) => `- ${i[config.discovery?.item_key ?? ""]}`)
-		.join("\n");
-	const batchVars = { items_json: itemsJson, items_list: itemsList };
-
-	const mergedVars = { ...globalVars, ...taskVars };
-	const resolvedConfig = resolveConfig(
-		config,
-		globalVars,
-		taskVars,
-		{},
-		baseDir,
-	);
-
-	const reservedVars = loadInjectVars(config.id, baseDir);
-	const renderedPrompt = render(
-		config.prompt,
-		globalVars,
-		taskVars,
-		batchVars,
-		reservedVars,
-	);
-	const renderedCwd = config.cwd
-		? render(config.cwd, globalVars, taskVars)
-		: undefined;
-
-	const logger = createLogger(join(runDir, FILE.LOG));
-	writeRun(runDir, {
-		meta: buildRunMeta(
-			runId,
-			config.id,
-			"processing",
-			startedAt,
-			startedAt,
-			-1,
-		),
-		config: resolvedConfig,
-		vars: mergedVars,
-		discovery: allDiscoveredItems,
-		prompt: renderedPrompt,
-		log: "",
-		secrets,
-	});
-	logger.log(`Starting batch task: ${config.id} (${items.length} items)`);
-	logger.log(`Rendered prompt (${renderedPrompt.length} chars)`);
-	if (renderedCwd) logger.log(`Working directory: ${renderedCwd}`);
-
-	const execResult = await executePrompt(
-		renderedPrompt,
-		config.timeout,
-		"claude",
-		config.model,
-		renderedCwd,
-		join(runDir, FILE.TRANSCRIPT),
-	);
-	const finishedAt = new Date().toISOString();
-
-	logger.log(
-		`Process exited with code ${execResult.exitCode}${execResult.timedOut ? " (timed out)" : ""}`,
-	);
-
-	if (execResult.exitCode !== 0) {
-		if (execResult.stderr?.trim()) {
-			logger.error(`stderr: ${execResult.stderr}`);
-		}
-		writeRun(runDir, {
-			meta: buildRunMeta(
-				runId,
-				config.id,
-				"error",
-				startedAt,
-				finishedAt,
-				execResult.exitCode,
-			),
-			config: resolvedConfig,
-			vars: mergedVars,
-			discovery: allDiscoveredItems,
-			prompt: renderedPrompt,
-			log: logger.getEntries().join("\n"),
-			secrets,
-		});
-		return;
-	}
-
-	const textOutput = execResult.rawJson
-		? extractTextFromJson(execResult.rawJson)
-		: execResult.stdout;
-	const parsed = parseClaudeOutput(textOutput);
-	logger.log(`Output: ${textOutput.length} chars, status: ${parsed.status}`);
-
-	const result = execResult.rawJson ? JSON.parse(execResult.rawJson) : null;
-
-	writeRun(runDir, {
-		meta: buildRunMeta(
-			runId,
-			config.id,
-			parsed.status,
-			startedAt,
-			finishedAt,
-			execResult.exitCode,
-			null,
-			parsed.url,
-		),
-		config: resolvedConfig,
-		vars: mergedVars,
-		discovery: allDiscoveredItems,
-		result,
-		prompt: renderedPrompt,
-		report: parsed.report,
-		log: logger.getEntries().join("\n"),
-		secrets,
-	});
 }

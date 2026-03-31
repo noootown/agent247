@@ -13,7 +13,6 @@ function makeConfig(overrides: Partial<TaskConfig> = {}): TaskConfig {
 		timeout: 300,
 		enabled: true,
 		model: "claude-sonnet",
-		prompt_mode: "batch",
 		prompt: "",
 		...overrides,
 	};

@@ -15,7 +15,6 @@ export interface TaskConfig {
 		item_key: string;
 	};
 	model: string;
-	prompt_mode: "per_item" | "batch";
 	cwd?: string;
 	bypass_dedup?: boolean;
 	parallel?: boolean;
@@ -65,7 +64,6 @@ export function loadTaskConfig(taskId: string, baseDir: string): TaskConfig {
 			| { command: string; item_key: string }
 			| undefined,
 		model: (raw.model as string) ?? "sonnet",
-		prompt_mode: (raw.prompt_mode as string) === "batch" ? "batch" : "per_item",
 		cwd: raw.cwd as string | undefined,
 		bypass_dedup: (raw.bypass_dedup as boolean) ?? false,
 		parallel: (raw.parallel as boolean) ?? false,

@@ -71,7 +71,6 @@ export function loadData(
 				enabled: false,
 				discovery: { command: "", item_key: "" },
 				model: "",
-				prompt_mode: "per_item" as const,
 				prompt: "",
 			},
 			runs: taskRuns,
