@@ -119,9 +119,16 @@ export function getVisibleLines(state: State): VisibleLine[] {
 	const lines: VisibleLine[] = [];
 	let idx = 0;
 	for (const group of state.groups) {
+		const runs = state.showMarkedOnly
+			? group.runs.filter((r) => r.meta.marked)
+			: group.runs;
+
+		// Hide groups with no visible runs in marked-only mode
+		if (state.showMarkedOnly && runs.length === 0) continue;
+
 		lines.push({ type: "group", group, index: idx++ });
 		if (group.expanded) {
-			for (const run of group.runs) {
+			for (const run of runs) {
 				lines.push({ type: "run", run, group, index: idx++ });
 			}
 		}

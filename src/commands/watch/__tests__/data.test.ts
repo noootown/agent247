@@ -66,6 +66,7 @@ function makeState(overrides: Partial<State> = {}): State {
 		followBottom: true,
 		flash: null,
 		helpScroll: 0,
+		showMarkedOnly: false,
 		...overrides,
 	};
 }
@@ -139,5 +140,57 @@ describe("getVisibleLines", () => {
 		expect(lines).toHaveLength(4);
 		const indices = lines.map((l) => l.index);
 		expect(indices).toEqual([0, 1, 2, 3]);
+	});
+
+	it("filters to marked-only runs when showMarkedOnly is true", () => {
+		const markedRun = makeRun("run-1", "task-a");
+		markedRun.meta.marked = true;
+		const unmarkedRun = makeRun("run-2", "task-a");
+		unmarkedRun.meta.marked = false;
+		const groupA = makeGroup({
+			task: "task-a",
+			expanded: true,
+			runs: [markedRun, unmarkedRun],
+		});
+		const state = makeState({ groups: [groupA], showMarkedOnly: true });
+
+		const lines = getVisibleLines(state);
+
+		expect(lines).toHaveLength(2); // group + 1 marked run
+		expect(lines[0].type).toBe("group");
+		expect(lines[1].type).toBe("run");
+		if (lines[1].type === "run") {
+			expect(lines[1].run.meta.id).toBe("run-1");
+		}
+	});
+
+	it("hides groups with no marked runs when showMarkedOnly is true", () => {
+		const unmarkedRun = makeRun("run-1", "task-a");
+		const groupA = makeGroup({
+			task: "task-a",
+			expanded: true,
+			runs: [unmarkedRun],
+		});
+		const state = makeState({ groups: [groupA], showMarkedOnly: true });
+
+		const lines = getVisibleLines(state);
+
+		expect(lines).toHaveLength(0);
+	});
+
+	it("shows all runs when showMarkedOnly is false", () => {
+		const markedRun = makeRun("run-1", "task-a");
+		markedRun.meta.marked = true;
+		const unmarkedRun = makeRun("run-2", "task-a");
+		const groupA = makeGroup({
+			task: "task-a",
+			expanded: true,
+			runs: [markedRun, unmarkedRun],
+		});
+		const state = makeState({ groups: [groupA], showMarkedOnly: false });
+
+		const lines = getVisibleLines(state);
+
+		expect(lines).toHaveLength(3); // group + 2 runs
 	});
 });

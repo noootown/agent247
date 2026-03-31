@@ -42,6 +42,7 @@ const helpLines = [
 	`  ${BOLD}Actions (Run)${RESET}`,
 	`    r                       Rerun item`,
 	`    m                       Mark/unmark for review`,
+	`    M                       Toggle marked-only filter`,
 	`    x                       Delete run`,
 	`    o                       Open current tab file in VS Code`,
 	`    u                       Open run URL in browser`,

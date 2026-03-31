@@ -9,6 +9,7 @@ import {
 	actionStop,
 	actionTmuxPane,
 	actionToggle,
+	actionToggleMarkedFilter,
 } from "../actions.js";
 import { applyScroll, ScrollDirection } from "../scroll.js";
 import {
@@ -223,6 +224,7 @@ export function handleKey(
 		return { ...state };
 	}
 
+	if (key === "M") return actionToggleMarkedFilter(state);
 	if (!line) return state;
 	if (key === "u") return actionOpenUrl(state, line, ctx);
 	if (key === "r") {

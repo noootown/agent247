@@ -454,17 +454,22 @@ async function executeForItem(
 			parsed.url ??
 			(itemKey?.startsWith("http") ? itemKey : null);
 
+		const meta = buildRunMeta(
+			runId,
+			config.id,
+			parsed.status,
+			startedAt,
+			finishedAt,
+			execResult.exitCode,
+			itemKey,
+			resolvedUrl,
+		);
+		if (config.auto_mark) {
+			meta.marked = true;
+		}
+
 		writeRun(runDir, {
-			meta: buildRunMeta(
-				runId,
-				config.id,
-				parsed.status,
-				startedAt,
-				finishedAt,
-				execResult.exitCode,
-				itemKey,
-				resolvedUrl,
-			),
+			meta,
 			config: resolvedConfig,
 			vars: mergedVars,
 			discovery: allDiscoveredItems,

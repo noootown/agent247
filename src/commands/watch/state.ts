@@ -64,6 +64,7 @@ export interface State {
 	followBottom: boolean;
 	flash: string | null;
 	helpScroll: number;
+	showMarkedOnly: boolean;
 }
 
 export interface WatchContext {
@@ -100,5 +101,6 @@ export function initialState(): State {
 		followBottom: true,
 		flash: null,
 		helpScroll: 0,
+		showMarkedOnly: false,
 	};
 }

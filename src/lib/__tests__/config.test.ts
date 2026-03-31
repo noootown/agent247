@@ -189,6 +189,28 @@ describe("listTasks", () => {
 	});
 });
 
+describe("loadTaskConfig auto_mark", () => {
+	it("parses auto_mark when set to true", () => {
+		writeFileSync(
+			join(TEST_DIR, "tasks", "test-task", "config.yaml"),
+			`name: Test\nschedule: "* * * * *"\ntimeout: 60\nenabled: true\nauto_mark: true\n`,
+		);
+		writeFileSync(join(TEST_DIR, "tasks", "test-task", "prompt.md"), "prompt");
+		const config = loadTaskConfig("test-task", TEST_DIR);
+		expect(config.auto_mark).toBe(true);
+	});
+
+	it("defaults auto_mark to false when not specified", () => {
+		writeFileSync(
+			join(TEST_DIR, "tasks", "test-task", "config.yaml"),
+			`name: Test\nschedule: "* * * * *"\ntimeout: 60\nenabled: true\n`,
+		);
+		writeFileSync(join(TEST_DIR, "tasks", "test-task", "prompt.md"), "prompt");
+		const config = loadTaskConfig("test-task", TEST_DIR);
+		expect(config.auto_mark).toBe(false);
+	});
+});
+
 describe("loadTaskConfig cleanup fields", () => {
 	it("loads check and teardown fields", () => {
 		writeFileSync(

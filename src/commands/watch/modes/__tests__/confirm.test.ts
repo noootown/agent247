@@ -22,6 +22,7 @@ function makeState(overrides: Partial<State> = {}): State {
 		followBottom: true,
 		flash: null,
 		helpScroll: 0,
+		showMarkedOnly: false,
 		...overrides,
 	};
 }

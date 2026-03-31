@@ -5,6 +5,7 @@ import {
 	actionSoftDelete,
 	actionStop,
 	actionToggle,
+	actionToggleMarkedFilter,
 } from "../actions.js";
 import type { State, TaskGroup, VisibleLine, WatchContext } from "../state.js";
 
@@ -53,6 +54,7 @@ function makeState(overrides: Partial<State> = {}): State {
 		followBottom: true,
 		flash: null,
 		helpScroll: 0,
+		showMarkedOnly: false,
 		...overrides,
 	};
 }
@@ -228,5 +230,25 @@ describe("actionToggle", () => {
 		const state = makeState();
 		const ctx = makeMockCtx();
 		expect(actionToggle(state, makeRunLine("completed"), ctx)).toBe(state);
+	});
+});
+
+describe("actionToggleMarkedFilter", () => {
+	it("toggles showMarkedOnly from false to true and expands all groups", () => {
+		const group = makeGroup({ task: "my-task", expanded: false });
+		const state = makeState({ groups: [group], showMarkedOnly: false });
+		const next = actionToggleMarkedFilter(state);
+		expect(next.showMarkedOnly).toBe(true);
+		expect(next.flash).toBe("Showing marked only");
+		expect(next.groups[0].expanded).toBe(true);
+	});
+
+	it("toggles showMarkedOnly from true to false and collapses all groups", () => {
+		const group = makeGroup({ task: "my-task", expanded: true });
+		const state = makeState({ groups: [group], showMarkedOnly: true });
+		const next = actionToggleMarkedFilter(state);
+		expect(next.showMarkedOnly).toBe(false);
+		expect(next.flash).toBe("Showing all runs");
+		expect(next.groups[0].expanded).toBe(false);
 	});
 });

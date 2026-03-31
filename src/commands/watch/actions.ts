@@ -148,3 +148,13 @@ export function actionMark(
 	updateRunMeta(line.run.dir, { marked: newMarked });
 	return ctx.reload(state);
 }
+
+export function actionToggleMarkedFilter(state: State): State {
+	const entering = !state.showMarkedOnly;
+	for (const g of state.groups) g.expanded = entering;
+	return {
+		...state,
+		showMarkedOnly: entering,
+		flash: entering ? "Showing marked only" : "Showing all runs",
+	};
+}
