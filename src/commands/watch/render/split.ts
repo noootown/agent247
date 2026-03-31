@@ -120,11 +120,22 @@ export function getTaskInfoLines(group: TaskGroup, width = 40): string[] {
 		`${BOLD}Config${RESET}`,
 		`  Model: ${config.model}`,
 		`  Timeout: ${config.timeout}s`,
-		`  Mode: ${config.prompt_mode}`,
+		`  Mode: ${config.prompt_mode}${config.parallel ? ` ${DIM}(parallel)${RESET}` : ""}`,
+		config.requires_network ? `  Network: required` : null,
+		config.url_template ? `  URL: ${DIM}${config.url_template}${RESET}` : null,
 		config.cwd ? `  CWD: ${DIM}${config.cwd}${RESET}` : null,
+		config.discovery
+			? `  Discovery: ${DIM}${config.discovery.item_key}${RESET}`
+			: null,
 		config.bypass_dedup ? `  Bypass dedup: ${GREEN}yes${RESET}` : null,
+		config.pre_run
+			? `  Pre-run: ${DIM}${config.pre_run.substring(0, 60)}${config.pre_run.length > 60 ? "…" : ""}${RESET}`
+			: null,
+		config.post_run
+			? `  Post-run: ${DIM}${config.post_run.substring(0, 60)}${config.post_run.length > 60 ? "…" : ""}${RESET}`
+			: null,
 		config.cleanup
-			? `  Cleanup: ${DIM}when ${config.cleanup.when}${config.cleanup.teardown ? " + teardown" : ""}${RESET}`
+			? `  Cleanup: ${DIM}when ${config.cleanup.when}${config.cleanup.retain ? `, retain ${config.cleanup.retain}` : ""}${config.cleanup.teardown ? " + teardown" : ""}${RESET}`
 			: null,
 		"",
 		`${"─".repeat(width)}`,
