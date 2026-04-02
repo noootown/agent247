@@ -1,6 +1,7 @@
 import type { TaskConfig } from "../../lib/config.js";
 import { FILE } from "../../lib/constants.js";
 import type { RunRecord } from "../../lib/report.js";
+import type { HotkeyConfig } from "./settings.js";
 
 export type ViewMode =
 	| "split"
@@ -58,7 +59,6 @@ export interface State {
 	confirmTask: string | null;
 	confirmItemKey: string | null;
 	confirmChoice: "yes" | "no";
-	suspend: { mode: "shell" | "prompt"; cwd: string } | null;
 	layoutMode: "vertical" | "horizontal";
 	selected: Set<number>;
 	followBottom: boolean;
@@ -79,6 +79,7 @@ export interface WatchContext {
 	spawnRun: (taskId: string) => void;
 	spawnRerun: (taskId: string, itemKey: string) => void;
 	openUrl: (url: string) => void;
+	hotkeys: HotkeyConfig[];
 }
 
 export function initialState(): State {
@@ -95,7 +96,6 @@ export function initialState(): State {
 		confirmTask: null,
 		confirmItemKey: null,
 		confirmChoice: "yes",
-		suspend: null,
 		layoutMode: "horizontal",
 		selected: new Set(),
 		followBottom: true,

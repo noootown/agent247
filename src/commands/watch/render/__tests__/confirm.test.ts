@@ -23,7 +23,6 @@ describe("renderConfirmRun", () => {
 			mode: "confirm-run",
 			confirmTask: "my-task",
 			confirmChoice: "yes",
-			suspend: null,
 			layoutMode: "horizontal",
 			selected: new Set(),
 			followBottom: true,

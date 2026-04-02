@@ -16,7 +16,6 @@ function makeState(overrides: Partial<State> = {}): State {
 		confirmTask: "my-task",
 		confirmItemKey: null,
 		confirmChoice: "yes",
-		suspend: null,
 		layoutMode: "horizontal",
 		selected: new Set(),
 		followBottom: true,
@@ -40,6 +39,7 @@ function makeMockCtx(overrides: Partial<WatchContext> = {}): WatchContext {
 		spawnRun: vi.fn(),
 		spawnRerun: vi.fn(),
 		openUrl: vi.fn(),
+		hotkeys: [],
 		...overrides,
 	};
 }

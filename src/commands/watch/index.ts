@@ -1,4 +1,4 @@
-import { execSync, spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { cleanupRunsAsync } from "../../lib/cleanup.js";
@@ -51,6 +51,7 @@ export function watchCommand(baseDir: string): void {
 		openUrl: (url) => {
 			spawn("open", [url], { stdio: "ignore" });
 		},
+		hotkeys: [],
 	};
 
 	const modeHandlers = {
@@ -110,56 +111,6 @@ export function watchCommand(baseDir: string): void {
 			state.mode === "split"
 		) {
 			state = ctx.reload(state);
-		}
-		// Suspend mode: spawn shell or claude, restore TUI on exit
-		if (state.suspend) {
-			const { mode: suspendMode, cwd } = state.suspend;
-			state = { ...state, suspend: null };
-			// Save terminal state
-			let savedStty = "";
-			try {
-				savedStty = execSync("stty -g", { encoding: "utf-8" }).trim();
-			} catch {}
-			// Suspend TUI
-			process.stdin.removeListener("data", handleInput);
-			process.stdin.setRawMode(false);
-			process.stdout.write("\x1B[?25h\x1B[?1049l");
-
-			if (suspendMode === "shell") {
-				process.stdout.write(
-					`\nShell at ${cwd}\nPress ctrl+d to return to TUI\n\n`,
-				);
-				const shell = process.env.SHELL ?? "/bin/zsh";
-				spawnSync(shell, ["-i"], {
-					stdio: "inherit",
-					cwd,
-					env: { ...process.env, AGENT247_SHELL: cwd },
-				});
-			} else {
-				process.stdout.write(
-					`\nClaude at ${cwd}\nPress ctrl+d to return to TUI\n\n`,
-				);
-				spawnSync("claude", [], {
-					stdio: "inherit",
-					cwd,
-					env: { ...process.env, AGENT247_SHELL: cwd },
-				});
-			}
-
-			// Restore terminal state
-			if (savedStty) {
-				try {
-					execSync(`stty ${savedStty}`);
-				} catch {}
-			}
-			// Restore TUI — reset cursor key mode (DECCKM) in case shell/claude changed it
-			process.stdout.write("\x1B[?1l\x1B[?1049h\x1B[?25l");
-			process.stdin.setRawMode(true);
-			process.stdin.resume();
-			process.stdin.on("data", handleInput);
-			state = ctx.reload(state);
-			render(state, getVisibleLines(state), botName);
-			return;
 		}
 		render(state, getVisibleLines(state), botName);
 	}
