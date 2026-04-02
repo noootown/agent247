@@ -1,4 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
+
+vi.mock("node:child_process", () => ({ spawn: vi.fn() }));
+vi.mock("node:fs", () => ({
+	existsSync: vi.fn(() => false),
+	readFileSync: vi.fn(() => "{}"),
+}));
+
 import type {
 	State,
 	TaskGroup,
@@ -177,5 +184,27 @@ describe("action hotkeys in split mode", () => {
 
 	it("? opens help mode", () => {
 		expect(handleKey("?", makeState(), [], makeMockCtx()).mode).toBe("help");
+	});
+});
+
+describe("custom hotkey dispatch", () => {
+	it("dispatches custom hotkey when key matches", () => {
+		const hotkeys = [
+			{ key: "p", type: "tmux" as const, command: "cs h", description: "test" },
+		];
+		const ctx = makeMockCtx({ hotkeys });
+		const lines = [makeRunLine(0)];
+
+		// Without TMUX set, should flash error (tmux type but not in tmux)
+		delete process.env.TMUX;
+		const next = handleKey("p", makeState({ cursor: 0 }), lines, ctx);
+		expect(next.flash).toBe("Not in a tmux session");
+	});
+
+	it("ignores unregistered keys", () => {
+		const ctx = makeMockCtx({ hotkeys: [] });
+		const state = makeState();
+		const next = handleKey("p", state, [], ctx);
+		expect(next).toBe(state);
 	});
 });

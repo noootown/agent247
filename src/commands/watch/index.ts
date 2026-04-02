@@ -17,6 +17,7 @@ import { handleKey as helpHandleKey } from "./modes/help.js";
 import { handleKey as splitHandleKey } from "./modes/split.js";
 import { tickSpinner } from "./render/ansi.js";
 import { render } from "./render/index.js";
+import { loadHotkeys } from "./settings.js";
 import { initialState, type State, type WatchContext } from "./state.js";
 
 export function watchCommand(baseDir: string): void {
@@ -28,10 +29,15 @@ export function watchCommand(baseDir: string): void {
 
 	let state: State = initialState();
 
+	const { hotkeys, warnings: hotkeyWarnings } = loadHotkeys(baseDir);
+	if (hotkeyWarnings.length > 0) {
+		state = { ...state, flash: hotkeyWarnings.join("; ") };
+	}
+
 	// Load persisted preferences
-	const prefsPath = join(baseDir, ".preferences.json");
+	const cachePath = join(baseDir, ".cache.json");
 	try {
-		const prefs = JSON.parse(readFileSync(prefsPath, "utf-8"));
+		const prefs = JSON.parse(readFileSync(cachePath, "utf-8"));
 		if (prefs.layoutMode === "vertical" || prefs.layoutMode === "horizontal") {
 			state.layoutMode = prefs.layoutMode;
 		}
@@ -51,7 +57,7 @@ export function watchCommand(baseDir: string): void {
 		openUrl: (url) => {
 			spawn("open", [url], { stdio: "ignore" });
 		},
-		hotkeys: [],
+		hotkeys,
 	};
 
 	const modeHandlers = {
@@ -95,11 +101,11 @@ export function watchCommand(baseDir: string): void {
 		// Persist layout preference when it changes
 		if (state.layoutMode !== prevLayout) {
 			try {
-				const prefs = existsSync(prefsPath)
-					? JSON.parse(readFileSync(prefsPath, "utf-8"))
+				const prefs = existsSync(cachePath)
+					? JSON.parse(readFileSync(cachePath, "utf-8"))
 					: {};
 				prefs.layoutMode = state.layoutMode;
-				writeFileSync(prefsPath, JSON.stringify(prefs, null, 2));
+				writeFileSync(cachePath, JSON.stringify(prefs, null, 2));
 			} catch {}
 		}
 		// Reload data when exiting confirm dialogs
