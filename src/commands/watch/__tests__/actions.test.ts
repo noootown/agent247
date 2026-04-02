@@ -1,5 +1,23 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("node:child_process", () => ({
+	spawn: vi.fn(),
+}));
+
+vi.mock("node:fs", async () => {
+	const actual = await vi.importActual<typeof import("node:fs")>("node:fs");
+	return { ...actual, existsSync: vi.fn(), readFileSync: vi.fn() };
+});
+
+import { spawn } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
+
+const mockSpawn = vi.mocked(spawn);
+const mockExists = vi.mocked(existsSync);
+const mockReadFile = vi.mocked(readFileSync);
+
 import {
+	actionCustomHotkey,
 	actionOpenUrl,
 	actionRun,
 	actionSoftDelete,
@@ -7,6 +25,7 @@ import {
 	actionToggle,
 	actionToggleMarkedFilter,
 } from "../actions.js";
+import type { HotkeyConfig } from "../settings.js";
 import type { State, TaskGroup, VisibleLine, WatchContext } from "../state.js";
 
 const mockConfig = {
@@ -250,5 +269,129 @@ describe("actionToggleMarkedFilter", () => {
 		expect(next.showMarkedOnly).toBe(false);
 		expect(next.flash).toBe("Showing all runs");
 		expect(next.groups[0].expanded).toBe(false);
+	});
+});
+
+describe("actionCustomHotkey", () => {
+	beforeEach(() => {
+		mockSpawn.mockReturnValue({ on: vi.fn() } as never);
+	});
+
+	const tmuxHotkey: HotkeyConfig = {
+		key: "p",
+		type: "tmux",
+		command: "cs h",
+		description: "Open Claude",
+	};
+
+	const execHotkey: HotkeyConfig = {
+		key: "o",
+		type: "exec",
+		command: "code {{tab_file_path}}",
+		description: "Open in VS Code",
+	};
+
+	it("flashes error when tmux type used outside tmux", () => {
+		const originalTmux = process.env.TMUX;
+		delete process.env.TMUX;
+		const next = actionCustomHotkey(
+			makeState(),
+			makeRunLine("completed"),
+			tmuxHotkey,
+			makeMockCtx(),
+		);
+		expect(next.flash).toBe("Not in a tmux session");
+		process.env.TMUX = originalTmux;
+	});
+
+	it("spawns tmux new-window with cwd and command", () => {
+		process.env.TMUX = "1";
+		mockExists.mockReturnValue(true);
+		mockReadFile.mockReturnValue(
+			JSON.stringify({ config: { cwd: "/my/cwd" } }),
+		);
+		actionCustomHotkey(
+			makeState(),
+			makeRunLine("completed"),
+			tmuxHotkey,
+			makeMockCtx(),
+		);
+		expect(mockSpawn).toHaveBeenCalledWith(
+			"tmux",
+			["new-window", "-c", "/my/cwd", "bash", "-ic", "cs h"],
+			{ stdio: "ignore" },
+		);
+	});
+
+	it("falls back to baseDir when no run cwd available", () => {
+		process.env.TMUX = "1";
+		mockExists.mockReturnValue(false);
+		actionCustomHotkey(
+			makeState(),
+			makeRunLine("completed"),
+			tmuxHotkey,
+			makeMockCtx({ baseDir: "/fallback" }),
+		);
+		expect(mockSpawn).toHaveBeenCalledWith(
+			"tmux",
+			["new-window", "-c", "/fallback", "bash", "-ic", "cs h"],
+			{ stdio: "ignore" },
+		);
+	});
+
+	it("spawns exec command with shell and cwd", () => {
+		mockExists.mockReturnValue(true);
+		mockReadFile.mockReturnValue(
+			JSON.stringify({ config: { cwd: "/my/cwd" } }),
+		);
+		const line = makeRunLine("completed", "/runs/task/run1");
+		actionCustomHotkey(
+			makeState({ activeTab: 0 }),
+			line,
+			execHotkey,
+			makeMockCtx(),
+		);
+		expect(mockSpawn).toHaveBeenCalledWith(
+			"code /runs/task/run1/report.md",
+			expect.objectContaining({ shell: true, stdio: "ignore", cwd: "/my/cwd" }),
+		);
+	});
+
+	it("renders template variables in command", () => {
+		mockExists.mockReturnValue(true);
+		mockReadFile.mockReturnValue(
+			JSON.stringify({ config: { cwd: "/my/cwd" } }),
+		);
+		const hotkey: HotkeyConfig = {
+			key: "g",
+			type: "exec",
+			command: "echo {{task}} {{item_key}} {{url}}",
+			description: "test",
+		};
+		actionCustomHotkey(
+			makeState(),
+			makeRunLine("completed", "/runs/task/run1", "https://example.com/pr/1"),
+			hotkey,
+			makeMockCtx(),
+		);
+		expect(mockSpawn).toHaveBeenCalledWith(
+			"echo my-task https://example.com/pr/1 https://example.com/pr/1",
+			expect.objectContaining({ shell: true }),
+		);
+	});
+
+	it("falls back to baseDir for cwd when on group line", () => {
+		process.env.TMUX = "1";
+		actionCustomHotkey(
+			makeState(),
+			makeGroupLine(),
+			tmuxHotkey,
+			makeMockCtx({ baseDir: "/fallback" }),
+		);
+		expect(mockSpawn).toHaveBeenCalledWith(
+			"tmux",
+			["new-window", "-c", "/fallback", "bash", "-ic", "cs h"],
+			{ stdio: "ignore" },
+		);
 	});
 });

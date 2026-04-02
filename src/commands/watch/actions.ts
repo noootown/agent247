@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { FILE } from "../../lib/constants.js";
 import { updateRunMeta } from "../../lib/report.js";
+import type { HotkeyConfig } from "./settings.js";
 import {
 	RUN_TABS,
 	type State,
@@ -70,7 +71,7 @@ export function actionStop(state: State, line: VisibleLine): State {
 	};
 }
 
-function getRunCwd(line: VisibleLine): string | null {
+export function getRunCwd(line: VisibleLine): string | null {
 	if (line.type !== "run") return null;
 	const dataPath = join(line.run.dir, FILE.DATA);
 	if (!existsSync(dataPath)) return null;
@@ -84,33 +85,6 @@ function getRunCwd(line: VisibleLine): string | null {
 	}
 }
 
-export function actionShell(state: State, line: VisibleLine): State {
-	const cwd = getRunCwd(line);
-	if (!cwd) return state;
-	return { ...state, suspend: { mode: "shell", cwd } };
-}
-
-export function actionPrompt(state: State, line: VisibleLine): State {
-	const cwd = getRunCwd(line);
-	if (!cwd) return state;
-	return { ...state, suspend: { mode: "prompt", cwd } };
-}
-
-export function actionTmuxPane(
-	state: State,
-	line: VisibleLine,
-	direction: "v" | "h",
-): State {
-	if (!process.env.TMUX) {
-		return { ...state, flash: "Not in a tmux session" };
-	}
-	const cwd = getRunCwd(line);
-	if (!cwd) return state;
-	const flag = direction === "v" ? "-v" : "-h";
-	spawn("tmux", ["split-window", flag, "-c", cwd], { stdio: "ignore" });
-	return state;
-}
-
 export function actionToggle(
 	state: State,
 	line: VisibleLine,
@@ -119,23 +93,6 @@ export function actionToggle(
 	if (line.type !== "group") return state;
 	ctx.toggleTask(line.group.task);
 	return ctx.reload(state);
-}
-
-export function actionOpenFile(
-	state: State,
-	line: VisibleLine,
-	activeTab: number,
-): State {
-	if (line.type !== "run") return state;
-	const tabName = RUN_TABS[activeTab] ?? FILE.REPORT;
-	const filePath = tabName.includes(".")
-		? join(line.run.dir, tabName)
-		: join(line.run.dir, FILE.DATA);
-	if (!existsSync(filePath)) {
-		return { ...state, flash: "File not found" };
-	}
-	spawn("code", [filePath], { stdio: "ignore" });
-	return state;
 }
 
 export function actionMark(
@@ -157,4 +114,52 @@ export function actionToggleMarkedFilter(state: State): State {
 		showMarkedOnly: entering,
 		flash: entering ? "Showing marked only" : "Showing all runs",
 	};
+}
+
+export function actionCustomHotkey(
+	state: State,
+	line: VisibleLine,
+	hotkey: HotkeyConfig,
+	ctx: WatchContext,
+): State {
+	const cwd = getRunCwd(line) ?? ctx.baseDir;
+
+	// Build template variables from run context
+	const vars: Record<string, string> = { cwd };
+	if (line.type === "run") {
+		const tabName = RUN_TABS[state.activeTab] ?? FILE.REPORT;
+		const tabFile = tabName.includes(".")
+			? join(line.run.dir, tabName)
+			: join(line.run.dir, FILE.DATA);
+		vars.tab_file_path = tabFile;
+		vars.run_dir = line.run.dir;
+		vars.task = line.run.meta.task;
+		vars.item_key = line.run.meta.item_key ?? "";
+		vars.url = line.run.meta.url ?? "";
+	} else {
+		vars.tab_file_path = "";
+		vars.run_dir = "";
+		vars.task = line.type === "group" ? line.group.task : "";
+		vars.item_key = "";
+		vars.url = "";
+	}
+
+	// Render template variables in command
+	const command = hotkey.command.replace(
+		/\{\{(\w+)\}\}/g,
+		(_, key) => vars[key] ?? "",
+	);
+
+	if (hotkey.type === "tmux") {
+		if (!process.env.TMUX) {
+			return { ...state, flash: "Not in a tmux session" };
+		}
+		spawn("tmux", ["new-window", "-c", cwd, "bash", "-ic", command], {
+			stdio: "ignore",
+		});
+	} else {
+		spawn(command, { shell: true, cwd, stdio: "ignore" } as never);
+	}
+
+	return state;
 }

@@ -1,13 +1,9 @@
 import {
 	actionMark,
-	actionOpenFile,
 	actionOpenUrl,
-	actionPrompt,
 	actionRerun,
 	actionRun,
-	actionShell,
 	actionStop,
-	actionTmuxPane,
 	actionToggle,
 	actionToggleMarkedFilter,
 } from "../actions.js";
@@ -248,13 +244,8 @@ export function handleKey(
 		}
 		return state;
 	}
-	if (key === "e") return actionShell(state, line);
-	if (key === "p") return actionPrompt(state, line);
-	if (key === "v") return actionTmuxPane(state, line, "h");
-	if (key === "h") return actionTmuxPane(state, line, "v");
 	if (key === "t") return actionToggle(state, line, ctx);
 	if (key === "m") return actionMark(state, line, ctx);
-	if (key === "o") return actionOpenFile(state, line, state.activeTab);
 
 	return state;
 }
