@@ -304,7 +304,7 @@ describe("actionCustomHotkey", () => {
 		process.env.TMUX = originalTmux;
 	});
 
-	it("spawns tmux new-window with cwd and command", () => {
+	it("spawns tmux new-window with cwd and sends command as keys", () => {
 		process.env.TMUX = "1";
 		mockExists.mockReturnValue(true);
 		mockReadFile.mockReturnValue(
@@ -318,7 +318,7 @@ describe("actionCustomHotkey", () => {
 		);
 		expect(mockSpawn).toHaveBeenCalledWith(
 			"tmux",
-			["new-window", "-c", "/my/cwd", "bash", "-ic", "cs h"],
+			["new-window", "-c", "/my/cwd"],
 			{ stdio: "ignore" },
 		);
 	});
@@ -334,7 +334,7 @@ describe("actionCustomHotkey", () => {
 		);
 		expect(mockSpawn).toHaveBeenCalledWith(
 			"tmux",
-			["new-window", "-c", "/fallback", "bash", "-ic", "cs h"],
+			["new-window", "-c", "/fallback"],
 			{ stdio: "ignore" },
 		);
 	});
@@ -390,7 +390,7 @@ describe("actionCustomHotkey", () => {
 		);
 		expect(mockSpawn).toHaveBeenCalledWith(
 			"tmux",
-			["new-window", "-c", "/fallback", "bash", "-ic", "cs h"],
+			["new-window", "-c", "/fallback"],
 			{ stdio: "ignore" },
 		);
 	});
