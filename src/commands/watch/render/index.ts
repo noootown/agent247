@@ -1,3 +1,4 @@
+import type { HotkeyConfig } from "../settings.js";
 import type { State, VisibleLine } from "../state.js";
 import {
 	renderConfirmDelete,
@@ -12,6 +13,7 @@ export function render(
 	state: State,
 	lines: VisibleLine[],
 	botName: string,
+	hotkeys: HotkeyConfig[] = [],
 ): void {
 	if (
 		state.mode === "confirm-run" ||
@@ -27,6 +29,6 @@ export function render(
 	} else if (state.mode === "split") {
 		renderSplit(state, lines, botName);
 	} else {
-		renderHelp(state.helpScroll);
+		renderHelp(state.helpScroll, hotkeys);
 	}
 }

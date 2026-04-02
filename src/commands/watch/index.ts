@@ -79,7 +79,7 @@ export function watchCommand(baseDir: string): void {
 			(str === "q" || str === "\x1B")
 		) {
 			state = { ...state, fullPane: false };
-			render(state, getVisibleLines(state), botName);
+			render(state, getVisibleLines(state), botName, ctx.hotkeys);
 			return;
 		}
 		// Global quit
@@ -118,7 +118,7 @@ export function watchCommand(baseDir: string): void {
 		) {
 			state = ctx.reload(state);
 		}
-		render(state, getVisibleLines(state), botName);
+		render(state, getVisibleLines(state), botName, ctx.hotkeys);
 	}
 
 	function cleanup(): void {
@@ -140,13 +140,13 @@ export function watchCommand(baseDir: string): void {
 	process.stdin.resume();
 	process.stdin.on("data", handleInput);
 
-	render(state, getVisibleLines(state), botName);
+	render(state, getVisibleLines(state), botName, ctx.hotkeys);
 
 	// Run cleanup in a forked child process so it doesn't block the UI
 	cleanupRunsAsync(baseDir, (cleaned) => {
 		if (cleaned > 0) {
 			state = ctx.reload(state);
-			render(state, getVisibleLines(state), botName);
+			render(state, getVisibleLines(state), botName, ctx.hotkeys);
 		}
 	});
 
@@ -158,7 +158,7 @@ export function watchCommand(baseDir: string): void {
 			dataTickCount = 0;
 			state = ctx.reload(state);
 		}
-		render(state, getVisibleLines(state), botName);
+		render(state, getVisibleLines(state), botName, ctx.hotkeys);
 	}, 100);
 
 	process.on("SIGINT", () => {

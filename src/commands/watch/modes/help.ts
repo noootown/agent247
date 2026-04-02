@@ -22,7 +22,12 @@ export function handleKey(
 	}
 	const dir = HELP_SCROLL_KEYS[key];
 	if (dir !== undefined) {
-		const { scrollY } = applyScroll(dir, state.helpScroll, 0, helpMaxScroll());
+		const { scrollY } = applyScroll(
+			dir,
+			state.helpScroll,
+			0,
+			helpMaxScroll(_ctx.hotkeys),
+		);
 		return { ...state, helpScroll: scrollY };
 	}
 	return state;
