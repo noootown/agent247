@@ -1,5 +1,4 @@
 import {
-	actionCustomHotkey,
 	actionMark,
 	actionOpenUrl,
 	actionRerun,
@@ -247,10 +246,6 @@ export function handleKey(
 	}
 	if (key === "t") return actionToggle(state, line, ctx);
 	if (key === "m") return actionMark(state, line, ctx);
-
-	// Custom hotkeys from settings.yaml
-	const hotkey = ctx.hotkeys.find((h) => h.key === key);
-	if (hotkey) return actionCustomHotkey(state, line ?? lines[0], hotkey, ctx);
 
 	return state;
 }

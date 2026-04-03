@@ -22,6 +22,7 @@ function makeState(overrides: Partial<State> = {}): State {
 		flash: null,
 		helpScroll: 0,
 		showMarkedOnly: false,
+		prefixMode: false,
 		...overrides,
 	};
 }
@@ -40,6 +41,8 @@ function makeMockCtx(overrides: Partial<WatchContext> = {}): WatchContext {
 		spawnRerun: vi.fn(),
 		openUrl: vi.fn(),
 		hotkeys: [],
+		metaKey: "\x13",
+		metaKeyLabel: "Ctrl+S",
 		...overrides,
 	};
 }

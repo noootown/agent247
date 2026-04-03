@@ -12,56 +12,53 @@ const mockExists = vi.mocked(existsSync);
 const mockRead = vi.mocked(readFileSync);
 
 describe("loadHotkeys", () => {
-	it("returns empty array when settings.yaml does not exist", () => {
+	it("returns defaults when settings.yaml does not exist", () => {
 		mockExists.mockReturnValue(false);
-		const { hotkeys, warnings } = loadHotkeys("/base");
+		const { hotkeys, warnings, metaKey, metaKeyLabel } = loadHotkeys("/base");
 		expect(hotkeys).toEqual([]);
 		expect(warnings).toEqual([]);
+		expect(metaKey).toBeNull();
+		expect(metaKeyLabel).toBe("");
 	});
 
 	it("parses valid hotkeys", () => {
 		mockExists.mockReturnValue(true);
 		mockRead.mockReturnValue(`
+meta_key: s
 hotkeys:
   p:
-    type: tmux
     command: cs h
     description: Open Claude
   o:
-    type: exec
     command: "code {{tab_file_path}}"
     description: Open in VS Code
 `);
 		const { hotkeys } = loadHotkeys("/base");
 		expect(hotkeys).toEqual([
-			{ key: "p", type: "tmux", command: "cs h", description: "Open Claude" },
+			{ key: "p", command: "cs h", description: "Open Claude" },
 			{
 				key: "o",
-				type: "exec",
 				command: "code {{tab_file_path}}",
 				description: "Open in VS Code",
 			},
 		]);
 	});
 
-	it("skips hotkeys that collide with built-in keys and returns warnings", () => {
+	it("no longer filters built-in key collisions", () => {
 		mockExists.mockReturnValue(true);
 		mockRead.mockReturnValue(`
+meta_key: s
 hotkeys:
   r:
-    type: exec
     command: echo hi
-    description: Collides with run
+    description: Was colliding with run
   p:
-    type: tmux
     command: cs h
     description: Valid
 `);
 		const { hotkeys, warnings } = loadHotkeys("/base");
-		expect(hotkeys).toHaveLength(1);
-		expect(hotkeys[0].key).toBe("p");
-		expect(warnings).toHaveLength(1);
-		expect(warnings[0]).toContain("r");
+		expect(hotkeys).toHaveLength(2);
+		expect(warnings).toHaveLength(0);
 	});
 
 	it("skips entries with missing required fields", () => {
@@ -69,9 +66,8 @@ hotkeys:
 		mockRead.mockReturnValue(`
 hotkeys:
   p:
-    type: tmux
+    command: ""
   o:
-    type: exec
     command: code
     description: Valid
 `);
@@ -81,14 +77,12 @@ hotkeys:
 		expect(warnings.length).toBeGreaterThan(0);
 	});
 
-	it("skips entries with invalid type", () => {
+	it("skips entries with missing command", () => {
 		mockExists.mockReturnValue(true);
 		mockRead.mockReturnValue(`
 hotkeys:
   p:
-    type: invalid
-    command: foo
-    description: Bad type
+    description: No command
 `);
 		const { hotkeys, warnings } = loadHotkeys("/base");
 		expect(hotkeys).toEqual([]);
@@ -100,5 +94,76 @@ hotkeys:
 		mockRead.mockReturnValue(`something_else: true`);
 		const { hotkeys } = loadHotkeys("/base");
 		expect(hotkeys).toEqual([]);
+	});
+
+	it("parses custom meta_key", () => {
+		mockExists.mockReturnValue(true);
+		mockRead.mockReturnValue(`
+meta_key: a
+hotkeys:
+  p:
+    command: cs h
+    description: Open Claude
+`);
+		const { metaKey, metaKeyLabel } = loadHotkeys("/base");
+		expect(metaKey).toBe("\x01"); // ctrl+a
+		expect(metaKeyLabel).toBe("Ctrl+A");
+	});
+
+	it("handles meta_key with extra whitespace", () => {
+		mockExists.mockReturnValue(true);
+		mockRead.mockReturnValue(`
+meta_key: " b "
+hotkeys:
+  p:
+    command: cs h
+    description: Open Claude
+`);
+		const { metaKey, metaKeyLabel } = loadHotkeys("/base");
+		expect(metaKey).toBe("\x02"); // ctrl+b
+		expect(metaKeyLabel).toBe("Ctrl+B");
+	});
+
+	it("handles meta_key case insensitively", () => {
+		mockExists.mockReturnValue(true);
+		mockRead.mockReturnValue(`
+meta_key: A
+hotkeys:
+  p:
+    command: cs h
+    description: Open Claude
+`);
+		const { metaKey, metaKeyLabel } = loadHotkeys("/base");
+		expect(metaKey).toBe("\x01"); // ctrl+a
+		expect(metaKeyLabel).toBe("Ctrl+A");
+	});
+
+	it("warns on invalid meta_key", () => {
+		mockExists.mockReturnValue(true);
+		mockRead.mockReturnValue(`
+meta_key: invalid
+hotkeys:
+  p:
+    command: cs h
+    description: Open Claude
+`);
+		const { metaKey, metaKeyLabel, warnings } = loadHotkeys("/base");
+		expect(metaKey).toBeNull();
+		expect(metaKeyLabel).toBe("");
+		expect(warnings).toContainEqual(expect.stringContaining("meta_key"));
+	});
+
+	it("parses hotkeys without meta_key (hint shown in help screen)", () => {
+		mockExists.mockReturnValue(true);
+		mockRead.mockReturnValue(`
+hotkeys:
+  p:
+    command: cs h
+    description: Open Claude
+`);
+		const { hotkeys, metaKey, warnings } = loadHotkeys("/base");
+		expect(hotkeys).toHaveLength(1);
+		expect(metaKey).toBeNull();
+		expect(warnings).toHaveLength(0);
 	});
 });

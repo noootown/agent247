@@ -14,6 +14,7 @@ export function render(
 	lines: VisibleLine[],
 	botName: string,
 	hotkeys: HotkeyConfig[] = [],
+	metaKeyLabel = "Ctrl+S",
 ): void {
 	if (
 		state.mode === "confirm-run" ||
@@ -29,6 +30,6 @@ export function render(
 	} else if (state.mode === "split") {
 		renderSplit(state, lines, botName);
 	} else {
-		renderHelp(state.helpScroll, hotkeys);
+		renderHelp(state.helpScroll, hotkeys, metaKeyLabel);
 	}
 }

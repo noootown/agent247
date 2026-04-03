@@ -65,6 +65,7 @@ export interface State {
 	flash: string | null;
 	helpScroll: number;
 	showMarkedOnly: boolean;
+	prefixMode: boolean;
 }
 
 export interface WatchContext {
@@ -80,6 +81,8 @@ export interface WatchContext {
 	spawnRerun: (taskId: string, itemKey: string) => void;
 	openUrl: (url: string) => void;
 	hotkeys: HotkeyConfig[];
+	metaKey: string | null;
+	metaKeyLabel: string;
 }
 
 export function initialState(): State {
@@ -102,5 +105,6 @@ export function initialState(): State {
 		flash: null,
 		helpScroll: 0,
 		showMarkedOnly: false,
+		prefixMode: false,
 	};
 }

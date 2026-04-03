@@ -150,17 +150,7 @@ export function actionCustomHotkey(
 		(_, key) => vars[key] ?? "",
 	);
 
-	if (hotkey.type === "tmux") {
-		if (!process.env.TMUX) {
-			return { ...state, flash: "Not in a tmux session" };
-		}
-		spawn("tmux", ["new-window", "-c", cwd], { stdio: "ignore" });
-		setTimeout(() => {
-			spawn("tmux", ["send-keys", command, "Enter"], { stdio: "ignore" });
-		}, 500);
-	} else {
-		spawn(command, { shell: true, cwd, stdio: "ignore" } as never);
-	}
+	spawn(command, { shell: true, cwd, stdio: "ignore" } as never);
 
 	return state;
 }

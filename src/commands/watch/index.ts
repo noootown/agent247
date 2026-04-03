@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { cleanupRunsAsync } from "../../lib/cleanup.js";
 import { loadGlobalVars } from "../../lib/config.js";
 import { syncCommand } from "../sync.js";
+import { actionCustomHotkey } from "./actions.js";
 import {
 	makeSoftDelete,
 	makeSpawnRerun,
@@ -29,7 +30,12 @@ export function watchCommand(baseDir: string): void {
 
 	let state: State = initialState();
 
-	const { hotkeys, warnings: hotkeyWarnings } = loadHotkeys(baseDir);
+	const {
+		hotkeys,
+		metaKey,
+		metaKeyLabel,
+		warnings: hotkeyWarnings,
+	} = loadHotkeys(baseDir);
 	if (hotkeyWarnings.length > 0) {
 		state = { ...state, flash: hotkeyWarnings.join("; ") };
 	}
@@ -58,6 +64,8 @@ export function watchCommand(baseDir: string): void {
 			spawn("open", [url], { stdio: "ignore" });
 		},
 		hotkeys,
+		metaKey,
+		metaKeyLabel,
 	};
 
 	const modeHandlers = {
@@ -72,6 +80,57 @@ export function watchCommand(baseDir: string): void {
 	function handleInput(key: Buffer): void {
 		if (state.flash) state = { ...state, flash: null };
 		const str = key.toString();
+
+		// Prefix mode: meta key was pressed, waiting for hotkey key
+		if (state.prefixMode) {
+			if (str === "\x1B") {
+				// ESC cancels prefix mode
+				state = { ...state, prefixMode: false, flash: null };
+				render(
+					state,
+					getVisibleLines(state),
+					botName,
+					ctx.hotkeys,
+					ctx.metaKeyLabel,
+				);
+				return;
+			}
+			state = { ...state, prefixMode: false, flash: null };
+			const lines = getVisibleLines(state);
+			const line = lines[state.cursor];
+			const hotkey = ctx.hotkeys.find((h) => h.key === str);
+			if (hotkey) {
+				state = actionCustomHotkey(state, line ?? lines[0], hotkey, ctx);
+			} else {
+				state = { ...state, flash: `Unknown hotkey: ${str}` };
+			}
+			render(
+				state,
+				getVisibleLines(state),
+				botName,
+				ctx.hotkeys,
+				ctx.metaKeyLabel,
+			);
+			return;
+		}
+
+		// Meta key enters prefix mode
+		if (str === ctx.metaKey && ctx.hotkeys.length > 0) {
+			state = {
+				...state,
+				prefixMode: true,
+				flash: `${ctx.metaKeyLabel} + ...`,
+			};
+			render(
+				state,
+				getVisibleLines(state),
+				botName,
+				ctx.hotkeys,
+				ctx.metaKeyLabel,
+			);
+			return;
+		}
+
 		// In full pane mode, q/Esc exits full mode instead of quitting
 		if (
 			state.mode === "split" &&
@@ -79,7 +138,13 @@ export function watchCommand(baseDir: string): void {
 			(str === "q" || str === "\x1B")
 		) {
 			state = { ...state, fullPane: false };
-			render(state, getVisibleLines(state), botName, ctx.hotkeys);
+			render(
+				state,
+				getVisibleLines(state),
+				botName,
+				ctx.hotkeys,
+				ctx.metaKeyLabel,
+			);
 			return;
 		}
 		// Global quit
@@ -118,7 +183,13 @@ export function watchCommand(baseDir: string): void {
 		) {
 			state = ctx.reload(state);
 		}
-		render(state, getVisibleLines(state), botName, ctx.hotkeys);
+		render(
+			state,
+			getVisibleLines(state),
+			botName,
+			ctx.hotkeys,
+			ctx.metaKeyLabel,
+		);
 	}
 
 	function cleanup(): void {
@@ -140,13 +211,19 @@ export function watchCommand(baseDir: string): void {
 	process.stdin.resume();
 	process.stdin.on("data", handleInput);
 
-	render(state, getVisibleLines(state), botName, ctx.hotkeys);
+	render(state, getVisibleLines(state), botName, ctx.hotkeys, ctx.metaKeyLabel);
 
 	// Run cleanup in a forked child process so it doesn't block the UI
 	cleanupRunsAsync(baseDir, (cleaned) => {
 		if (cleaned > 0) {
 			state = ctx.reload(state);
-			render(state, getVisibleLines(state), botName, ctx.hotkeys);
+			render(
+				state,
+				getVisibleLines(state),
+				botName,
+				ctx.hotkeys,
+				ctx.metaKeyLabel,
+			);
 		}
 	});
 
@@ -158,7 +235,13 @@ export function watchCommand(baseDir: string): void {
 			dataTickCount = 0;
 			state = ctx.reload(state);
 		}
-		render(state, getVisibleLines(state), botName, ctx.hotkeys);
+		render(
+			state,
+			getVisibleLines(state),
+			botName,
+			ctx.hotkeys,
+			ctx.metaKeyLabel,
+		);
 	}, 100);
 
 	process.on("SIGINT", () => {

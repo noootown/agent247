@@ -15,7 +15,10 @@ function getVersion(): string {
 	return "dev";
 }
 
-function buildHelpLines(hotkeys: HotkeyConfig[]): string[] {
+function buildHelpLines(
+	hotkeys: HotkeyConfig[],
+	metaKeyLabel: string,
+): string[] {
 	const lines = [
 		"",
 		`  ${BOLD}Keybindings${RESET}`,
@@ -50,11 +53,19 @@ function buildHelpLines(hotkeys: HotkeyConfig[]): string[] {
 		"",
 	];
 
-	if (hotkeys.length > 0) {
-		lines.push(`  ${BOLD}Custom Hotkeys${RESET}`);
+	if (hotkeys.length > 0 && metaKeyLabel) {
+		lines.push(
+			`  ${BOLD}Custom Hotkeys${RESET}  ${DIM}(${metaKeyLabel} + key)${RESET}`,
+		);
 		for (const h of hotkeys) {
 			lines.push(`    ${h.key}                       ${h.description}`);
 		}
+		lines.push("");
+	} else if (hotkeys.length > 0) {
+		lines.push(`  ${BOLD}Custom Hotkeys${RESET}  ${DIM}(disabled)${RESET}`);
+		lines.push(
+			`    ${DIM}Add meta_key (a-z) to settings.yaml to enable${RESET}`,
+		);
 		lines.push("");
 	}
 
@@ -69,17 +80,24 @@ function buildHelpLines(hotkeys: HotkeyConfig[]): string[] {
 	return lines;
 }
 
-export function helpMaxScroll(hotkeys: HotkeyConfig[] = []): number {
+export function helpMaxScroll(
+	hotkeys: HotkeyConfig[] = [],
+	metaKeyLabel = "Ctrl+S",
+): number {
 	const rows = process.stdout.rows ?? 24;
-	const lines = buildHelpLines(hotkeys);
+	const lines = buildHelpLines(hotkeys, metaKeyLabel);
 	return Math.max(0, lines.length - (rows - 1));
 }
 
-export function renderHelp(scroll: number, hotkeys: HotkeyConfig[] = []): void {
+export function renderHelp(
+	scroll: number,
+	hotkeys: HotkeyConfig[] = [],
+	metaKeyLabel = "Ctrl+S",
+): void {
 	const rows = process.stdout.rows ?? 24;
 	process.stdout.write("\x1B[2J\x1B[H");
 
-	const lines = buildHelpLines(hotkeys);
+	const lines = buildHelpLines(hotkeys, metaKeyLabel);
 	const contentRows = rows - 1;
 	const maxScroll = Math.max(0, lines.length - contentRows);
 	const clampedScroll = Math.min(scroll, maxScroll);

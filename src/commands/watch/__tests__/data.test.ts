@@ -66,6 +66,7 @@ function makeState(overrides: Partial<State> = {}): State {
 		flash: null,
 		helpScroll: 0,
 		showMarkedOnly: false,
+		prefixMode: false,
 		...overrides,
 	};
 }

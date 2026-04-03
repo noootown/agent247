@@ -26,7 +26,7 @@ export function handleKey(
 			dir,
 			state.helpScroll,
 			0,
-			helpMaxScroll(_ctx.hotkeys),
+			helpMaxScroll(_ctx.hotkeys, _ctx.metaKeyLabel),
 		);
 		return { ...state, helpScroll: scrollY };
 	}

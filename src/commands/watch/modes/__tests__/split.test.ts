@@ -34,6 +34,7 @@ function makeState(overrides: Partial<State> = {}): State {
 		flash: null,
 		helpScroll: 0,
 		showMarkedOnly: false,
+		prefixMode: false,
 		...overrides,
 	};
 }
@@ -102,6 +103,8 @@ function makeMockCtx(overrides: Partial<WatchContext> = {}): WatchContext {
 		spawnRerun: vi.fn(),
 		openUrl: vi.fn(),
 		hotkeys: [],
+		metaKey: "\x13",
+		metaKeyLabel: "Ctrl+S",
 		...overrides,
 	};
 }
@@ -187,24 +190,15 @@ describe("action hotkeys in split mode", () => {
 	});
 });
 
-describe("custom hotkey dispatch", () => {
-	it("dispatches custom hotkey when key matches", () => {
-		const hotkeys = [
-			{ key: "p", type: "tmux" as const, command: "cs h", description: "test" },
-		];
+describe("custom hotkeys no longer dispatch from split mode", () => {
+	it("unknown keys return state unchanged", () => {
+		const hotkeys = [{ key: "p", command: "cs h", description: "test" }];
 		const ctx = makeMockCtx({ hotkeys });
 		const lines = [makeRunLine(0)];
+		const state = makeState({ cursor: 0 });
 
-		// Without TMUX set, should flash error (tmux type but not in tmux)
-		delete process.env.TMUX;
-		const next = handleKey("p", makeState({ cursor: 0 }), lines, ctx);
-		expect(next.flash).toBe("Not in a tmux session");
-	});
-
-	it("ignores unregistered keys", () => {
-		const ctx = makeMockCtx({ hotkeys: [] });
-		const state = makeState();
-		const next = handleKey("p", state, [], ctx);
+		// Custom hotkeys are now handled by prefix mode in index.ts
+		const next = handleKey("p", state, lines, ctx);
 		expect(next).toBe(state);
 	});
 });

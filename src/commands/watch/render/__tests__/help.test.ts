@@ -96,13 +96,11 @@ describe("custom hotkeys in help", () => {
 		const hotkeys: HotkeyConfig[] = [
 			{
 				key: "p",
-				type: "tmux",
 				command: "cs h",
 				description: "Open Claude in worktree",
 			},
 			{
 				key: "o",
-				type: "exec",
 				command: "code {{tab_file_path}}",
 				description: "Open file in VS Code",
 			},

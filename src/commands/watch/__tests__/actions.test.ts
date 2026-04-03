@@ -73,6 +73,7 @@ function makeState(overrides: Partial<State> = {}): State {
 		flash: null,
 		helpScroll: 0,
 		showMarkedOnly: false,
+		prefixMode: false,
 		...overrides,
 	};
 }
@@ -125,6 +126,8 @@ function makeMockCtx(overrides: Partial<WatchContext> = {}): WatchContext {
 		spawnRerun: vi.fn(),
 		openUrl: vi.fn(),
 		hotkeys: [],
+		metaKey: "\x13",
+		metaKeyLabel: "Ctrl+S",
 		...overrides,
 	};
 }
@@ -277,69 +280,13 @@ describe("actionCustomHotkey", () => {
 		mockSpawn.mockReturnValue({ on: vi.fn() } as never);
 	});
 
-	const tmuxHotkey: HotkeyConfig = {
-		key: "p",
-		type: "tmux",
-		command: "cs h",
-		description: "Open Claude",
-	};
-
 	const execHotkey: HotkeyConfig = {
 		key: "o",
-		type: "exec",
 		command: "code {{tab_file_path}}",
 		description: "Open in VS Code",
 	};
 
-	it("flashes error when tmux type used outside tmux", () => {
-		const originalTmux = process.env.TMUX;
-		delete process.env.TMUX;
-		const next = actionCustomHotkey(
-			makeState(),
-			makeRunLine("completed"),
-			tmuxHotkey,
-			makeMockCtx(),
-		);
-		expect(next.flash).toBe("Not in a tmux session");
-		process.env.TMUX = originalTmux;
-	});
-
-	it("spawns tmux new-window with cwd and sends command as keys", () => {
-		process.env.TMUX = "1";
-		mockExists.mockReturnValue(true);
-		mockReadFile.mockReturnValue(
-			JSON.stringify({ config: { cwd: "/my/cwd" } }),
-		);
-		actionCustomHotkey(
-			makeState(),
-			makeRunLine("completed"),
-			tmuxHotkey,
-			makeMockCtx(),
-		);
-		expect(mockSpawn).toHaveBeenCalledWith(
-			"tmux",
-			["new-window", "-c", "/my/cwd"],
-			{ stdio: "ignore" },
-		);
-	});
-
-	it("falls back to baseDir when no run cwd available", () => {
-		process.env.TMUX = "1";
-		mockExists.mockReturnValue(false);
-		actionCustomHotkey(
-			makeState(),
-			makeRunLine("completed"),
-			tmuxHotkey,
-			makeMockCtx({ baseDir: "/fallback" }),
-		);
-		expect(mockSpawn).toHaveBeenCalledWith(
-			"tmux",
-			["new-window", "-c", "/fallback"],
-			{ stdio: "ignore" },
-		);
-	});
-
-	it("spawns exec command with shell and cwd", () => {
+	it("spawns command with shell and cwd", () => {
 		mockExists.mockReturnValue(true);
 		mockReadFile.mockReturnValue(
 			JSON.stringify({ config: { cwd: "/my/cwd" } }),
@@ -364,7 +311,6 @@ describe("actionCustomHotkey", () => {
 		);
 		const hotkey: HotkeyConfig = {
 			key: "g",
-			type: "exec",
 			command: "echo {{task}} {{item_key}} {{url}}",
 			description: "test",
 		};
@@ -381,17 +327,16 @@ describe("actionCustomHotkey", () => {
 	});
 
 	it("falls back to baseDir for cwd when on group line", () => {
-		process.env.TMUX = "1";
+		mockExists.mockReturnValue(false);
 		actionCustomHotkey(
 			makeState(),
 			makeGroupLine(),
-			tmuxHotkey,
+			execHotkey,
 			makeMockCtx({ baseDir: "/fallback" }),
 		);
 		expect(mockSpawn).toHaveBeenCalledWith(
-			"tmux",
-			["new-window", "-c", "/fallback"],
-			{ stdio: "ignore" },
+			"code ",
+			expect.objectContaining({ shell: true, cwd: "/fallback" }),
 		);
 	});
 });
