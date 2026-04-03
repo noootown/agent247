@@ -13,3 +13,6 @@ tasks/*/.lock
 
 # local inject files (not version controlled)
 tasks/*/inject/
+
+# agent247 managed
+.cache.json
