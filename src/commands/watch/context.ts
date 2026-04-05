@@ -134,12 +134,12 @@ export function makeSpawnRun(baseDir: string): (taskId: string) => void {
 		);
 		const child = cliEntry
 			? spawn("npx", ["tsx", cliEntry, "run", taskId], {
-					env: { ...process.env, AGENT247_BASE_DIR: baseDir },
+					env: { ...process.env, AGENT247_WORKSPACE_PATH: baseDir },
 					stdio: "ignore",
 					shell: true,
 				})
 			: spawn("agent247", ["run", taskId], {
-					env: { ...process.env, AGENT247_BASE_DIR: baseDir },
+					env: { ...process.env, AGENT247_WORKSPACE_PATH: baseDir },
 					stdio: "ignore",
 					shell: true,
 				});
@@ -156,12 +156,12 @@ export function makeSpawnRerun(
 		);
 		const child = cliEntry
 			? spawn("npx", ["tsx", cliEntry, "run", taskId, "--rerun", itemKey], {
-					env: { ...process.env, AGENT247_BASE_DIR: baseDir },
+					env: { ...process.env, AGENT247_WORKSPACE_PATH: baseDir },
 					stdio: "ignore",
 					shell: true,
 				})
 			: spawn("agent247", ["run", taskId, "--rerun", itemKey], {
-					env: { ...process.env, AGENT247_BASE_DIR: baseDir },
+					env: { ...process.env, AGENT247_WORKSPACE_PATH: baseDir },
 					stdio: "ignore",
 					shell: true,
 				});

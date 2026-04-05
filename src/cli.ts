@@ -14,8 +14,8 @@ const program = new Command();
 function resolveBaseDir(dirOption?: string): string {
 	if (dirOption) return resolve(dirOption);
 
-	if (process.env.AGENT247_BASE_DIR)
-		return resolve(process.env.AGENT247_BASE_DIR);
+	if (process.env.AGENT247_WORKSPACE_PATH)
+		return resolve(process.env.AGENT247_WORKSPACE_PATH);
 
 	const rcPath = join(homedir(), ".agent247rc");
 	if (existsSync(rcPath)) {
@@ -30,7 +30,10 @@ program
 	.name("agent247")
 	.description("Local LLM agent task scheduler")
 	.version("0.1.0")
-	.option("--dir <path>", "Workspace directory (overrides AGENT247_BASE_DIR)");
+	.option(
+		"--dir <path>",
+		"Workspace directory (overrides AGENT247_WORKSPACE_PATH)",
+	);
 
 program
 	.command("init <path>")

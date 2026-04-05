@@ -3,7 +3,7 @@
 All commands accept a `--dir <path>` flag to specify the workspace directory. Without it, agent247 resolves the workspace in this order:
 
 1. `--dir` flag
-2. `AGENT247_BASE_DIR` environment variable
+2. `AGENT247_WORKSPACE_PATH` environment variable
 3. `~/.agent247rc` file (contains the workspace path)
 4. Parent of the binary location (development fallback)
 

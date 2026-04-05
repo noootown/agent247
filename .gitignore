@@ -7,3 +7,11 @@ tasks/
 vars.yaml
 
 .env.local
+# agent247 managed
+.DS_Store
+Thumbs.db
+.bin/
+.preferences.json
+tasks/*/.lock
+tasks/*/inject/
+.cache.json

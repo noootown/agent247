@@ -39,6 +39,6 @@ export function initCommand(targetDir: string): void {
 	console.log("Next steps:");
 	console.log(`  1. Edit ${join(dir, "vars.yaml")} with your settings`);
 	console.log(`  2. Create tasks under ${join(dir, "tasks/")}`);
-	console.log(`  3. Set AGENT247_BASE_DIR=${dir} in your shell profile`);
+	console.log(`  3. Set AGENT247_WORKSPACE_PATH=${dir} in your shell profile`);
 	console.log(`     Or run: agent247 --dir ${dir} sync`);
 }

@@ -18,7 +18,7 @@ pnpm link --global
 agent247 init <path>
 
 # Point agent247 to your workspace (add to ~/.zshrc or ~/.bashrc)
-export AGENT247_BASE_DIR=~/Downloads/agent247-workspace
+export AGENT247_WORKSPACE_PATH=~/Downloads/agent247-workspace
 
 # Edit your config
 cd <path>
