@@ -81,6 +81,9 @@ export function readRun(runDir: string): RunRecord {
 	const dataPath = join(runDir, FILE.DATA);
 	const data = JSON.parse(readFileSync(dataPath, "utf-8"));
 	const meta = data.run as RunMeta;
+	// Derive task from directory structure (parent dir name), not from data.json
+	const parts = runDir.split("/");
+	meta.task = parts[parts.length - 2];
 	const reportPath = join(runDir, FILE.REPORT);
 	const report = existsSync(reportPath)
 		? readFileSync(reportPath, "utf-8")
