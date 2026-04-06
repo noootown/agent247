@@ -89,6 +89,7 @@ export function executePrompt(
 	model: string = "sonnet",
 	cwd?: string,
 	transcriptPath?: string,
+	onChildSpawned?: (pid: number) => void,
 ): Promise<ExecuteResult> {
 	const isClaude = command === "claude";
 	const args = isClaude
@@ -110,6 +111,10 @@ export function executePrompt(
 			stdio: ["ignore", "pipe", "pipe"],
 			detached: true,
 		});
+
+		if (child.pid && onChildSpawned) {
+			onChildSpawned(child.pid);
+		}
 
 		let stdout = "";
 		let stderr = "";

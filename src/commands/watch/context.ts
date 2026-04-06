@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { archiveRun } from "../../lib/cleanup.js";
 import { loadTaskConfig } from "../../lib/config.js";
 import { FILE } from "../../lib/constants.js";
+import { getAllPids } from "../../lib/lock.js";
 import { listRuns, updateRunMeta } from "../../lib/report.js";
 import { render as renderTemplate } from "../../lib/template.js";
 import { syncCommand } from "../sync.js";
@@ -59,19 +60,16 @@ export function makeStopTask(
 	globalVars: Record<string, string>,
 ): (taskId: string) => void {
 	return (taskId: string) => {
-		const lockPath = join(baseDir, "tasks", taskId, ".lock");
-		try {
-			const pid = Number.parseInt(readFileSync(lockPath, "utf-8").trim(), 10);
-			if (!Number.isNaN(pid)) {
+		// Kill all processes: runner (first line) + child Claude sessions
+		for (const pid of getAllPids(taskId, baseDir)) {
+			try {
+				process.kill(-pid, "SIGTERM");
+			} catch {
 				try {
-					process.kill(-pid, "SIGTERM");
-				} catch {
-					try {
-						process.kill(pid, "SIGTERM");
-					} catch {}
-				}
+					process.kill(pid, "SIGTERM");
+				} catch {}
 			}
-		} catch {}
+		}
 		const runs = listRuns(runsDir, { task: taskId });
 		let taskConfig: ReturnType<typeof loadTaskConfig> | null = null;
 		try {
@@ -104,7 +102,7 @@ export function makeStopTask(
 			}
 		}
 		try {
-			unlinkSync(lockPath);
+			unlinkSync(join(baseDir, "tasks", taskId, ".lock"));
 		} catch {}
 	};
 }

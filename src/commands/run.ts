@@ -13,7 +13,7 @@ import { FILE } from "../lib/constants.js";
 import { filterNewItems } from "../lib/dedup.js";
 import { discoverItems } from "../lib/discovery.js";
 import { execHook } from "../lib/hooks.js";
-import { acquireLock, releaseLock } from "../lib/lock.js";
+import { acquireLock, registerChildPid, releaseLock } from "../lib/lock.js";
 import { createLogger } from "../lib/logger.js";
 import { isOnline } from "../lib/network.js";
 import { buildSecretMap } from "../lib/redact.js";
@@ -410,6 +410,7 @@ async function executeForItem(
 			config.model,
 			renderedCwd,
 			join(runDir, FILE.TRANSCRIPT),
+			(pid) => registerChildPid(config.id, baseDir, pid),
 		);
 		const finishedAt = new Date().toISOString();
 
