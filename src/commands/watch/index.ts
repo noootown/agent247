@@ -119,7 +119,7 @@ export function watchCommand(baseDir: string): void {
 			state = {
 				...state,
 				prefixMode: true,
-				flash: `${ctx.metaKeyLabel} + ...`,
+				flash: "Hotkey Mode",
 			};
 			render(
 				state,
