@@ -220,6 +220,16 @@ export function handleKey(
 		return { ...state };
 	}
 
+	// /: enter search mode
+	if (key === "/") {
+		return {
+			...state,
+			mode: "search" as const,
+			searchQuery: "",
+			searchConfirmed: false,
+		};
+	}
+
 	if (key === "M") return actionToggleMarkedFilter(state);
 	if (!line) return state;
 	if (key === "u") return actionOpenUrl(state, line, ctx);

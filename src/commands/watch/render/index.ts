@@ -27,7 +27,7 @@ export function render(
 		else if (state.mode === "confirm-rerun") renderConfirmRerun(state);
 		else if (state.mode === "confirm-stop") renderConfirmStop(state);
 		else renderConfirmDelete(state, lines);
-	} else if (state.mode === "split") {
+	} else if (state.mode === "split" || state.mode === "search") {
 		renderSplit(state, lines, botName);
 	} else {
 		renderHelp(state.helpScroll, hotkeys, metaKeyLabel);

@@ -74,6 +74,8 @@ function makeState(overrides: Partial<State> = {}): State {
 		helpScroll: 0,
 		showMarkedOnly: false,
 		prefixMode: false,
+		searchQuery: "",
+		searchConfirmed: false,
 		...overrides,
 	};
 }

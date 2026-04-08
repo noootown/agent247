@@ -118,16 +118,30 @@ export function loadData(
 export function getVisibleLines(state: State): VisibleLine[] {
 	const lines: VisibleLine[] = [];
 	let idx = 0;
+	const query = state.searchQuery.toLowerCase();
+
 	for (const group of state.groups) {
-		const runs = state.showMarkedOnly
+		let runs = state.showMarkedOnly
 			? group.runs.filter((r) => r.meta.marked)
 			: group.runs;
 
-		// Hide groups with no visible runs in marked-only mode
-		if (state.showMarkedOnly && runs.length === 0) continue;
+		// Apply search filter
+		if (query) {
+			runs = runs.filter((r) => {
+				if (r.meta.url?.toLowerCase().includes(query)) return true;
+				if (r.meta.item_key?.toLowerCase().includes(query)) return true;
+				if (r.report?.toLowerCase().includes(query)) return true;
+				return false;
+			});
+		}
+
+		// Hide groups with no visible runs when filtering
+		if ((state.showMarkedOnly || query) && runs.length === 0) continue;
 
 		lines.push({ type: "group", group, index: idx++ });
-		if (group.expanded) {
+
+		// Auto-expand groups when searching, otherwise respect expanded state
+		if (query || group.expanded) {
 			for (const run of runs) {
 				lines.push({ type: "run", run, group, index: idx++ });
 			}

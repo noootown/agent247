@@ -6,6 +6,7 @@ import type { HotkeyConfig } from "./settings.js";
 export type ViewMode =
 	| "split"
 	| "help"
+	| "search"
 	| "confirm-run"
 	| "confirm-rerun"
 	| "confirm-stop"
@@ -66,6 +67,8 @@ export interface State {
 	helpScroll: number;
 	showMarkedOnly: boolean;
 	prefixMode: boolean;
+	searchQuery: string;
+	searchConfirmed: boolean;
 }
 
 export interface WatchContext {
@@ -106,5 +109,7 @@ export function initialState(): State {
 		helpScroll: 0,
 		showMarkedOnly: false,
 		prefixMode: false,
+		searchQuery: "",
+		searchConfirmed: false,
 	};
 }

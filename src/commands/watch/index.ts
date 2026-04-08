@@ -15,6 +15,7 @@ import {
 import { getVisibleLines, loadData } from "./data.js";
 import { handleKey as confirmHandleKey } from "./modes/confirm.js";
 import { handleKey as helpHandleKey } from "./modes/help.js";
+import { handleKey as searchHandleKey } from "./modes/search.js";
 import { handleKey as splitHandleKey } from "./modes/split.js";
 import { tickSpinner } from "./render/ansi.js";
 import { render } from "./render/index.js";
@@ -75,6 +76,7 @@ export function watchCommand(baseDir: string): void {
 		"confirm-stop": confirmHandleKey,
 		"confirm-delete": confirmHandleKey,
 		help: helpHandleKey,
+		search: searchHandleKey,
 	};
 
 	function handleInput(key: Buffer): void {
@@ -138,6 +140,22 @@ export function watchCommand(baseDir: string): void {
 			(str === "q" || str === "\x1B")
 		) {
 			state = { ...state, fullPane: false };
+			render(
+				state,
+				getVisibleLines(state),
+				botName,
+				ctx.hotkeys,
+				ctx.metaKeyLabel,
+			);
+			return;
+		}
+		// Clear search filter before quitting
+		if (
+			state.mode === "split" &&
+			state.searchConfirmed &&
+			(str === "q" || str === "\x1B")
+		) {
+			state = { ...state, searchQuery: "", searchConfirmed: false };
 			render(
 				state,
 				getVisibleLines(state),
