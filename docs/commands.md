@@ -13,9 +13,14 @@ Create a new workspace at the given path. Generates the directory structure with
 
 ## `agent247 run <task-id> [--rerun <item-key>]`
 
-Execute a single task. This is the core command — it runs the full pipeline:
+Execute a single task. This is the core command — it runs the full pipeline.
 
-When `--rerun <item-key>` is provided, discovery runs normally but results are filtered to only the matching item. Dedup is bypassed. If the item is no longer in discovery results, falls back to stored variables from the most recent run with that item key.
+**Flags:**
+
+- `--rerun <item-key>` — Discovery runs normally but results are filtered to only the matching item. Dedup is bypassed. If the item is no longer in discovery results, falls back to stored variables from the most recent run with that item key.
+- `--cron` — Invoked by cron scheduler. Adds 0-10s random jitter before execution.
+- `--vars <json>` — JSON object of variables to inject as item vars. When used without discovery, these become the sole item. When used with discovery, items are filtered by matching item_key and vars are merged as overrides.
+- `--run-id <id>` — Use a specific run ID. Used by the MCP server to pre-assign IDs for tracking.
 
 1. Acquire lock (skip if task already running)
 2. Run discovery command to find items
@@ -78,4 +83,31 @@ Interactive terminal dashboard (split view). Left pane shows tasks and runs, rig
 **General:**
 - `l` — Toggle layout (vertical/horizontal)
 - `?` — Help
+- `/` — Enter search mode (filters by URL, item_key, or report content)
+- `M` — Toggle marked-only filter
+- `o` — Open current tab file in VS Code
 - `q`/`Esc` — Quit
+
+### Custom Hotkeys
+
+Define custom hotkeys in `settings.yaml` at the workspace root. Press the meta key to enter hotkey mode, then press the assigned key.
+
+```yaml
+meta_key: ctrl-s
+hotkeys:
+  e: "code {{tab_file_path}}"
+  g: "open {{url}}"
+```
+
+Available template variables: `{{cwd}}`, `{{run_dir}}`, `{{task}}`, `{{item_key}}`, `{{url}}`, `{{tab_file_path}}`.
+
+## `agent247 mcp`
+
+Start an MCP server over stdio transport. Exposes agent247 tasks as callable tools for Claude Code or any MCP client. Reads the workspace from `AGENT247_WORKSPACE_PATH`.
+
+Three tools are registered:
+- **`list_tasks`** — Returns all tasks with name, description, schedule, and cron_enabled status
+- **`run_task(task_id, vars?)`** — Starts a task run. Returns immediately with `{run_id, task_id, status: "processing"}`. Vars are merged as item variables.
+- **`check_run(run_id)`** — Returns run status, URL, report, and duration. Returns `{status: "processing"}` if still running.
+
+Register in Claude Code: `claude mcp add --transport stdio --scope user agent247 -- agent247 mcp`

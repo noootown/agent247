@@ -5,6 +5,8 @@
 ```
 workspace/
 ├── vars.yaml              # Global template variables
+├── settings.yaml          # Custom hotkeys (optional)
+├── shared/                # Shared files referenced by multiple tasks
 ├── .bin/                  # Soft-deleted and skipped runs (auto-purged after 5 days)
 ├── tasks/
 │   └── <task-id>/
@@ -20,11 +22,14 @@ workspace/
 ```yaml
 # ── Task identity & scheduling ──
 name: "Review Dependabot PRs"     # Display name
+description: "Review Dependabot PRs"  # Optional description (used in MCP tool listing)
 schedule: "*/30 * * * *"          # Cron expression
 timeout: 300                      # Seconds before Claude process is killed
-enabled: true                     # Set false to skip in sync/run
+cron_enabled: true                # Set false to disable scheduled runs
 model: "sonnet"                   # Claude model (default: "sonnet")
+requires_network: true            # Skip if offline (default: false)
 url_template: "{{url}}"            # Deterministic URL for dashboard (supports templates)
+auto_mark: false                  # Auto-mark completed runs for review (default: false)
 
 # ── Execution pipeline (in order) ──
 # 1. Discovery — find items to process
@@ -60,6 +65,14 @@ vars:
 ```
 
 ### Field Details
+
+**`description`** — Optional human-readable description of what the task does. Used as the tool description when exposed via MCP server.
+
+**`cron_enabled`** — Whether the task runs on its cron schedule. `false` disables scheduled runs but the task can still be invoked manually or via MCP. For backward compatibility, `enabled` is also accepted (but `cron_enabled` takes precedence when both are present).
+
+**`requires_network`** — When `true`, the task is skipped if the machine is offline. Defaults to `false`.
+
+**`auto_mark`** — When `true`, completed runs are automatically marked for review in the dashboard. Defaults to `false`.
 
 **`discovery.command`** — A shell command that must return a JSON array of objects. Each object becomes an item to process. Template variables (global + task vars) are substituted before execution. Timeout: 30 seconds.
 

@@ -4,14 +4,17 @@
 
 agent247 is a local CLI tool that runs Claude-powered tasks on a schedule via macOS launchd. It discovers items via shell commands, runs Claude against each item, and persists structured results for review.
 
-**Pipeline:** launchd → Discovery → Dedup → Pre-run → Claude → Persist → Post-run → Cleanup
+**Pipeline:** launchd/MCP → Discovery → Dedup → Pre-run → Claude → Persist → Post-run → Cleanup
 
 ## Execution Flow
 
 When `agent247 run <task-id>` is invoked (manually or via launchd):
 
 ### 1. Lock Acquisition
-A PID-based lock file (`tasks/<task-id>/.lock`) prevents concurrent execution of the same task. If a lock exists and the process is alive, the run is skipped. Stale locks (dead PID) are cleaned automatically.
+A PID-based lock file (`tasks/<task-id>/.lock`) prevents concurrent execution of the same task. If a lock exists and the process is alive, the run is skipped. Stale locks (dead PID) are cleaned automatically. Child process PIDs are registered in the lock file so that cancel operations can kill all subprocesses.
+
+### 1.5. Network Check
+If `requires_network: true`, connectivity is verified. Offline machines skip the task entirely.
 
 ### 2. Discovery
 The `discovery.command` is executed as a shell command (with template variables substituted). It must return a JSON array of objects. Each object represents an item to process.
@@ -74,11 +77,22 @@ After all items are processed (always runs, even when skipped), if the task has 
 
 Old agents are automatically unloaded and removed when tasks are disabled or deleted. The TUI reads installed agents and their schedules directly from the plist files.
 
+## MCP Server
+
+`agent247 mcp` starts a stdio-based MCP server that exposes tasks as callable tools. The server reads the workspace from `AGENT247_WORKSPACE_PATH` and registers three tools:
+
+- **`list_tasks`** — Returns task summaries (name, description, schedule, cron_enabled)
+- **`run_task`** — Spawns `agent247 run` as a detached child process with optional `--vars` and `--run-id`. Returns immediately (fire-and-forget).
+- **`check_run`** — Reads run data from the filesystem. Returns status, report, URL, and duration.
+
+The MCP server delegates entirely to the existing run pipeline — no separate execution path. Runs triggered via MCP appear in the TUI like any other run.
+
 ## Module Map
 
 ```
 src/
-├── cli.ts              # Commander setup, base dir resolution, --rerun flag
+├── cli.ts              # Commander setup, base dir resolution, --rerun/--vars/--run-id/--cron flags
+├── mcp.ts              # MCP server entry point (stdio transport)
 ├── commands/
 │   ├── run.ts          # Core execution pipeline (discovery → dedup → execute)
 │   ├── sync.ts         # launchd sync
@@ -94,6 +108,7 @@ src/
 │       ├── modes/      # Per-mode key handlers (split, confirm, help)
 │       └── render/     # Display (split, list, help, confirm, ANSI utilities)
 └── lib/
+    ├── mcp-tools.ts    # MCP tool logic (listTasks, runTask, checkRun)
     ├── config.ts       # YAML config loading (TaskConfig interface)
     ├── discovery.ts    # Shell command → JSON items
     ├── dedup.ts        # Filter already-processed items
