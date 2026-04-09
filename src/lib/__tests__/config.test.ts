@@ -32,7 +32,7 @@ describe("loadTaskConfig", () => {
 		expect(config.name).toBe("Test Task");
 		expect(config.schedule).toBe("*/30 * * * *");
 		expect(config.timeout).toBe(300);
-		expect(config.enabled).toBe(true);
+		expect(config.cron_enabled).toBe(true);
 		expect(config.discovery?.command).toBe("echo '[]'");
 		expect(config.discovery?.item_key).toBe("url");
 		expect(config.prompt).toBe("Test prompt {{url}}");
@@ -211,6 +211,28 @@ describe("loadTaskConfig auto_mark", () => {
 	});
 });
 
+describe("loadTaskConfig description field", () => {
+	it("loads description when provided", () => {
+		writeFileSync(
+			join(TEST_DIR, "tasks", "test-task", "config.yaml"),
+			`name: Test Task\ndescription: A detailed task description\nschedule: "* * * * *"\ntimeout: 60\nenabled: true\n`,
+		);
+		writeFileSync(join(TEST_DIR, "tasks", "test-task", "prompt.md"), "prompt");
+		const config = loadTaskConfig("test-task", TEST_DIR);
+		expect(config.description).toBe("A detailed task description");
+	});
+
+	it("defaults description to undefined when not specified", () => {
+		writeFileSync(
+			join(TEST_DIR, "tasks", "test-task", "config.yaml"),
+			`name: Test Task\nschedule: "* * * * *"\ntimeout: 60\nenabled: true\n`,
+		);
+		writeFileSync(join(TEST_DIR, "tasks", "test-task", "prompt.md"), "prompt");
+		const config = loadTaskConfig("test-task", TEST_DIR);
+		expect(config.description).toBeUndefined();
+	});
+});
+
 describe("loadTaskConfig cleanup fields", () => {
 	it("loads check and teardown fields", () => {
 		writeFileSync(
@@ -245,5 +267,48 @@ describe("loadTaskConfig cleanup fields", () => {
 		const config = loadTaskConfig("test-task", TEST_DIR);
 		expect(config.cleanup?.check).toBe("echo OK");
 		expect(config.cleanup?.teardown).toBeUndefined();
+	});
+});
+
+describe("loadTaskConfig cron_enabled backward compat", () => {
+	it("loads cron_enabled field from YAML", () => {
+		writeFileSync(
+			join(TEST_DIR, "tasks", "test-task", "config.yaml"),
+			`name: Test\nschedule: "* * * * *"\ntimeout: 60\ncron_enabled: true\n`,
+		);
+		writeFileSync(join(TEST_DIR, "tasks", "test-task", "prompt.md"), "prompt");
+		const config = loadTaskConfig("test-task", TEST_DIR);
+		expect(config.cron_enabled).toBe(true);
+	});
+
+	it("loads legacy enabled field from YAML (backward compat)", () => {
+		writeFileSync(
+			join(TEST_DIR, "tasks", "test-task", "config.yaml"),
+			`name: Test\nschedule: "* * * * *"\ntimeout: 60\nenabled: false\n`,
+		);
+		writeFileSync(join(TEST_DIR, "tasks", "test-task", "prompt.md"), "prompt");
+		const config = loadTaskConfig("test-task", TEST_DIR);
+		expect(config.cron_enabled).toBe(false);
+	});
+
+	it("cron_enabled takes precedence over enabled when both present", () => {
+		writeFileSync(
+			join(TEST_DIR, "tasks", "test-task", "config.yaml"),
+			`name: Test\nschedule: "* * * * *"\ntimeout: 60\nenabled: false\ncron_enabled: true\n`,
+		);
+		writeFileSync(join(TEST_DIR, "tasks", "test-task", "prompt.md"), "prompt");
+		const config = loadTaskConfig("test-task", TEST_DIR);
+		expect(config.cron_enabled).toBe(true);
+	});
+
+	it("throws when neither cron_enabled nor enabled is present", () => {
+		writeFileSync(
+			join(TEST_DIR, "tasks", "test-task", "config.yaml"),
+			`name: Test\nschedule: "* * * * *"\ntimeout: 60\n`,
+		);
+		writeFileSync(join(TEST_DIR, "tasks", "test-task", "prompt.md"), "prompt");
+		expect(() => loadTaskConfig("test-task", TEST_DIR)).toThrow(
+			"cron_enabled (or enabled)",
+		);
 	});
 });

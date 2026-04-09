@@ -18,7 +18,7 @@ export interface TaskGroup {
 	runs: RunRecord[];
 	expanded: boolean;
 	running: boolean;
-	enabled: boolean;
+	cron_enabled: boolean;
 	schedule: string | null;
 	lastCheck: string | null;
 }

@@ -45,13 +45,31 @@ program
 	.description("Execute a single task")
 	.option("--rerun <item-key>", "Rerun a specific item (bypasses dedup)")
 	.option("--cron", "Invoked by cron (adds random jitter)")
-	.action((taskId: string, opts: { rerun?: string; cron?: boolean }) =>
-		runCommand(
-			taskId,
-			resolveBaseDir(program.opts().dir),
-			opts.rerun,
-			opts.cron,
-		),
+	.option("--vars <json>", "JSON object of variables to pass as item vars")
+	.option(
+		"--run-id <id>",
+		"Use a specific run ID (for MCP server coordination)",
+	)
+	.action(
+		(
+			taskId: string,
+			opts: {
+				rerun?: string;
+				cron?: boolean;
+				vars?: string;
+				runId?: string;
+			},
+		) => {
+			const vars = opts.vars ? JSON.parse(opts.vars) : undefined;
+			runCommand(
+				taskId,
+				resolveBaseDir(program.opts().dir),
+				opts.rerun,
+				opts.cron,
+				vars,
+				opts.runId,
+			);
+		},
 	);
 
 program
@@ -70,5 +88,12 @@ program
 	.command("watch")
 	.description("Interactive run dashboard")
 	.action(() => watchCommand(resolveBaseDir(program.opts().dir)));
+
+program
+	.command("mcp")
+	.description("Start MCP server (stdio transport)")
+	.action(async () => {
+		await import("./mcp.js");
+	});
 
 program.parse();

@@ -6,9 +6,10 @@ import { FILE } from "./constants.js";
 export interface TaskConfig {
 	id: string;
 	name: string;
+	description?: string;
 	schedule: string;
 	timeout: number;
-	enabled: boolean;
+	cron_enabled: boolean;
 	vars?: Record<string, string>;
 	discovery?: {
 		command: string;
@@ -47,19 +48,28 @@ export function loadTaskConfig(taskId: string, baseDir: string): TaskConfig {
 			`Invalid config for task ${taskId}: empty or not an object`,
 		);
 	}
-	for (const field of ["name", "schedule", "timeout", "enabled"]) {
+	for (const field of ["name", "schedule", "timeout"]) {
 		if (!(field in raw)) {
 			throw new Error(`Task ${taskId} config missing required field: ${field}`);
 		}
+	}
+	if (!("cron_enabled" in raw) && !("enabled" in raw)) {
+		throw new Error(
+			`Task ${taskId} config missing required field: cron_enabled (or enabled)`,
+		);
 	}
 	const prompt = readFileSync(promptPath, "utf-8");
 
 	return {
 		id: taskId,
 		name: raw.name as string,
+		description: raw.description as string | undefined,
 		schedule: raw.schedule as string,
 		timeout: raw.timeout as number,
-		enabled: raw.enabled as boolean,
+		cron_enabled:
+			"cron_enabled" in raw
+				? (raw.cron_enabled as boolean)
+				: (raw.enabled as boolean),
 		vars: raw.vars as Record<string, string> | undefined,
 		discovery: raw.discovery as
 			| { command: string; item_key: string }

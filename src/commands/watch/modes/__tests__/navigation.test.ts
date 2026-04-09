@@ -42,7 +42,7 @@ function makeGroup(task = "task-a", running = false): TaskGroup {
 			name: task,
 			schedule: "* * * * *",
 			timeout: 300,
-			enabled: true,
+			cron_enabled: true,
 			discovery: { command: "echo '[]'", item_key: "url" },
 			model: "sonnet",
 			prompt: "",
@@ -50,7 +50,7 @@ function makeGroup(task = "task-a", running = false): TaskGroup {
 		runs: [],
 		expanded: false,
 		running,
-		enabled: true,
+		cron_enabled: true,
 		schedule: null,
 		lastCheck: null,
 	};

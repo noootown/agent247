@@ -42,7 +42,7 @@ function buildHelpLines(
 		`  ${BOLD}Actions (Task)${RESET}`,
 		`    r                       Run selected task`,
 		`    x                       Stop running task`,
-		`    t                       Toggle task enabled/disabled`,
+		`    t                       Toggle task cron schedule`,
 		"",
 		`  ${BOLD}Actions (Run)${RESET}`,
 		`    r                       Rerun item`,

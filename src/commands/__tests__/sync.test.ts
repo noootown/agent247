@@ -33,7 +33,7 @@ describe("syncCommand", () => {
 		syncCommand("/tmp/test-base");
 
 		expect(console.log).toHaveBeenCalledWith(
-			"No enabled tasks. Removed all launch agents.",
+			"No cron-enabled tasks. Removed all launch agents.",
 		);
 	});
 
@@ -43,7 +43,7 @@ describe("syncCommand", () => {
 				id: "task-a",
 				config: {
 					name: "Task A",
-					enabled: true,
+					cron_enabled: true,
 					schedule: "0 * * * *",
 				} as ReturnType<typeof listTasks>[number]["config"],
 			},
@@ -51,7 +51,7 @@ describe("syncCommand", () => {
 				id: "task-b",
 				config: {
 					name: "Task B",
-					enabled: false,
+					cron_enabled: false,
 					schedule: "0 12 * * *",
 				} as ReturnType<typeof listTasks>[number]["config"],
 			},
@@ -72,7 +72,7 @@ describe("syncCommand", () => {
 				id: "task-a",
 				config: {
 					name: "Task A",
-					enabled: true,
+					cron_enabled: true,
 					schedule: "0 * * * *",
 				} as ReturnType<typeof listTasks>[number]["config"],
 			},
@@ -80,7 +80,7 @@ describe("syncCommand", () => {
 				id: "task-b",
 				config: {
 					name: "Task B",
-					enabled: true,
+					cron_enabled: true,
 					schedule: "30 8 * * 1",
 				} as ReturnType<typeof listTasks>[number]["config"],
 			},

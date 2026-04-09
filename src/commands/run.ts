@@ -110,6 +110,8 @@ export async function runCommand(
 	baseDir: string,
 	rerunItemKey?: string,
 	cron?: boolean,
+	externalVars?: Record<string, string>,
+	runIdOverride?: string,
 ): Promise<void> {
 	if (cron) {
 		const jitter = Math.floor(Math.random() * 10000);
@@ -151,6 +153,15 @@ export async function runCommand(
 					Object.entries(globalVars).map(([k, v]) => [k.toUpperCase(), v]),
 				);
 				items = discoverItems(discoveryCmd, discoveryEnv, baseDir);
+				if (externalVars) {
+					const itemKeyField = config.discovery?.item_key ?? "";
+					const filterValue = externalVars[itemKeyField];
+					if (filterValue) {
+						items = items.filter((item) => item[itemKeyField] === filterValue);
+					}
+					// Merge external vars as overrides on each item
+					items = items.map((item) => ({ ...item, ...externalVars }));
+				}
 			} catch (err) {
 				const runId = ulid();
 				const runDir = join(runsDir, taskId, runDirName(runId));
@@ -172,8 +183,8 @@ export async function runCommand(
 				return;
 			}
 		} else {
-			// No discovery configured — run once with an empty item
-			items = [{}];
+			// No discovery configured — use external vars or run once with empty item
+			items = [externalVars ?? {}];
 		}
 
 		const allDiscoveredItems = items;
@@ -226,31 +237,34 @@ export async function runCommand(
 				groups.set(key, group);
 			}
 			// Run groups in parallel, items within each group sequentially
+			const groupList = [...groups.values()];
 			await Promise.all(
-				[...groups.values()].map(async (groupItems) => {
-					for (const item of groupItems) {
+				groupList.map(async (groupItems, groupIdx) => {
+					for (let i = 0; i < groupItems.length; i++) {
 						await executeForItem(
 							config,
 							globalVars,
-							item,
+							groupItems[i],
 							runsDir,
 							baseDir,
 							secrets,
 							allDiscoveredItems,
+							groupIdx === 0 && i === 0 ? runIdOverride : undefined,
 						);
 					}
 				}),
 			);
 		} else {
-			for (const item of newItems) {
+			for (let i = 0; i < newItems.length; i++) {
 				await executeForItem(
 					config,
 					globalVars,
-					item,
+					newItems[i],
 					runsDir,
 					baseDir,
 					secrets,
 					allDiscoveredItems,
+					i === 0 ? runIdOverride : undefined,
 				);
 			}
 		}
@@ -300,9 +314,10 @@ async function executeForItem(
 	baseDir: string,
 	secrets: Map<string, string>,
 	allDiscoveredItems: Record<string, string>[],
+	runIdOverride?: string,
 ): Promise<void> {
 	const startedAt = new Date().toISOString();
-	const runId = ulid();
+	const runId = runIdOverride ?? ulid();
 	const runDir = join(runsDir, config.id, runDirName(runId));
 	const taskVars = config.vars ?? {};
 	const itemKey = item[config.discovery?.item_key ?? ""] ?? null;

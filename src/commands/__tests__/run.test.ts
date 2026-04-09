@@ -73,7 +73,7 @@ function baseConfig(overrides?: Partial<TaskConfig>): TaskConfig {
 		name: "Test Task",
 		schedule: "*/5 * * * *",
 		timeout: 60,
-		enabled: true,
+		cron_enabled: true,
 		prompt: "Do something {{item}}",
 		model: "sonnet",
 		parallel: false,
@@ -241,6 +241,82 @@ describe("runCommand", () => {
 		await runCommand("test-task", "/tmp/base", "JUS-200");
 		expect(filterNewItems).not.toHaveBeenCalled();
 		expect(executePrompt).toHaveBeenCalledTimes(1);
+	});
+
+	it("uses externalVars as item when no discovery configured", async () => {
+		vi.mocked(loadTaskConfig).mockReturnValue(baseConfig());
+		vi.mocked(filterNewItems).mockReturnValue([{ pr_number: "368" }]);
+		vi.mocked(executePrompt).mockResolvedValue({
+			exitCode: 0,
+			stdout: "done",
+			stderr: "",
+			rawJson: null,
+			transcript: "",
+			timedOut: false,
+		});
+		await runCommand("test-task", "/tmp/base", undefined, undefined, {
+			pr_number: "368",
+		});
+		expect(discoverItems).not.toHaveBeenCalled();
+		expect(executePrompt).toHaveBeenCalledTimes(1);
+	});
+
+	it("filters and merges externalVars with discovery items", async () => {
+		vi.mocked(loadTaskConfig).mockReturnValue(
+			baseConfig({
+				discovery: { command: "find-items", item_key: "pr_number" },
+			}),
+		);
+		vi.mocked(discoverItems).mockReturnValue([
+			{ pr_number: "100", branch: "feat/a" },
+			{ pr_number: "368", branch: "feat/b" },
+		]);
+		vi.mocked(filterNewItems).mockImplementation((_, __, items) => items);
+		vi.mocked(executePrompt).mockResolvedValue({
+			exitCode: 0,
+			stdout: "done",
+			stderr: "",
+			rawJson: null,
+			transcript: "",
+			timedOut: false,
+		});
+		await runCommand("test-task", "/tmp/base", undefined, undefined, {
+			pr_number: "368",
+		});
+		// Should only run for the matching item (pr_number: 368)
+		expect(executePrompt).toHaveBeenCalledTimes(1);
+	});
+});
+
+describe("runIdOverride", () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		vi.mocked(acquireLock).mockReturnValue(true);
+		vi.mocked(loadGlobalVars).mockReturnValue({});
+	});
+
+	it("uses runIdOverride when provided", async () => {
+		vi.mocked(loadTaskConfig).mockReturnValue(baseConfig());
+		vi.mocked(filterNewItems).mockReturnValue([{}]);
+		vi.mocked(executePrompt).mockResolvedValue({
+			exitCode: 0,
+			stdout: "done",
+			stderr: "",
+			rawJson: null,
+			transcript: "",
+			timedOut: false,
+		});
+		await runCommand(
+			"test-task",
+			"/tmp/base",
+			undefined,
+			undefined,
+			undefined,
+			"CUSTOM_RUN_ID",
+		);
+		const writeCalls = vi.mocked(writeRun).mock.calls;
+		// Check that the run ID in the meta matches our override
+		expect(writeCalls[0][1].meta.id).toBe("CUSTOM_RUN_ID");
 	});
 });
 

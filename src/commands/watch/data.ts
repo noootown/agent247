@@ -68,7 +68,7 @@ export function loadData(
 				name: task,
 				schedule: "",
 				timeout: 0,
-				enabled: false,
+				cron_enabled: false,
 				discovery: { command: "", item_key: "" },
 				model: "",
 				prompt: "",
@@ -78,12 +78,12 @@ export function loadData(
 			running:
 				isTaskRunning(baseDir, task) ||
 				taskRuns.some((r) => r.meta.status === "processing"),
-			enabled: installedAgents.has(task),
+			cron_enabled: installedAgents.has(task),
 			schedule: schedules.get(task) ?? null,
 			lastCheck: lastCheckMap.get(task) ?? null,
 		}))
 		.sort((a, b) => {
-			if (a.enabled !== b.enabled) return a.enabled ? -1 : 1;
+			if (a.cron_enabled !== b.cron_enabled) return a.cron_enabled ? -1 : 1;
 			return a.task.localeCompare(b.task);
 		});
 

@@ -11,7 +11,7 @@ function makeConfig(overrides: Partial<TaskConfig> = {}): TaskConfig {
 		name: "test-task",
 		schedule: "every 1h",
 		timeout: 300,
-		enabled: true,
+		cron_enabled: true,
 		model: "claude-sonnet",
 		prompt: "",
 		...overrides,
@@ -25,7 +25,7 @@ function makeGroup(overrides: Partial<TaskGroup> = {}): TaskGroup {
 		runs: [],
 		expanded: true,
 		running: false,
-		enabled: true,
+		cron_enabled: true,
 		schedule: "every 1h",
 		lastCheck: null,
 		...overrides,
@@ -85,7 +85,7 @@ describe("renderListRow", () => {
 	it("dims disabled groups instead of showing (disabled)", () => {
 		const line: VisibleLine = {
 			type: "group",
-			group: makeGroup({ enabled: false }),
+			group: makeGroup({ cron_enabled: false }),
 			index: 0,
 		};
 		const result = renderListRow(line, WIDTH, false);

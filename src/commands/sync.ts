@@ -46,7 +46,7 @@ export function syncCommand(baseDir: string, quiet = false): void {
 
 	const tasks = listTasks(baseDir);
 	const enabledTasks = tasks
-		.filter((t) => t.config.enabled)
+		.filter((t) => t.config.cron_enabled)
 		.map((t) => ({
 			id: t.id,
 			name: t.config.name,
@@ -74,7 +74,7 @@ export function syncCommand(baseDir: string, quiet = false): void {
 	syncLaunchd(enabledTasks, process.execPath, distCli, absBaseDir, envVars);
 
 	if (enabledTasks.length === 0) {
-		console.log("No enabled tasks. Removed all launch agents.");
+		console.log("No cron-enabled tasks. Removed all launch agents.");
 	} else {
 		console.log(`Synced ${enabledTasks.length} task(s) to launchd:`);
 		for (const task of enabledTasks) {

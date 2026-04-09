@@ -32,7 +32,7 @@ export function renderListRow(
 		const statusTag = line.group.running
 			? ` ${YELLOW}${SPINNER[getSpinnerFrame() % SPINNER.length]}${RESET}`
 			: "";
-		const dimmed = !line.group.enabled && !line.group.running;
+		const dimmed = !line.group.cron_enabled && !line.group.running;
 		if (selected) {
 			const plain = ` ${arrow} ${line.group.task}${stripAnsi(statusTag)}`;
 			return `${SELECT_BG}${plain.substring(0, width).padEnd(width)}${RESET}`;

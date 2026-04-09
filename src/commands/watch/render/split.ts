@@ -115,7 +115,7 @@ export function getTaskInfoLines(group: TaskGroup, width = 40): string[] {
 		`${BOLD}Task: ${MAGENTA}${group.task}${RESET}`,
 		`${DIM}${config.name}${RESET}`,
 		"",
-		`Status: ${group.running ? `${YELLOW}running${RESET}` : group.enabled ? `${GREEN}enabled${RESET}` : `${DIM}disabled${RESET}`}`,
+		`Status: ${group.running ? `${YELLOW}running${RESET}` : group.cron_enabled ? `${GREEN}enabled${RESET}` : `${DIM}disabled${RESET}`}`,
 		group.schedule ? `Schedule: ${group.schedule}` : null,
 		group.lastCheck
 			? `Last run: ${formatTime(group.lastCheck)} ${DIM}(${formatAgo(Date.parse(group.lastCheck))})${RESET}`
