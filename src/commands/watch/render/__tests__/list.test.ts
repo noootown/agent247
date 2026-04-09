@@ -82,7 +82,7 @@ describe("renderListRow", () => {
 		expect(plain).toContain("my-task");
 	});
 
-	it("shows (disabled) for disabled groups", () => {
+	it("dims disabled groups instead of showing (disabled)", () => {
 		const line: VisibleLine = {
 			type: "group",
 			group: makeGroup({ enabled: false }),
@@ -90,7 +90,10 @@ describe("renderListRow", () => {
 		};
 		const result = renderListRow(line, WIDTH, false);
 		const plain = stripAnsi(result);
-		expect(plain).toContain("(disabled)");
+		expect(plain).not.toContain("(disabled)");
+		expect(plain).toContain("my-task");
+		// Should contain DIM escape code
+		expect(result).toContain("\x1B[2m");
 	});
 
 	it("renders a run line with status and URL slug", () => {

@@ -31,14 +31,15 @@ export function renderListRow(
 		const arrow = line.group.expanded ? "▼" : "▶";
 		const statusTag = line.group.running
 			? ` ${YELLOW}${SPINNER[getSpinnerFrame() % SPINNER.length]}${RESET}`
-			: !line.group.enabled
-				? ` ${DIM}(disabled)${RESET}`
-				: "";
+			: "";
+		const dimmed = !line.group.enabled && !line.group.running;
 		if (selected) {
 			const plain = ` ${arrow} ${line.group.task}${stripAnsi(statusTag)}`;
 			return `${SELECT_BG}${plain.substring(0, width).padEnd(width)}${RESET}`;
 		}
-		const text = ` ${arrow} ${BOLD}${MAGENTA}${line.group.task}${RESET}${statusTag}`;
+		const text = dimmed
+			? ` ${arrow} ${DIM}${line.group.task}${RESET}`
+			: ` ${arrow} ${BOLD}${MAGENTA}${line.group.task}${RESET}${statusTag}`;
 		return fitToWidth(text, width);
 	}
 
