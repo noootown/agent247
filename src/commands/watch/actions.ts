@@ -136,6 +136,15 @@ export function actionCustomHotkey(
 		vars.task = line.run.meta.task;
 		vars.item_key = line.run.meta.item_key ?? "";
 		vars.url = line.run.meta.url ?? "";
+
+		// Extract session_id from data.json result
+		try {
+			const dataPath = join(line.run.dir, FILE.DATA);
+			const data = JSON.parse(readFileSync(dataPath, "utf-8"));
+			vars.session_id = data.result?.session_id ?? "";
+		} catch {
+			vars.session_id = "";
+		}
 	} else {
 		vars.tab_file_path = "";
 		vars.run_dir = "";
