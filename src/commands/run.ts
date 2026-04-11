@@ -5,6 +5,7 @@ import { ulid } from "ulid";
 import { purgeBin } from "../lib/bin.js";
 import { cleanupRuns } from "../lib/cleanup.js";
 import {
+	isQuietHours,
 	loadEnvLocalRaw,
 	loadGlobalVars,
 	loadTaskConfig,
@@ -118,6 +119,12 @@ export async function runCommand(
 		await new Promise((resolve) => setTimeout(resolve, jitter));
 	}
 	purgeBin(baseDir);
+
+	if (isQuietHours(baseDir)) {
+		console.log(`Quiet hours active, skipping task ${taskId}.`);
+		return;
+	}
+
 	const runsDir = join(baseDir, "runs");
 	const startedAt = new Date().toISOString();
 

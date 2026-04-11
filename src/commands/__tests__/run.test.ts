@@ -5,6 +5,7 @@ vi.mock("ulid", () => ({ ulid: vi.fn(() => "MOCK_ULID_001") }));
 vi.mock("../../lib/bin.js", () => ({ purgeBin: vi.fn() }));
 vi.mock("../../lib/cleanup.js", () => ({ cleanupRuns: vi.fn() }));
 vi.mock("../../lib/config.js", () => ({
+	isQuietHours: vi.fn(() => false),
 	loadTaskConfig: vi.fn(),
 	loadGlobalVars: vi.fn(() => ({})),
 	loadEnvLocalRaw: vi.fn(() => ({})),
@@ -59,7 +60,11 @@ vi.mock("node:fs", async (importOriginal) => {
 });
 
 import type { TaskConfig } from "../../lib/config.js";
-import { loadGlobalVars, loadTaskConfig } from "../../lib/config.js";
+import {
+	isQuietHours,
+	loadGlobalVars,
+	loadTaskConfig,
+} from "../../lib/config.js";
 import { filterNewItems } from "../../lib/dedup.js";
 import { discoverItems } from "../../lib/discovery.js";
 import { acquireLock, releaseLock } from "../../lib/lock.js";
@@ -85,6 +90,7 @@ function baseConfig(overrides?: Partial<TaskConfig>): TaskConfig {
 describe("runCommand", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		vi.mocked(isQuietHours).mockReturnValue(false);
 		vi.mocked(acquireLock).mockReturnValue(true);
 		vi.mocked(loadGlobalVars).mockReturnValue({});
 	});
@@ -95,6 +101,14 @@ describe("runCommand", () => {
 		await runCommand("test-task", "/tmp/base");
 		expect(writeRun).not.toHaveBeenCalled();
 		expect(releaseLock).not.toHaveBeenCalled();
+	});
+
+	it("returns early during quiet hours without acquiring lock", async () => {
+		vi.mocked(isQuietHours).mockReturnValue(true);
+		vi.mocked(loadTaskConfig).mockReturnValue(baseConfig());
+		await runCommand("test-task", "/tmp/base");
+		expect(acquireLock).not.toHaveBeenCalled();
+		expect(writeRun).not.toHaveBeenCalled();
 	});
 
 	it("writes error run on discovery failure", async () => {
@@ -291,6 +305,7 @@ describe("runCommand", () => {
 describe("runIdOverride", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		vi.mocked(isQuietHours).mockReturnValue(false);
 		vi.mocked(acquireLock).mockReturnValue(true);
 		vi.mocked(loadGlobalVars).mockReturnValue({});
 	});
@@ -323,6 +338,7 @@ describe("runIdOverride", () => {
 describe("executeForItem (via runCommand)", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		vi.mocked(isQuietHours).mockReturnValue(false);
 		vi.mocked(acquireLock).mockReturnValue(true);
 		vi.mocked(loadGlobalVars).mockReturnValue({});
 	});
