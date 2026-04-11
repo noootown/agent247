@@ -227,6 +227,7 @@ export function handleKey(
 			mode: "search" as const,
 			searchQuery: "",
 			searchConfirmed: false,
+			cursor: 0,
 		};
 	}
 

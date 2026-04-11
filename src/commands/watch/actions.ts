@@ -112,6 +112,7 @@ export function actionToggleMarkedFilter(state: State): State {
 	return {
 		...state,
 		showMarkedOnly: entering,
+		cursor: 0,
 		flash: entering ? "Showing marked only" : "Showing all runs",
 	};
 }

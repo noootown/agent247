@@ -14,6 +14,7 @@ export function handleKey(
 			mode: "split",
 			searchQuery: "",
 			searchConfirmed: false,
+			cursor: 0,
 		};
 	}
 
@@ -23,6 +24,7 @@ export function handleKey(
 			...state,
 			mode: "split",
 			searchConfirmed: state.searchQuery.length > 0,
+			cursor: 0,
 		};
 	}
 
