@@ -172,3 +172,55 @@ export function listTasks(
 			config: loadTaskConfig(d.name, baseDir),
 		}));
 }
+
+interface QuietWindow {
+	start: string; // "HH:MM"
+	end: string; // "HH:MM"
+}
+
+interface QuietHoursConfig {
+	enabled?: boolean;
+	windows?: QuietWindow[];
+}
+
+function parseHHMM(time: string): number | null {
+	const match = /^(\d{1,2}):(\d{2})$/.exec(time);
+	if (!match) return null;
+	const h = Number(match[1]);
+	const m = Number(match[2]);
+	if (h < 0 || h > 23 || m < 0 || m > 59) return null;
+	return h * 60 + m;
+}
+
+export function isQuietHours(baseDir: string, now?: Date): boolean {
+	const settingsPath = join(baseDir, "settings.yaml");
+	if (!existsSync(settingsPath)) return false;
+
+	const raw = yaml.load(readFileSync(settingsPath, "utf-8")) as Record<
+		string,
+		unknown
+	> | null;
+	if (!raw) return false;
+
+	const qh = raw.quiet_hours as QuietHoursConfig | undefined;
+	if (!qh?.enabled || !qh.windows?.length) return false;
+
+	const d = now ?? new Date();
+	const current = d.getHours() * 60 + d.getMinutes();
+
+	for (const w of qh.windows) {
+		const start = parseHHMM(w.start);
+		const end = parseHHMM(w.end);
+		if (start === null || end === null) continue;
+
+		if (start < end) {
+			// Normal window: e.g., 01:00–06:00
+			if (current >= start && current < end) return true;
+		} else {
+			// Midnight-wrapping: e.g., 23:00–03:00
+			if (current >= start || current < end) return true;
+		}
+	}
+
+	return false;
+}

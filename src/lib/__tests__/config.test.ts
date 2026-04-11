@@ -2,6 +2,7 @@ import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+	isQuietHours,
 	listTasks,
 	loadEnvLocalRaw,
 	loadGlobalVars,
@@ -310,5 +311,122 @@ describe("loadTaskConfig cron_enabled backward compat", () => {
 		expect(() => loadTaskConfig("test-task", TEST_DIR)).toThrow(
 			"cron_enabled (or enabled)",
 		);
+	});
+});
+
+describe("isQuietHours", () => {
+	it("returns false when settings.yaml does not exist", () => {
+		expect(isQuietHours(TEST_DIR)).toBe(false);
+	});
+
+	it("returns false when quiet_hours is not present", () => {
+		writeFileSync(join(TEST_DIR, "settings.yaml"), "meta_key: s\n");
+		expect(isQuietHours(TEST_DIR)).toBe(false);
+	});
+
+	it("returns false when quiet_hours.enabled is false", () => {
+		writeFileSync(
+			join(TEST_DIR, "settings.yaml"),
+			"quiet_hours:\n  enabled: false\n  windows:\n    - start: '00:00'\n      end: '23:59'\n",
+		);
+		expect(isQuietHours(TEST_DIR)).toBe(false);
+	});
+
+	it("returns false when windows array is empty", () => {
+		writeFileSync(
+			join(TEST_DIR, "settings.yaml"),
+			"quiet_hours:\n  enabled: true\n  windows: []\n",
+		);
+		expect(isQuietHours(TEST_DIR)).toBe(false);
+	});
+
+	it("returns true when current time is inside a window", () => {
+		writeFileSync(
+			join(TEST_DIR, "settings.yaml"),
+			"quiet_hours:\n  enabled: true\n  windows:\n    - start: '01:00'\n      end: '06:00'\n",
+		);
+		const now = new Date();
+		now.setHours(3, 30, 0, 0);
+		expect(isQuietHours(TEST_DIR, now)).toBe(true);
+	});
+
+	it("returns false when current time is outside a window", () => {
+		writeFileSync(
+			join(TEST_DIR, "settings.yaml"),
+			"quiet_hours:\n  enabled: true\n  windows:\n    - start: '01:00'\n      end: '06:00'\n",
+		);
+		const now = new Date();
+		now.setHours(10, 0, 0, 0);
+		expect(isQuietHours(TEST_DIR, now)).toBe(false);
+	});
+
+	it("returns true at exactly the start time", () => {
+		writeFileSync(
+			join(TEST_DIR, "settings.yaml"),
+			"quiet_hours:\n  enabled: true\n  windows:\n    - start: '01:00'\n      end: '06:00'\n",
+		);
+		const now = new Date();
+		now.setHours(1, 0, 0, 0);
+		expect(isQuietHours(TEST_DIR, now)).toBe(true);
+	});
+
+	it("returns false at exactly the end time", () => {
+		writeFileSync(
+			join(TEST_DIR, "settings.yaml"),
+			"quiet_hours:\n  enabled: true\n  windows:\n    - start: '01:00'\n      end: '06:00'\n",
+		);
+		const now = new Date();
+		now.setHours(6, 0, 0, 0);
+		expect(isQuietHours(TEST_DIR, now)).toBe(false);
+	});
+
+	it("handles midnight-wrapping window (23:00 to 03:00)", () => {
+		writeFileSync(
+			join(TEST_DIR, "settings.yaml"),
+			"quiet_hours:\n  enabled: true\n  windows:\n    - start: '23:00'\n      end: '03:00'\n",
+		);
+		const late = new Date();
+		late.setHours(23, 30, 0, 0);
+		expect(isQuietHours(TEST_DIR, late)).toBe(true);
+
+		const early = new Date();
+		early.setHours(1, 0, 0, 0);
+		expect(isQuietHours(TEST_DIR, early)).toBe(true);
+
+		const outside = new Date();
+		outside.setHours(12, 0, 0, 0);
+		expect(isQuietHours(TEST_DIR, outside)).toBe(false);
+	});
+
+	it("matches if inside any of multiple windows", () => {
+		writeFileSync(
+			join(TEST_DIR, "settings.yaml"),
+			"quiet_hours:\n  enabled: true\n  windows:\n    - start: '01:00'\n      end: '06:00'\n    - start: '12:00'\n      end: '13:00'\n",
+		);
+		const morning = new Date();
+		morning.setHours(3, 0, 0, 0);
+		expect(isQuietHours(TEST_DIR, morning)).toBe(true);
+
+		const lunch = new Date();
+		lunch.setHours(12, 30, 0, 0);
+		expect(isQuietHours(TEST_DIR, lunch)).toBe(true);
+
+		const afternoon = new Date();
+		afternoon.setHours(15, 0, 0, 0);
+		expect(isQuietHours(TEST_DIR, afternoon)).toBe(false);
+	});
+
+	it("skips malformed window entries gracefully", () => {
+		writeFileSync(
+			join(TEST_DIR, "settings.yaml"),
+			"quiet_hours:\n  enabled: true\n  windows:\n    - start: 'bad'\n      end: '06:00'\n    - start: '12:00'\n      end: '13:00'\n",
+		);
+		const lunch = new Date();
+		lunch.setHours(12, 30, 0, 0);
+		expect(isQuietHours(TEST_DIR, lunch)).toBe(true);
+
+		const morning = new Date();
+		morning.setHours(3, 0, 0, 0);
+		expect(isQuietHours(TEST_DIR, morning)).toBe(false);
 	});
 });
