@@ -1,7 +1,5 @@
 #!/usr/bin/env node
-import { existsSync, readFileSync } from "node:fs";
-import { homedir } from "node:os";
-import { join, resolve } from "node:path";
+import { resolve } from "node:path";
 import { Command } from "commander";
 import { initCommand } from "./commands/init.js";
 import { purgeCommand } from "./commands/purge.js";
@@ -16,12 +14,6 @@ function resolveBaseDir(dirOption?: string): string {
 
 	if (process.env.AGENT247_WORKSPACE_PATH)
 		return resolve(process.env.AGENT247_WORKSPACE_PATH);
-
-	const rcPath = join(homedir(), ".agent247rc");
-	if (existsSync(rcPath)) {
-		const dir = readFileSync(rcPath, "utf-8").trim();
-		if (dir && existsSync(dir)) return dir;
-	}
 
 	return resolve(import.meta.dirname ?? process.cwd(), "..");
 }

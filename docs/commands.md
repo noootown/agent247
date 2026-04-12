@@ -4,8 +4,7 @@ All commands accept a `--dir <path>` flag to specify the workspace directory. Wi
 
 1. `--dir` flag
 2. `AGENT247_WORKSPACE_PATH` environment variable
-3. `~/.agent247rc` file (contains the workspace path)
-4. Parent of the binary location (development fallback)
+3. Parent of the binary location (development fallback)
 
 ## `agent247 init <path>`
 
