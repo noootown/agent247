@@ -23,7 +23,7 @@ describe("loadTaskConfig", () => {
 	it("parses a valid task config", () => {
 		writeFileSync(
 			join(TEST_DIR, "tasks", "test-task", "config.yaml"),
-			`name: Test Task\nschedule: "*/30 * * * *"\ntimeout: 300\nenabled: true\ndiscovery:\n  command: "echo '[]'"\n  item_key: url\n`,
+			`name: Test Task\nschedule: "*/30 * * * *"\ntimeout: 300\ncron_enabled: true\ndiscovery:\n  command: "echo '[]'"\n  item_key: url\n`,
 		);
 		writeFileSync(
 			join(TEST_DIR, "tasks", "test-task", "prompt.md"),
@@ -44,7 +44,7 @@ describe("loadTaskConfig without discovery", () => {
 	it("parses a valid config without discovery field", () => {
 		writeFileSync(
 			join(TEST_DIR, "tasks", "test-task", "config.yaml"),
-			`name: Test Task\nschedule: "0 8 * * *"\ntimeout: 180\nenabled: true\n`,
+			`name: Test Task\nschedule: "0 8 * * *"\ntimeout: 180\ncron_enabled: true\n`,
 		);
 		writeFileSync(
 			join(TEST_DIR, "tasks", "test-task", "prompt.md"),
@@ -181,7 +181,7 @@ describe("listTasks", () => {
 	it("lists task directories", () => {
 		writeFileSync(
 			join(TEST_DIR, "tasks", "test-task", "config.yaml"),
-			"name: Test\nschedule: '* * * * *'\ntimeout: 60\nenabled: true\ndiscovery:\n  command: echo\n  item_key: id\n",
+			"name: Test\nschedule: '* * * * *'\ntimeout: 60\ncron_enabled: true\ndiscovery:\n  command: echo\n  item_key: id\n",
 		);
 		writeFileSync(join(TEST_DIR, "tasks", "test-task", "prompt.md"), "prompt");
 		const tasks = listTasks(TEST_DIR);
@@ -194,7 +194,7 @@ describe("loadTaskConfig auto_mark", () => {
 	it("parses auto_mark when set to true", () => {
 		writeFileSync(
 			join(TEST_DIR, "tasks", "test-task", "config.yaml"),
-			`name: Test\nschedule: "* * * * *"\ntimeout: 60\nenabled: true\nauto_mark: true\n`,
+			`name: Test\nschedule: "* * * * *"\ntimeout: 60\ncron_enabled: true\nauto_mark: true\n`,
 		);
 		writeFileSync(join(TEST_DIR, "tasks", "test-task", "prompt.md"), "prompt");
 		const config = loadTaskConfig("test-task", TEST_DIR);
@@ -204,7 +204,7 @@ describe("loadTaskConfig auto_mark", () => {
 	it("defaults auto_mark to false when not specified", () => {
 		writeFileSync(
 			join(TEST_DIR, "tasks", "test-task", "config.yaml"),
-			`name: Test\nschedule: "* * * * *"\ntimeout: 60\nenabled: true\n`,
+			`name: Test\nschedule: "* * * * *"\ntimeout: 60\ncron_enabled: true\n`,
 		);
 		writeFileSync(join(TEST_DIR, "tasks", "test-task", "prompt.md"), "prompt");
 		const config = loadTaskConfig("test-task", TEST_DIR);
@@ -216,7 +216,7 @@ describe("loadTaskConfig description field", () => {
 	it("loads description when provided", () => {
 		writeFileSync(
 			join(TEST_DIR, "tasks", "test-task", "config.yaml"),
-			`name: Test Task\ndescription: A detailed task description\nschedule: "* * * * *"\ntimeout: 60\nenabled: true\n`,
+			`name: Test Task\ndescription: A detailed task description\nschedule: "* * * * *"\ntimeout: 60\ncron_enabled: true\n`,
 		);
 		writeFileSync(join(TEST_DIR, "tasks", "test-task", "prompt.md"), "prompt");
 		const config = loadTaskConfig("test-task", TEST_DIR);
@@ -226,7 +226,7 @@ describe("loadTaskConfig description field", () => {
 	it("defaults description to undefined when not specified", () => {
 		writeFileSync(
 			join(TEST_DIR, "tasks", "test-task", "config.yaml"),
-			`name: Test Task\nschedule: "* * * * *"\ntimeout: 60\nenabled: true\n`,
+			`name: Test Task\nschedule: "* * * * *"\ntimeout: 60\ncron_enabled: true\n`,
 		);
 		writeFileSync(join(TEST_DIR, "tasks", "test-task", "prompt.md"), "prompt");
 		const config = loadTaskConfig("test-task", TEST_DIR);
@@ -238,7 +238,7 @@ describe("loadTaskConfig cleanup fields", () => {
 	it("loads check and teardown fields", () => {
 		writeFileSync(
 			join(TEST_DIR, "tasks", "test-task", "config.yaml"),
-			`name: Test\nschedule: "* * * * *"\ntimeout: 60\nenabled: true\ndiscovery:\n  command: "echo '[]'"\n  item_key: url\ncleanup:\n  check: "echo MERGED"\n  when: MERGED\n  retain: 12h\n  teardown: "rm -rf /tmp/test"\n`,
+			`name: Test\nschedule: "* * * * *"\ntimeout: 60\ncron_enabled: true\ndiscovery:\n  command: "echo '[]'"\n  item_key: url\ncleanup:\n  check: "echo MERGED"\n  when: MERGED\n  retain: 12h\n  teardown: "rm -rf /tmp/test"\n`,
 		);
 		writeFileSync(join(TEST_DIR, "tasks", "test-task", "prompt.md"), "prompt");
 		const config = loadTaskConfig("test-task", TEST_DIR);
@@ -251,7 +251,7 @@ describe("loadTaskConfig cleanup fields", () => {
 	it("falls back to command field when check is missing (backwards compat)", () => {
 		writeFileSync(
 			join(TEST_DIR, "tasks", "test-task", "config.yaml"),
-			`name: Test\nschedule: "* * * * *"\ntimeout: 60\nenabled: true\ndiscovery:\n  command: "echo '[]'"\n  item_key: url\ncleanup:\n  command: "echo OLD"\n  when: OLD\n`,
+			`name: Test\nschedule: "* * * * *"\ntimeout: 60\ncron_enabled: true\ndiscovery:\n  command: "echo '[]'"\n  item_key: url\ncleanup:\n  command: "echo OLD"\n  when: OLD\n`,
 		);
 		writeFileSync(join(TEST_DIR, "tasks", "test-task", "prompt.md"), "prompt");
 		const config = loadTaskConfig("test-task", TEST_DIR);
@@ -262,7 +262,7 @@ describe("loadTaskConfig cleanup fields", () => {
 	it("loads cleanup without teardown", () => {
 		writeFileSync(
 			join(TEST_DIR, "tasks", "test-task", "config.yaml"),
-			`name: Test\nschedule: "* * * * *"\ntimeout: 60\nenabled: true\ndiscovery:\n  command: "echo '[]'"\n  item_key: url\ncleanup:\n  check: "echo OK"\n  when: OK\n`,
+			`name: Test\nschedule: "* * * * *"\ntimeout: 60\ncron_enabled: true\ndiscovery:\n  command: "echo '[]'"\n  item_key: url\ncleanup:\n  check: "echo OK"\n  when: OK\n`,
 		);
 		writeFileSync(join(TEST_DIR, "tasks", "test-task", "prompt.md"), "prompt");
 		const config = loadTaskConfig("test-task", TEST_DIR);
@@ -271,7 +271,7 @@ describe("loadTaskConfig cleanup fields", () => {
 	});
 });
 
-describe("loadTaskConfig cron_enabled backward compat", () => {
+describe("loadTaskConfig cron_enabled", () => {
 	it("loads cron_enabled field from YAML", () => {
 		writeFileSync(
 			join(TEST_DIR, "tasks", "test-task", "config.yaml"),
@@ -282,35 +282,13 @@ describe("loadTaskConfig cron_enabled backward compat", () => {
 		expect(config.cron_enabled).toBe(true);
 	});
 
-	it("loads legacy enabled field from YAML (backward compat)", () => {
-		writeFileSync(
-			join(TEST_DIR, "tasks", "test-task", "config.yaml"),
-			`name: Test\nschedule: "* * * * *"\ntimeout: 60\nenabled: false\n`,
-		);
-		writeFileSync(join(TEST_DIR, "tasks", "test-task", "prompt.md"), "prompt");
-		const config = loadTaskConfig("test-task", TEST_DIR);
-		expect(config.cron_enabled).toBe(false);
-	});
-
-	it("cron_enabled takes precedence over enabled when both present", () => {
-		writeFileSync(
-			join(TEST_DIR, "tasks", "test-task", "config.yaml"),
-			`name: Test\nschedule: "* * * * *"\ntimeout: 60\nenabled: false\ncron_enabled: true\n`,
-		);
-		writeFileSync(join(TEST_DIR, "tasks", "test-task", "prompt.md"), "prompt");
-		const config = loadTaskConfig("test-task", TEST_DIR);
-		expect(config.cron_enabled).toBe(true);
-	});
-
-	it("throws when neither cron_enabled nor enabled is present", () => {
+	it("throws when cron_enabled is missing", () => {
 		writeFileSync(
 			join(TEST_DIR, "tasks", "test-task", "config.yaml"),
 			`name: Test\nschedule: "* * * * *"\ntimeout: 60\n`,
 		);
 		writeFileSync(join(TEST_DIR, "tasks", "test-task", "prompt.md"), "prompt");
-		expect(() => loadTaskConfig("test-task", TEST_DIR)).toThrow(
-			"cron_enabled (or enabled)",
-		);
+		expect(() => loadTaskConfig("test-task", TEST_DIR)).toThrow("cron_enabled");
 	});
 });
 

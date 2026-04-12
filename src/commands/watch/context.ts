@@ -112,9 +112,9 @@ export function makeToggleTask(baseDir: string): (taskId: string) => void {
 		const configPath = join(baseDir, "tasks", taskId, FILE.CONFIG);
 		if (!existsSync(configPath)) return;
 		const content = readFileSync(configPath, "utf-8");
-		// Toggle cron_enabled/enabled field in-place to preserve comments
+		// Toggle cron_enabled field in-place to preserve comments
 		const toggled = content.replace(
-			/^((?:cron_)?enabled:\s*)(true|false)\s*$/m,
+			/^(cron_enabled:\s*)(true|false)\s*$/m,
 			(_match, prefix, value) =>
 				`${prefix}${value === "true" ? "false" : "true"}`,
 		);

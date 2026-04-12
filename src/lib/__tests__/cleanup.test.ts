@@ -191,7 +191,7 @@ describe("cleanupRuns skips teardown for shared item_key", () => {
 		mkdirSync(taskDir, { recursive: true });
 		writeFileSync(
 			join(taskDir, "config.yaml"),
-			'name: Test\nschedule: "* * * * *"\ntimeout: 60\nenabled: true\ncleanup:\n  teardown: "echo cleanup"\n',
+			'name: Test\nschedule: "* * * * *"\ntimeout: 60\ncron_enabled: true\ncleanup:\n  teardown: "echo cleanup"\n',
 		);
 		writeFileSync(join(taskDir, "prompt.md"), "prompt");
 

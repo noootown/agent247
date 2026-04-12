@@ -53,9 +53,9 @@ export function loadTaskConfig(taskId: string, baseDir: string): TaskConfig {
 			throw new Error(`Task ${taskId} config missing required field: ${field}`);
 		}
 	}
-	if (!("cron_enabled" in raw) && !("enabled" in raw)) {
+	if (!("cron_enabled" in raw)) {
 		throw new Error(
-			`Task ${taskId} config missing required field: cron_enabled (or enabled)`,
+			`Task ${taskId} config missing required field: cron_enabled`,
 		);
 	}
 	const prompt = readFileSync(promptPath, "utf-8");
@@ -66,10 +66,7 @@ export function loadTaskConfig(taskId: string, baseDir: string): TaskConfig {
 		description: raw.description as string | undefined,
 		schedule: raw.schedule as string,
 		timeout: raw.timeout as number,
-		cron_enabled:
-			"cron_enabled" in raw
-				? (raw.cron_enabled as boolean)
-				: (raw.enabled as boolean),
+		cron_enabled: raw.cron_enabled as boolean,
 		vars: raw.vars as Record<string, string> | undefined,
 		discovery: raw.discovery as
 			| { command: string; item_key: string }

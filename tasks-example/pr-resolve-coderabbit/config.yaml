@@ -2,7 +2,7 @@
 name: Resolve CodeRabbit Comments
 schedule: "*/30 * * * *"
 timeout: 600
-enabled: true
+cron_enabled: true
 model: sonnet
 
 # ── Execution pipeline ──
