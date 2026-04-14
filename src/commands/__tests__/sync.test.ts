@@ -6,6 +6,9 @@ vi.mock("../../lib/config.js", () => ({
 vi.mock("../../lib/launchd.js", () => ({
 	syncLaunchd: vi.fn(),
 }));
+vi.mock("node:child_process", () => ({
+	execSync: vi.fn(),
+}));
 vi.mock("node:fs", () => ({
 	existsSync: vi.fn(() => false),
 	readFileSync: vi.fn(() => ""),
