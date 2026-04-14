@@ -444,10 +444,20 @@ async function executeForItem(
 			if (execResult.stderr?.trim()) {
 				logger.error(`stderr: ${execResult.stderr}`);
 			}
-			// Parse result JSON even on error — preserves session_id for resume
-			const errorResult = execResult.rawJson
-				? JSON.parse(execResult.rawJson)
-				: null;
+			// Build result with session_id — captured from first stream event, always available even on timeout
+			let errorResult: Record<string, unknown> | null = null;
+			try {
+				errorResult = execResult.rawJson
+					? JSON.parse(execResult.rawJson)
+					: null;
+			} catch {
+				errorResult = null;
+			}
+			// Ensure session_id is present even if rawJson was incomplete/missing
+			if (execResult.sessionId) {
+				if (!errorResult) errorResult = {};
+				errorResult.session_id = execResult.sessionId;
+			}
 			writeRun(runDir, {
 				meta: buildRunMeta(
 					runId,

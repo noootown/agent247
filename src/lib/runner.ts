@@ -8,6 +8,7 @@ export interface ExecuteResult {
 	rawJson: string | null;
 	transcript: string;
 	timedOut: boolean;
+	sessionId: string | null;
 }
 
 export interface ParsedOutput {
@@ -122,6 +123,7 @@ export function executePrompt(
 		let resultText = "";
 		let transcriptContent = "";
 		let timedOut = false;
+		let sessionId: string | null = null;
 
 		const timeout = setTimeout(() => {
 			timedOut = true;
@@ -163,6 +165,11 @@ export function executePrompt(
 					continue;
 				}
 
+				// Capture session_id from the first event that has it
+				if (!sessionId && event.session_id) {
+					sessionId = event.session_id as string;
+				}
+
 				if ((event.type as string) === "result") {
 					resultJson = line;
 					resultText = (event.result as string) ?? "";
@@ -193,6 +200,7 @@ export function executePrompt(
 					rawJson: null,
 					transcript: "",
 					timedOut,
+					sessionId: null,
 				});
 				return;
 			}
@@ -204,6 +212,7 @@ export function executePrompt(
 				rawJson: resultJson,
 				transcript: transcriptContent,
 				timedOut,
+				sessionId,
 			});
 		});
 
@@ -216,6 +225,7 @@ export function executePrompt(
 				rawJson: null,
 				transcript: transcriptContent,
 				timedOut: false,
+				sessionId,
 			});
 		});
 	});

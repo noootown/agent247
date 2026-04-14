@@ -156,6 +156,7 @@ describe("runCommand", () => {
 			rawJson: null,
 			transcript: "",
 			timedOut: false,
+			sessionId: null,
 		});
 		await runCommand("test-task", "/tmp/base");
 		// 2 items × 3 writeRun calls each (initial + prompt + final) = 6
@@ -178,6 +179,7 @@ describe("runCommand", () => {
 			rawJson: null,
 			transcript: "",
 			timedOut: false,
+			sessionId: null,
 		});
 		await runCommand("test-task", "/tmp/base");
 		expect(executePrompt).toHaveBeenCalledTimes(1);
@@ -203,6 +205,7 @@ describe("runCommand", () => {
 			rawJson: null,
 			transcript: "",
 			timedOut: false,
+			sessionId: null,
 		});
 		await runCommand("test-task", "/tmp/base");
 		expect(discoverItems).not.toHaveBeenCalled();
@@ -228,6 +231,7 @@ describe("runCommand", () => {
 			rawJson: '{"result":"done"}',
 			transcript: "",
 			timedOut: false,
+			sessionId: null,
 		});
 		await runCommand("test-task", "/tmp/base", "JUS-200");
 		expect(executePrompt).toHaveBeenCalledTimes(1);
@@ -251,6 +255,7 @@ describe("runCommand", () => {
 			rawJson: '{"result":"done"}',
 			transcript: "",
 			timedOut: false,
+			sessionId: null,
 		});
 		await runCommand("test-task", "/tmp/base", "JUS-200");
 		expect(filterNewItems).not.toHaveBeenCalled();
@@ -267,6 +272,7 @@ describe("runCommand", () => {
 			rawJson: null,
 			transcript: "",
 			timedOut: false,
+			sessionId: null,
 		});
 		await runCommand("test-task", "/tmp/base", undefined, undefined, {
 			pr_number: "368",
@@ -293,6 +299,7 @@ describe("runCommand", () => {
 			rawJson: null,
 			transcript: "",
 			timedOut: false,
+			sessionId: null,
 		});
 		await runCommand("test-task", "/tmp/base", undefined, undefined, {
 			pr_number: "368",
@@ -320,6 +327,7 @@ describe("runIdOverride", () => {
 			rawJson: null,
 			transcript: "",
 			timedOut: false,
+			sessionId: null,
 		});
 		await runCommand(
 			"test-task",
@@ -353,6 +361,7 @@ describe("executeForItem (via runCommand)", () => {
 			rawJson: null,
 			transcript: "",
 			timedOut: false,
+			sessionId: null,
 		});
 		await runCommand("test-task", "/tmp/base");
 		const writeCalls = vi.mocked(writeRun).mock.calls;
@@ -371,6 +380,7 @@ describe("executeForItem (via runCommand)", () => {
 			rawJson: null,
 			transcript: "",
 			timedOut: false,
+			sessionId: null,
 		});
 		await runCommand("test-task", "/tmp/base");
 		const writeCalls = vi.mocked(writeRun).mock.calls;
