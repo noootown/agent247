@@ -91,6 +91,7 @@ export function executePrompt(
 	cwd?: string,
 	transcriptPath?: string,
 	onChildSpawned?: (pid: number) => void,
+	onSessionId?: (sessionId: string) => void,
 ): Promise<ExecuteResult> {
 	const isClaude = command === "claude";
 	const args = isClaude
@@ -168,6 +169,7 @@ export function executePrompt(
 				// Capture session_id from the first event that has it
 				if (!sessionId && event.session_id) {
 					sessionId = event.session_id as string;
+					if (onSessionId) onSessionId(sessionId);
 				}
 
 				if ((event.type as string) === "result") {

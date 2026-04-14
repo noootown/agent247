@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import yaml from "js-yaml";
 import { ulid } from "ulid";
@@ -433,6 +433,16 @@ async function executeForItem(
 			renderedCwd,
 			join(runDir, FILE.TRANSCRIPT),
 			(pid) => registerChildPid(config.id, baseDir, pid),
+			(sessionId) => {
+				// Persist session_id immediately so it's available for resume mid-run
+				try {
+					const dataPath = join(runDir, FILE.DATA);
+					const data = JSON.parse(readFileSync(dataPath, "utf-8"));
+					if (!data.result) data.result = {};
+					data.result.session_id = sessionId;
+					writeFileSync(dataPath, JSON.stringify(data, null, 2));
+				} catch {}
+			},
 		);
 		const finishedAt = new Date().toISOString();
 
