@@ -444,6 +444,10 @@ async function executeForItem(
 			if (execResult.stderr?.trim()) {
 				logger.error(`stderr: ${execResult.stderr}`);
 			}
+			// Parse result JSON even on error — preserves session_id for resume
+			const errorResult = execResult.rawJson
+				? JSON.parse(execResult.rawJson)
+				: null;
 			writeRun(runDir, {
 				meta: buildRunMeta(
 					runId,
@@ -458,6 +462,7 @@ async function executeForItem(
 				config: resolvedConfig,
 				vars: mergedVars,
 				discovery: allDiscoveredItems,
+				result: errorResult,
 				prompt: renderedPrompt,
 				log: logger.getEntries().join("\n"),
 				secrets,
