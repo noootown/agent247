@@ -84,7 +84,7 @@ describe("checkRun", () => {
 		]);
 
 		const result = checkRun("/tmp/workspace", "RUN_001");
-		expect(result).toEqual({
+		expect(result).toMatchObject({
 			run_id: "RUN_001",
 			task_id: "daily-report",
 			status: "completed",
@@ -92,6 +92,10 @@ describe("checkRun", () => {
 			item_key: "key-1",
 			report: "Everything went well.",
 			duration_seconds: 60,
+			started_at: "2026-01-01T00:00:00Z",
+			finished_at: "2026-01-01T00:01:00Z",
+			exit_code: 0,
+			run_dir: "/tmp/runs/daily-report/run-001",
 		});
 	});
 
@@ -115,10 +119,11 @@ describe("checkRun", () => {
 		]);
 
 		const result = checkRun("/tmp/workspace", "RUN_002");
-		expect(result).toEqual({
+		expect(result).toMatchObject({
 			run_id: "RUN_002",
 			task_id: "weekly-sync",
 			status: "processing",
+			run_dir: "/tmp/runs/weekly-sync/run-002",
 		});
 	});
 
