@@ -54,8 +54,11 @@ function charWidth(cp: number): number {
 	if (cp < 0x1100) return 1;
 	if (
 		(cp >= 0x1100 && cp <= 0x115f) || // Hangul Jamo
+		cp === 0x231b || // ⌛ Hourglass Done
+		cp === 0x2328 || // ⌨ Keyboard
 		cp === 0x2329 ||
 		cp === 0x232a ||
+		(cp >= 0x23cf && cp <= 0x23f3) || // ⏏ Eject .. ⏩⏪⏫⏬⏰⏳ etc.
 		(cp >= 0x2600 && cp <= 0x27bf) || // Misc Symbols + Dingbats (✅ ❌ ⚾ etc.)
 		(cp >= 0x2b50 && cp <= 0x2b55) || // Stars/circles
 		(cp >= 0x2e80 && cp <= 0x303e) || // CJK Radicals
