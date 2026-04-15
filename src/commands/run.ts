@@ -243,24 +243,37 @@ export async function runCommand(
 				group.push(item);
 				groups.set(key, group);
 			}
-			// Run groups in parallel, items within each group sequentially
+			// Run groups in parallel, items within each group sequentially.
+			// If max_parallel is set, cap concurrency to that number of groups at a time.
 			const groupList = [...groups.values()];
-			await Promise.all(
-				groupList.map(async (groupItems, groupIdx) => {
-					for (let i = 0; i < groupItems.length; i++) {
-						await executeForItem(
-							config,
-							globalVars,
-							groupItems[i],
-							runsDir,
-							baseDir,
-							secrets,
-							allDiscoveredItems,
-							groupIdx === 0 && i === 0 ? runIdOverride : undefined,
-						);
-					}
-				}),
-			);
+			const runGroup = async (
+				groupItems: Record<string, string>[],
+				groupIdx: number,
+			) => {
+				for (let i = 0; i < groupItems.length; i++) {
+					await executeForItem(
+						config,
+						globalVars,
+						groupItems[i],
+						runsDir,
+						baseDir,
+						secrets,
+						allDiscoveredItems,
+						groupIdx === 0 && i === 0 ? runIdOverride : undefined,
+					);
+				}
+			};
+
+			const maxParallel = config.max_parallel;
+			if (maxParallel && maxParallel > 0 && maxParallel < groupList.length) {
+				// Batch groups: run maxParallel at a time, wait, then next batch
+				for (let start = 0; start < groupList.length; start += maxParallel) {
+					const batch = groupList.slice(start, start + maxParallel);
+					await Promise.all(batch.map((g, i) => runGroup(g, start + i)));
+				}
+			} else {
+				await Promise.all(groupList.map((g, i) => runGroup(g, i)));
+			}
 		} else {
 			for (let i = 0; i < newItems.length; i++) {
 				await executeForItem(

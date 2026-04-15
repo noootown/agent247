@@ -20,6 +20,7 @@ export interface TaskConfig {
 	bypass_dedup?: boolean;
 	parallel?: boolean;
 	parallel_group_by?: string;
+	max_parallel?: number;
 	requires_network?: boolean;
 	pre_run?: string;
 	post_run?: string;
@@ -76,6 +77,7 @@ export function loadTaskConfig(taskId: string, baseDir: string): TaskConfig {
 		bypass_dedup: (raw.bypass_dedup as boolean) ?? false,
 		parallel: (raw.parallel as boolean) ?? false,
 		parallel_group_by: raw.parallel_group_by as string | undefined,
+		max_parallel: raw.max_parallel as number | undefined,
 		requires_network: (raw.requires_network as boolean) ?? false,
 		pre_run: raw.pre_run as string | undefined,
 		post_run: raw.post_run as string | undefined,
