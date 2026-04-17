@@ -53,6 +53,20 @@ export const urls: Transform = (line) =>
 		(url) => `\x1B[94m${hyperlink(url, url)}${RESET}`,
 	);
 
+/**
+ * Strip GitHub-style collapsible HTML that shows up in CodeRabbit PR comments.
+ *
+ * - `<details>` / `</details>` on their own line → blanked (keeps line count stable
+ *   so gutter line numbers stay aligned)
+ * - `<summary>X</summary>` → bolded X (the label is the useful part)
+ */
+export const htmlDetails: Transform = (line) => {
+	const summaryMatch = line.match(/^\s*<summary>(.+?)<\/summary>\s*$/);
+	if (summaryMatch) return `${BOLD}${summaryMatch[1]}${RESET}`;
+	if (/^\s*<\/?details[^>]*>\s*$/.test(line)) return "";
+	return line;
+};
+
 /** ISO timestamps [2026-03-21T...] → dimmed */
 export const timestamps: Transform = (line) =>
 	line.replace(
@@ -127,6 +141,7 @@ export function markdownPrettifier(
 ): string[] {
 	const codeHighlighted = applyCodeBlockHighlighting(content.split("\n"));
 	return applyTransforms(codeHighlighted, [
+		htmlDetails,
 		headings,
 		boldText,
 		italicText,
