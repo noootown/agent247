@@ -98,7 +98,9 @@ hotkeys:
   g: "open {{url}}"
 ```
 
-Available template variables: `{{cwd}}`, `{{run_dir}}`, `{{task}}`, `{{item_key}}`, `{{url}}`, `{{tab_file_path}}`.
+Available template variables: `{{cwd}}`, `{{run_dir}}`, `{{task}}`, `{{item_key}}`, `{{url}}`, `{{tab_file_path}}`, `{{session_id}}`, `{{model}}`.
+
+`{{session_id}}` lets a hotkey resume a specific Claude session (e.g. `claude --resume {{session_id}}`). `{{model}}` is the task's model resolved through the `models:` alias map in `settings.yaml` — resolution happens at hotkey-press time against the current `settings.yaml`, not at the time the run was originally executed. Use both together to resume a session on the pinned model: `claude --resume {{session_id}} --model {{model}}`.
 
 ## `agent247 mcp`
 

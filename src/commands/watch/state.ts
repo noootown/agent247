@@ -1,7 +1,7 @@
 import type { TaskConfig } from "../../lib/config.js";
 import { FILE } from "../../lib/constants.js";
 import type { RunRecord } from "../../lib/report.js";
-import type { HotkeyConfig } from "./settings.js";
+import type { HotkeyConfig } from "../../lib/settings.js";
 
 export type ViewMode =
 	| "split"
@@ -86,6 +86,7 @@ export interface WatchContext {
 	hotkeys: HotkeyConfig[];
 	metaKey: string | null;
 	metaKeyLabel: string;
+	modelAliases: Record<string, string>;
 }
 
 export function initialState(): State {

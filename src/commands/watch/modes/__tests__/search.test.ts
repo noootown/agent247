@@ -52,6 +52,7 @@ function makeMockCtx(): WatchContext {
 		hotkeys: [],
 		metaKey: "\x13",
 		metaKeyLabel: "Ctrl+S",
+		modelAliases: {},
 	};
 }
 

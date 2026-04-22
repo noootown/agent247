@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { HotkeyConfig } from "../../settings.js";
+import type { HotkeyConfig } from "../../../../lib/settings.js";
 import { renderHelp } from "../help.js";
 
 describe("renderHelp", () => {

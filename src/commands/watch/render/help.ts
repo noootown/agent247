@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { HotkeyConfig } from "../settings.js";
+import type { HotkeyConfig } from "../../../lib/settings.js";
 import { TAB_NAMES } from "../state.js";
 import { BOLD, DIM, RESET } from "./ansi.js";
 

@@ -16,6 +16,7 @@ const mockSpawn = vi.mocked(spawn);
 const mockExists = vi.mocked(existsSync);
 const mockReadFile = vi.mocked(readFileSync);
 
+import type { HotkeyConfig } from "../../../lib/settings.js";
 import {
 	actionCustomHotkey,
 	actionOpenUrl,
@@ -25,7 +26,6 @@ import {
 	actionToggle,
 	actionToggleMarkedFilter,
 } from "../actions.js";
-import type { HotkeyConfig } from "../settings.js";
 import type { State, TaskGroup, VisibleLine, WatchContext } from "../state.js";
 
 const mockConfig = {
@@ -130,6 +130,7 @@ function makeMockCtx(overrides: Partial<WatchContext> = {}): WatchContext {
 		hotkeys: [],
 		metaKey: "\x13",
 		metaKeyLabel: "Ctrl+S",
+		modelAliases: {},
 		...overrides,
 	};
 }
@@ -339,6 +340,71 @@ describe("actionCustomHotkey", () => {
 		expect(mockSpawn).toHaveBeenCalledWith(
 			"code ",
 			expect.objectContaining({ shell: true, cwd: "/fallback" }),
+		);
+	});
+
+	it("substitutes {{model}} from run data.config.model, resolving via aliases", () => {
+		mockExists.mockReturnValue(true);
+		mockReadFile.mockReturnValue(
+			JSON.stringify({
+				config: { model: "opus" },
+				result: { session_id: "abc" },
+			}),
+		);
+
+		const ctx = makeMockCtx({ modelAliases: { opus: "claude-opus-4-6" } });
+		const line = makeRunLine("completed", "/runs/x");
+		const hotkey: HotkeyConfig = {
+			key: "p",
+			command: "claude --resume {{session_id}} --model {{model}}",
+			description: "test",
+		};
+
+		actionCustomHotkey(makeState(), line, hotkey, ctx);
+
+		expect(mockSpawn).toHaveBeenCalledWith(
+			"claude --resume abc --model claude-opus-4-6",
+			expect.any(Object),
+		);
+	});
+
+	it("leaves {{model}} empty when run data.json is missing or malformed", () => {
+		mockExists.mockReturnValue(true);
+		mockReadFile.mockImplementation(() => {
+			throw new Error("ENOENT");
+		});
+
+		const ctx = makeMockCtx({ modelAliases: { opus: "claude-opus-4-6" } });
+		const line = makeRunLine("completed", "/runs/x");
+		const hotkey: HotkeyConfig = {
+			key: "p",
+			command: "echo {{model}}",
+			description: "test",
+		};
+
+		actionCustomHotkey(makeState(), line, hotkey, ctx);
+
+		expect(mockSpawn).toHaveBeenCalledWith("echo ", expect.any(Object));
+	});
+
+	it("substitutes {{model}} from task group config for group lines", () => {
+		const ctx = makeMockCtx({
+			modelAliases: { sonnet: "claude-sonnet-4-6" },
+		});
+		const line = makeGroupLine({
+			config: { ...mockConfig, model: "sonnet" },
+		});
+		const hotkey: HotkeyConfig = {
+			key: "m",
+			command: "echo {{model}}",
+			description: "test",
+		};
+
+		actionCustomHotkey(makeState(), line, hotkey, ctx);
+
+		expect(mockSpawn).toHaveBeenCalledWith(
+			"echo claude-sonnet-4-6",
+			expect.any(Object),
 		);
 	});
 });

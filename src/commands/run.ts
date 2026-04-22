@@ -24,6 +24,7 @@ import {
 	extractTextFromJson,
 	parseClaudeOutput,
 } from "../lib/runner.js";
+import { loadSettings, resolveModel } from "../lib/settings.js";
 import { writeTaskCache } from "../lib/task-cache.js";
 import { render } from "../lib/template.js";
 
@@ -134,6 +135,11 @@ export async function runCommand(
 	}
 
 	const config = loadTaskConfig(taskId, baseDir);
+	const settings = loadSettings(baseDir);
+	for (const warning of settings.warnings) {
+		console.warn(`settings.yaml: ${warning}`);
+	}
+	const resolvedModel = resolveModel(config.model, settings.modelAliases);
 
 	if (config.requires_network && !(await isOnline())) {
 		console.log(`Network unavailable, skipping task ${taskId}.`);
@@ -260,6 +266,7 @@ export async function runCommand(
 						secrets,
 						allDiscoveredItems,
 						groupIdx === 0 && i === 0 ? runIdOverride : undefined,
+						resolvedModel,
 					);
 				}
 			};
@@ -285,6 +292,7 @@ export async function runCommand(
 					secrets,
 					allDiscoveredItems,
 					i === 0 ? runIdOverride : undefined,
+					resolvedModel,
 				);
 			}
 		}
@@ -334,7 +342,8 @@ async function executeForItem(
 	baseDir: string,
 	secrets: Map<string, string>,
 	allDiscoveredItems: Record<string, string>[],
-	runIdOverride?: string,
+	runIdOverride: string | undefined,
+	resolvedModel: string,
 ): Promise<void> {
 	const startedAt = new Date().toISOString();
 	const runId = runIdOverride ?? ulid();
@@ -442,7 +451,7 @@ async function executeForItem(
 			renderedPrompt,
 			config.timeout,
 			"claude",
-			config.model,
+			resolvedModel,
 			renderedCwd,
 			join(runDir, FILE.TRANSCRIPT),
 			(pid) => registerChildPid(config.id, baseDir, pid),

@@ -5,7 +5,7 @@
 ```
 workspace/
 ├── vars.yaml              # Global template variables
-├── settings.yaml          # Custom hotkeys (optional)
+├── settings.yaml          # Hotkeys, meta key, model aliases (optional)
 ├── shared/                # Shared files referenced by multiple tasks
 ├── .bin/                  # Soft-deleted and skipped runs (auto-purged after 5 days)
 ├── tasks/
@@ -99,6 +99,26 @@ vars:
 - **`cleanup.teardown`** (optional) — Shell command executed once when the run is moved to `.bin/`. Use for resource cleanup like removing git worktrees and local branches. Timeout: 60 seconds. If teardown fails, the run is still archived.
 
 This keeps the `runs/` folder clean by removing runs for items that are no longer relevant (e.g., merged PRs), while keeping worktrees alive until the run is actually archived.
+
+## Settings (`settings.yaml`)
+
+Optional workspace-level settings. All sections are independent — omit any you don't use.
+
+```yaml
+meta_key: s                         # Single letter a-z; pressed as Ctrl+<letter> to enter hotkey mode in watch UI
+
+hotkeys:                            # Custom hotkeys in watch UI (see commands.md)
+  e:
+    command: "code {{tab_file_path}}"
+    description: "Open in VS Code"
+
+models:                             # Alias map: shortcut → exact Claude model id
+  opus: claude-opus-4-6
+  sonnet: claude-sonnet-4-6
+  haiku: claude-haiku-4-5
+```
+
+**`models`** — Maps short aliases (the values typically written in `tasks/*/config.yaml`'s `model:` field) to exact Claude model ids. When `agent247 run` launches Claude, it resolves the task's `model:` through this map; unmapped values pass through unchanged. The same resolved id is also exposed to watch-UI hotkeys via the `{{model}}` template variable, so `claude --resume {{session_id}} --model {{model}}` pins a resumed session to the same model. Invalid entries (non-string or empty-string values) are skipped with a warning.
 
 ## Global Variables (`vars.yaml`)
 

@@ -45,6 +45,7 @@ function makeMockCtx(overrides: Partial<WatchContext> = {}): WatchContext {
 		hotkeys: [],
 		metaKey: "\x13",
 		metaKeyLabel: "Ctrl+S",
+		modelAliases: {},
 		...overrides,
 	};
 }

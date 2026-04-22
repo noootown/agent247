@@ -37,6 +37,18 @@ vi.mock("../../lib/runner.js", () => ({
 		report: "done",
 	})),
 }));
+vi.mock("../../lib/settings.js", () => ({
+	loadSettings: vi.fn(() => ({
+		hotkeys: [],
+		metaKey: null,
+		metaKeyLabel: "",
+		modelAliases: {},
+		warnings: [],
+	})),
+	resolveModel: vi.fn(
+		(alias: string, aliases: Record<string, string>) => aliases[alias] ?? alias,
+	),
+}));
 vi.mock("../../lib/redact.js", () => ({
 	buildSecretMap: vi.fn(() => new Map()),
 	redact: vi.fn((text: string) => text),
@@ -70,6 +82,7 @@ import { discoverItems } from "../../lib/discovery.js";
 import { acquireLock, releaseLock } from "../../lib/lock.js";
 import { writeRun } from "../../lib/report.js";
 import { executePrompt } from "../../lib/runner.js";
+import { loadSettings } from "../../lib/settings.js";
 import { runCommand } from "../run.js";
 
 function baseConfig(overrides?: Partial<TaskConfig>): TaskConfig {
@@ -306,6 +319,59 @@ describe("runCommand", () => {
 		});
 		// Should only run for the matching item (pr_number: 368)
 		expect(executePrompt).toHaveBeenCalledTimes(1);
+	});
+
+	it("resolves config.model through modelAliases before executing", async () => {
+		vi.mocked(loadSettings).mockReturnValue({
+			hotkeys: [],
+			metaKey: null,
+			metaKeyLabel: "",
+			modelAliases: { opus: "claude-opus-4-6" },
+			warnings: [],
+		});
+		vi.mocked(loadTaskConfig).mockReturnValue(baseConfig({ model: "opus" }));
+		vi.mocked(executePrompt).mockResolvedValue({
+			exitCode: 0,
+			stdout: "done",
+			stderr: "",
+			rawJson: null,
+			transcript: "",
+			timedOut: false,
+			sessionId: null,
+		});
+
+		await runCommand("test-task", "/tmp/base");
+
+		expect(executePrompt).toHaveBeenCalled();
+		// executePrompt signature: (renderedPrompt, timeout, command, model, cwd, ...)
+		// model is the 4th positional arg (index 3)
+		const call = vi.mocked(executePrompt).mock.calls[0];
+		expect(call[3]).toBe("claude-opus-4-6");
+	});
+
+	it("passes config.model through unchanged when no alias matches", async () => {
+		vi.mocked(loadSettings).mockReturnValue({
+			hotkeys: [],
+			metaKey: null,
+			metaKeyLabel: "",
+			modelAliases: { opus: "claude-opus-4-6" },
+			warnings: [],
+		});
+		vi.mocked(loadTaskConfig).mockReturnValue(baseConfig({ model: "sonnet" }));
+		vi.mocked(executePrompt).mockResolvedValue({
+			exitCode: 0,
+			stdout: "done",
+			stderr: "",
+			rawJson: null,
+			transcript: "",
+			timedOut: false,
+			sessionId: null,
+		});
+
+		await runCommand("test-task", "/tmp/base");
+
+		const call = vi.mocked(executePrompt).mock.calls[0];
+		expect(call[3]).toBe("sonnet");
 	});
 });
 

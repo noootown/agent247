@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { FILE } from "../../lib/constants.js";
 import { updateRunMeta } from "../../lib/report.js";
-import type { HotkeyConfig } from "./settings.js";
+import { type HotkeyConfig, resolveModel } from "../../lib/settings.js";
 import {
 	RUN_TABS,
 	type State,
@@ -138,13 +138,19 @@ export function actionCustomHotkey(
 		vars.item_key = line.run.meta.item_key ?? "";
 		vars.url = line.run.meta.url ?? "";
 
-		// Extract session_id from data.json result
+		// Extract session_id and model from data.json (config.model / result.session_id)
 		try {
 			const dataPath = join(line.run.dir, FILE.DATA);
 			const data = JSON.parse(readFileSync(dataPath, "utf-8"));
 			vars.session_id = data.result?.session_id ?? "";
+			const rawModel = data.config?.model;
+			vars.model =
+				typeof rawModel === "string" && rawModel
+					? resolveModel(rawModel, ctx.modelAliases)
+					: "";
 		} catch {
 			vars.session_id = "";
+			vars.model = "";
 		}
 	} else {
 		vars.tab_file_path = "";
@@ -152,6 +158,13 @@ export function actionCustomHotkey(
 		vars.task = line.type === "group" ? line.group.task : "";
 		vars.item_key = "";
 		vars.url = "";
+		vars.session_id = "";
+		const groupModel =
+			line.type === "group" ? line.group.config.model : undefined;
+		vars.model =
+			typeof groupModel === "string" && groupModel
+				? resolveModel(groupModel, ctx.modelAliases)
+				: "";
 	}
 
 	// Render template variables in command

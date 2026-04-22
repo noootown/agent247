@@ -1,4 +1,4 @@
-import type { HotkeyConfig } from "../settings.js";
+import type { HotkeyConfig } from "../../../lib/settings.js";
 import type { State, VisibleLine } from "../state.js";
 import {
 	renderConfirmDelete,

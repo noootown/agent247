@@ -3,6 +3,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { cleanupRunsAsync } from "../../lib/cleanup.js";
 import { loadGlobalVars } from "../../lib/config.js";
+import { loadSettings } from "../../lib/settings.js";
 import { syncCommand } from "../sync.js";
 import { actionCustomHotkey } from "./actions.js";
 import {
@@ -19,7 +20,6 @@ import { handleKey as searchHandleKey } from "./modes/search.js";
 import { handleKey as splitHandleKey } from "./modes/split.js";
 import { tickSpinner } from "./render/ansi.js";
 import { render } from "./render/index.js";
-import { loadHotkeys } from "./settings.js";
 import { initialState, type State, type WatchContext } from "./state.js";
 
 export function watchCommand(baseDir: string): void {
@@ -35,8 +35,9 @@ export function watchCommand(baseDir: string): void {
 		hotkeys,
 		metaKey,
 		metaKeyLabel,
+		modelAliases,
 		warnings: hotkeyWarnings,
-	} = loadHotkeys(baseDir);
+	} = loadSettings(baseDir);
 	if (hotkeyWarnings.length > 0) {
 		state = { ...state, flash: hotkeyWarnings.join("; ") };
 	}
@@ -67,6 +68,7 @@ export function watchCommand(baseDir: string): void {
 		hotkeys,
 		metaKey,
 		metaKeyLabel,
+		modelAliases,
 	};
 
 	const modeHandlers = {
