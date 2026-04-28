@@ -74,7 +74,7 @@ function buildHelpLines(
 		`    l                       Toggle layout (vertical/horizontal)`,
 		`    /                       Search / filter runs`,
 		`    ?                       Toggle this help`,
-		`    q / Esc / Ctrl+C        Quit (exits full-width pane first)`,
+		`    q / Esc / Ctrl+C        Quit (exits full-width pane / search / marked filter first)`,
 		"",
 	);
 

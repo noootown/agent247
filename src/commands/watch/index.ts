@@ -167,6 +167,22 @@ export function watchCommand(baseDir: string): void {
 			);
 			return;
 		}
+		// Clear marked-only filter before quitting
+		if (
+			state.mode === "split" &&
+			state.showMarkedOnly &&
+			(str === "q" || str === "\x1B")
+		) {
+			state = { ...state, showMarkedOnly: false };
+			render(
+				state,
+				getVisibleLines(state),
+				botName,
+				ctx.hotkeys,
+				ctx.metaKeyLabel,
+			);
+			return;
+		}
 		// Global quit
 		if (
 			state.mode === "split" &&

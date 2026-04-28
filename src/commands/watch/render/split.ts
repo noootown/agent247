@@ -57,15 +57,20 @@ const FOOTER_FULL = `  ${DIM}f/q/esc back  ${FOOTER_COMMON}${RESET}`;
 function writeFooter(footer: string, state: State): void {
 	if (state.mode === "search") {
 		process.stdout.write(`  /${state.searchQuery}\u2588`);
-	} else if (state.flash) {
-		process.stdout.write(`  ${RED}${state.flash}${RESET}`);
-	} else if (state.searchConfirmed && state.searchQuery) {
-		process.stdout.write(
-			`${footer}  ${RED}filter: ${state.searchQuery}${RESET}`,
-		);
-	} else {
-		process.stdout.write(footer);
+		return;
 	}
+	if (state.flash) {
+		process.stdout.write(`  ${RED}${state.flash}${RESET}`);
+		return;
+	}
+	let line = footer;
+	if (state.searchConfirmed && state.searchQuery) {
+		line += `  ${RED}filter: ${state.searchQuery}${RESET}`;
+	}
+	if (state.showMarkedOnly) {
+		line += `  ${RED}filter: marked${RESET}`;
+	}
+	process.stdout.write(line);
 }
 
 function renderTabBar(activeTab: number): string {
